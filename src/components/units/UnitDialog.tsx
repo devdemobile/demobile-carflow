@@ -27,9 +27,15 @@ const UnitDialog: React.FC<UnitDialogProps> = ({
   isLoading,
 }) => {
   const isEditing = !!unit?.id;
+  
+  const handleClose = () => {
+    if (!isLoading) {
+      onClose();
+    }
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>

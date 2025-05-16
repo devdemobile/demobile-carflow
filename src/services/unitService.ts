@@ -4,13 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Unit } from '@/types';
 
 /**
- * Fetch all units from Supabase usando a tabela correta
+ * Fetch all units from Supabase
  */
 export const fetchUnits = async (): Promise<Unit[]> => {
   try {
-    // Query básica para obter dados das unidades da tabela correta
+    console.log('Iniciando fetchUnits...');
     const { data, error } = await supabase
-      .from('units')  // Garantindo que estamos buscando da tabela 'units'
+      .from('units')
       .select('*')
       .order('name');
     
@@ -25,39 +25,55 @@ export const fetchUnits = async (): Promise<Unit[]> => {
       return [];
     }
 
-    console.log('Unidades encontradas:', data);
+    console.log('Unidades encontradas:', data.length);
 
-    // Transformar dados para corresponder ao nosso tipo Unit
-    const units: Unit[] = await Promise.all(data.map(async (unit) => {
-      // Obter contagem de veículos
-      const { count: vehicleCount, error: vehicleError } = await supabase
-        .from('vehicles')
-        .select('*', { count: 'exact', head: true })
-        .eq('unit_id', unit.id);
-      
-      if (vehicleError) {
-        console.error('Erro ao contar veículos:', vehicleError);
-      }
-      
-      // Obter contagem de usuários
-      const { count: usersCount, error: usersError } = await supabase
-        .from('system_users')
-        .select('*', { count: 'exact', head: true })
-        .eq('unit_id', unit.id);
-      
-      if (usersError) {
-        console.error('Erro ao contar usuários:', usersError);
-      }
-      
-      return {
-        id: unit.id,
-        name: unit.name,
-        code: unit.code,
-        address: unit.address || '',
-        vehicleCount: vehicleCount || 0,
-        usersCount: usersCount || 0
-      };
+    // Transformamos os dados para o formato Unit sem operações assíncronas adicionais
+    const units: Unit[] = data.map(unit => ({
+      id: unit.id,
+      name: unit.name,
+      code: unit.code,
+      address: unit.address || '',
+      vehicleCount: 0, // Inicializamos com 0, atualizaremos depois se necessário
+      usersCount: 0    // Inicializamos com 0, atualizaremos depois se necessário
     }));
+
+    // Agora carregamos as contagens em uma única operação por tipo
+    try {
+      // Obter contagem de veículos por unidade
+      const { data: vehicleCounts } = await supabase
+        .from('vehicles')
+        .select('unit_id, count')
+        .select('unit_id, count(*)', { count: 'exact', head: false })
+        .group('unit_id');
+      
+      if (vehicleCounts) {
+        vehicleCounts.forEach(item => {
+          const unit = units.find(u => u.id === item.unit_id);
+          if (unit) {
+            unit.vehicleCount = item.count;
+          }
+        });
+      }
+      
+      // Obter contagem de usuários por unidade
+      const { data: userCounts } = await supabase
+        .from('system_users')
+        .select('unit_id, count')
+        .select('unit_id, count(*)', { count: 'exact', head: false })
+        .group('unit_id');
+      
+      if (userCounts) {
+        userCounts.forEach(item => {
+          const unit = units.find(u => u.id === item.unit_id);
+          if (unit) {
+            unit.usersCount = item.count;
+          }
+        });
+      }
+    } catch (countError) {
+      console.error('Erro ao contar itens relacionados:', countError);
+      // Continuamos mesmo com erro nas contagens, só não teremos os números exatos
+    }
 
     return units;
   } catch (error) {
@@ -72,6 +88,8 @@ export const fetchUnits = async (): Promise<Unit[]> => {
  */
 export const createUnit = async (unitData: { name: string; code: string; address?: string }): Promise<Unit | null> => {
   try {
+    console.log('Criando unidade:', unitData);
+    
     const { data, error } = await supabase
       .from('units')
       .insert([{ 
@@ -79,12 +97,16 @@ export const createUnit = async (unitData: { name: string; code: string; address
         code: unitData.code,
         address: unitData.address || '' 
       }])
-      .select()
-      .single();
+      .select();
     
     if (error) {
       console.error('Erro ao adicionar unidade:', error);
-      toast.error('Erro ao adicionar unidade');
+      toast.error(`Erro ao adicionar unidade: ${error.message}`);
+      return null;
+    }
+    
+    if (!data || data.length === 0) {
+      toast.error('Erro ao adicionar unidade: nenhum dado retornado');
       return null;
     }
     
@@ -92,10 +114,10 @@ export const createUnit = async (unitData: { name: string; code: string; address
     
     // Retornar a nova unidade com contagens inicializadas em 0
     return {
-      id: data.id,
-      name: data.name,
-      code: data.code,
-      address: data.address || '',
+      id: data[0].id,
+      name: data[0].name,
+      code: data[0].code,
+      address: data[0].address || '',
       vehicleCount: 0,
       usersCount: 0
     };
@@ -111,6 +133,8 @@ export const createUnit = async (unitData: { name: string; code: string; address
  */
 export const updateUnit = async (id: string, unitData: { name: string; code: string; address?: string }): Promise<boolean> => {
   try {
+    console.log('Atualizando unidade:', id, unitData);
+    
     const { error } = await supabase
       .from('units')
       .update({ 
@@ -122,7 +146,7 @@ export const updateUnit = async (id: string, unitData: { name: string; code: str
     
     if (error) {
       console.error('Erro ao atualizar unidade:', error);
-      toast.error('Erro ao atualizar unidade');
+      toast.error(`Erro ao atualizar unidade: ${error.message}`);
       return false;
     }
     
@@ -140,8 +164,9 @@ export const updateUnit = async (id: string, unitData: { name: string; code: str
  */
 export const deleteUnit = async (id: string): Promise<boolean> => {
   try {
-    // Primeiro verificar se existem veículos ou usuários associados a esta unidade
-    // Obter contagem de veículos
+    console.log('Excluindo unidade:', id);
+    
+    // Verificar se há veículos associados
     const { count: vehicleCount, error: vehicleError } = await supabase
       .from('vehicles')
       .select('*', { count: 'exact', head: true })
@@ -158,7 +183,7 @@ export const deleteUnit = async (id: string): Promise<boolean> => {
       return false;
     }
     
-    // Obter contagem de usuários
+    // Verificar se há usuários associados
     const { count: usersCount, error: usersError } = await supabase
       .from('system_users')
       .select('*', { count: 'exact', head: true })
@@ -175,7 +200,7 @@ export const deleteUnit = async (id: string): Promise<boolean> => {
       return false;
     }
     
-    // Se não houver dependências, prosseguir com a exclusão
+    // Excluir a unidade
     const { error } = await supabase
       .from('units')
       .delete()
@@ -183,7 +208,7 @@ export const deleteUnit = async (id: string): Promise<boolean> => {
     
     if (error) {
       console.error('Erro ao excluir unidade:', error);
-      toast.error('Erro ao excluir unidade');
+      toast.error(`Erro ao excluir unidade: ${error.message}`);
       return false;
     }
     

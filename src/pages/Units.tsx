@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Search, Map, Users, Car, Trash2, Pencil, Grid, List } from 'lucide-react';
+import { Plus, Search, Map, Users, Car, Trash2, Pencil, Grid, List, RefreshCcw } from 'lucide-react';
 import { useUnits } from '@/hooks/useUnits';
 import { UnitSkeleton } from '@/components/units/UnitSkeleton';
 import UnitDialog from '@/components/units/UnitDialog';
@@ -23,7 +23,8 @@ const Units = () => {
     isDesktop,
     isLoading, 
     isError,
-    refetch, 
+    refetch,
+    refreshUnits,
     addUnit, 
     updateUnit, 
     deleteUnit 
@@ -39,22 +40,22 @@ const Units = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   // Handler for creating a new unit
-  const handleCreateUnit = () => {
+  const handleCreateUnit = useCallback(() => {
     setSelectedUnit(null);
     setIsUnitDialogOpen(true);
-  };
+  }, []);
 
   // Handler for editing a unit
-  const handleEditUnit = (unit: Unit) => {
+  const handleEditUnit = useCallback((unit: Unit) => {
     setSelectedUnit(unit);
     setIsUnitDialogOpen(true);
-  };
+  }, []);
 
   // Handler for opening the delete confirmation dialog
-  const handleDeleteClick = (unit: Unit) => {
+  const handleDeleteClick = useCallback((unit: Unit) => {
     setSelectedUnit(unit);
     setIsDeleteDialogOpen(true);
-  };
+  }, []);
 
   // Handle form submission (create or update)
   const handleUnitFormSubmit = async (formData: { name: string; code: string; address?: string }) => {
@@ -63,19 +64,29 @@ const Units = () => {
     try {
       if (selectedUnit?.id) {
         // Update existing unit
+        console.log('Atualizando unidade existente:', selectedUnit.id, formData);
         const success = await updateUnit(selectedUnit.id, formData);
         if (success) {
           setIsUnitDialogOpen(false);
+          toast({
+            title: "Sucesso",
+            description: "Unidade atualizada com sucesso.",
+          });
         }
       } else {
         // Create new unit
+        console.log('Criando nova unidade:', formData);
         const newUnit = await addUnit(formData);
         if (newUnit) {
           setIsUnitDialogOpen(false);
+          toast({
+            title: "Sucesso",
+            description: "Unidade criada com sucesso.",
+          });
         }
       }
     } catch (error) {
-      console.error('Error saving unit:', error);
+      console.error('Erro ao salvar unidade:', error);
       toast({
         title: "Erro",
         description: "Ocorreu um erro ao salvar a unidade.",
@@ -93,12 +104,17 @@ const Units = () => {
     setIsDeleting(true);
     
     try {
+      console.log('Excluindo unidade:', selectedUnit.id);
       const success = await deleteUnit(selectedUnit.id);
       if (success) {
         setIsDeleteDialogOpen(false);
+        toast({
+          title: "Sucesso",
+          description: "Unidade excluída com sucesso.",
+        });
       }
     } catch (error) {
-      console.error('Error deleting unit:', error);
+      console.error('Erro ao excluir unidade:', error);
       toast({
         title: "Erro",
         description: "Ocorreu um erro ao excluir a unidade.",
@@ -110,10 +126,33 @@ const Units = () => {
   };
 
   // Handler for viewing unit details
-  const handleViewDetails = (unit: Unit) => {
+  const handleViewDetails = useCallback((unit: Unit) => {
     console.log("Ver detalhes da unidade:", unit);
     // Implementar tela de detalhes da unidade futuramente
-  };
+    toast({
+      title: "Informação",
+      description: "Detalhes da unidade serão implementados em breve.",
+    });
+  }, [toast]);
+
+  // Handler for forcing a refresh
+  const handleForceRefresh = useCallback(async () => {
+    console.log("Forçando atualização dos dados...");
+    try {
+      await refreshUnits();
+      toast({
+        title: "Dados atualizados",
+        description: "Os dados foram atualizados com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar dados:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao atualizar os dados.",
+        variant: "destructive"
+      });
+    }
+  }, [refreshUnits, toast]);
 
   // Show error message if failed to load units
   if (isError) {
@@ -133,7 +172,18 @@ const Units = () => {
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-          <h1 className="text-3xl font-bold">Unidades</h1>
+          <h1 className="text-3xl font-bold flex items-center">
+            Unidades
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="ml-2" 
+              onClick={handleForceRefresh}
+              disabled={isLoading}
+            >
+              <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </h1>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

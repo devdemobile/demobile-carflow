@@ -26,12 +26,12 @@ export const useUnits = () => {
     queryFn: async () => {
       console.log('Buscando unidades...');
       const units = await fetchUnits();
-      console.log('Unidades retornadas:', units);
+      console.log('Unidades retornadas:', units && units.length);
       return units;
     },
-    refetchOnWindowFocus: true,
-    retry: 1,
-    staleTime: 30000 // 30 segundos
+    refetchOnWindowFocus: false, // Evitar refetch automático ao focar a janela
+    retry: 2, // Tentar novamente 2 vezes em caso de erro
+    staleTime: 60000 // 1 minuto
   });
 
   // Log para debug
@@ -79,6 +79,12 @@ export const useUnits = () => {
     return success;
   };
 
+  // Forçar o recarregamento dos dados
+  const refreshUnits = async () => {
+    console.log('Forçando recarregamento de unidades...');
+    await refetch();
+  };
+
   return {
     units,
     searchTerm,
@@ -89,6 +95,7 @@ export const useUnits = () => {
     isLoading,
     isError,
     refetch,
+    refreshUnits,
     addUnit,
     updateUnit: handleUpdateUnit,
     deleteUnit: handleDeleteUnit
