@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Car, Search } from 'lucide-react';
@@ -11,8 +12,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter
 } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 interface VehicleMovementFormProps {
   isOpen?: boolean;
@@ -20,6 +25,15 @@ interface VehicleMovementFormProps {
   vehicle?: Vehicle;
   onSubmit?: (formData: Movement) => void;
   lastMovement?: Movement;
+}
+
+interface MovementFormData {
+  driver: string;
+  destination: string;
+  initialMileage: number;
+  departureDate: string;
+  departureTime: string;
+  notes?: string;
 }
 
 const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
@@ -34,13 +48,49 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   const [plate, setPlate] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
+  
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<MovementFormData>();
+  const [mileageInput, setMileageInput] = useState('');
+  
+  // Set initial values when vehicle changes
+  useEffect(() => {
+    if (vehicle) {
+      const today = new Date().toISOString().split('T')[0];
+      const currentTime = new Date().toTimeString().split(' ')[0].substring(0, 5);
+      
+      setValue('driver', '');
+      setValue('destination', '');
+      setValue('initialMileage', vehicle.mileage || 0);
+      setValue('departureDate', today);
+      setValue('departureTime', currentTime);
+      setValue('notes', '');
+      
+      setMileageInput(formatMileage(vehicle.mileage || 0));
+    }
+  }, [vehicle, setValue]);
 
   const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlate(e.target.value.toUpperCase());
     setError('');
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Remove todos os caracteres não numéricos
+    const numericValue = value.replace(/\D/g, '');
+    
+    // Converte para número
+    const mileage = numericValue ? parseInt(numericValue, 10) : 0;
+    
+    // Atualiza o valor no formulário
+    setValue('initialMileage', mileage);
+    
+    // Atualiza o valor exibido com formatação
+    setMileageInput(formatMileage(mileage));
+  };
+
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!plate.trim()) return;
 
@@ -62,42 +112,122 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     }
   };
 
+  const handleDialogFormSubmit = (data: MovementFormData) => {
+    if (!vehicle || !onSubmit) return;
+    
+    // Create movement object from form data
+    const movement: Movement = {
+      id: Math.random().toString(),
+      vehicleId: vehicle.id,
+      plate: vehicle.plate,
+      vehicleName: `${vehicle.make} ${vehicle.model}`,
+      driver: data.driver,
+      destination: data.destination,
+      initialMileage: data.initialMileage,
+      departureDate: data.departureDate,
+      departureTime: data.departureTime,
+      notes: data.notes,
+      departureUnitId: vehicle.unitId || '',
+      status: 'out',
+      type: 'exit'
+    };
+    
+    onSubmit(movement);
+    toast.success('Movimentação registrada com sucesso!');
+  };
+
   // If this is being used as a dialog, render the dialog version
   if (isOpen !== undefined && onClose && vehicle) {
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Registrar Movimentação</DialogTitle>
+            <DialogDescription>
+              Preencha os campos abaixo para registrar a saída do veículo.
+            </DialogDescription>
           </DialogHeader>
-          <div className="py-4">
-            <p>Veículo: {vehicle.plate} - {vehicle.make} {vehicle.model}</p>
-            {/* Add more form fields as needed for the dialog version */}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="button" onClick={() => {
-              if (onSubmit) {
-                // Create a mock movement object - replace with actual form data
-                const mockMovement: Movement = {
-                  id: Math.random().toString(),
-                  vehicleId: vehicle.id,
-                  plate: vehicle.plate,
-                  driver: "Example Driver",
-                  initialMileage: vehicle.mileage,
-                  departureUnitId: "unit-id",
-                  departureDate: new Date().toISOString().split('T')[0],
-                  departureTime: new Date().toTimeString().split(' ')[0],
-                  status: 'yard',
-                  type: 'exit'
-                };
-                onSubmit(mockMovement);
-                onClose();
-              }
-            }}>
-              Registrar
-            </Button>
-          </DialogFooter>
+          
+          <form onSubmit={handleSubmit(handleDialogFormSubmit)} className="space-y-4 py-2">
+            <div className="grid gap-3">
+              <div className="flex items-center space-x-2">
+                <div className="w-full">
+                  <Label htmlFor="vehicle-info">Veículo</Label>
+                  <p id="vehicle-info" className="text-sm font-medium">
+                    {vehicle.plate} - {vehicle.make} {vehicle.model}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid gap-3">
+                <div>
+                  <Label htmlFor="driver" className="text-sm">Motorista*</Label>
+                  <Input
+                    id="driver"
+                    placeholder="Nome do motorista"
+                    {...register('driver', { required: 'Motorista é obrigatório' })}
+                  />
+                  {errors.driver && <p className="text-xs text-destructive mt-1">{errors.driver.message}</p>}
+                </div>
+                
+                <div>
+                  <Label htmlFor="destination" className="text-sm">Destino</Label>
+                  <Input
+                    id="destination"
+                    placeholder="Local de destino"
+                    {...register('destination')}
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="initialMileage" className="text-sm">Quilometragem inicial*</Label>
+                  <Input
+                    id="initialMileage"
+                    placeholder="0 km"
+                    value={mileageInput}
+                    onChange={handleMileageChange}
+                  />
+                  {errors.initialMileage && <p className="text-xs text-destructive mt-1">{errors.initialMileage.message}</p>}
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label htmlFor="departureDate" className="text-sm">Data de saída*</Label>
+                    <Input
+                      type="date"
+                      id="departureDate"
+                      {...register('departureDate', { required: 'Data é obrigatória' })}
+                    />
+                    {errors.departureDate && <p className="text-xs text-destructive mt-1">{errors.departureDate.message}</p>}
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="departureTime" className="text-sm">Hora de saída*</Label>
+                    <Input
+                      type="time"
+                      id="departureTime"
+                      {...register('departureTime', { required: 'Hora é obrigatória' })}
+                    />
+                    {errors.departureTime && <p className="text-xs text-destructive mt-1">{errors.departureTime.message}</p>}
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="notes" className="text-sm">Observações</Label>
+                  <Input
+                    id="notes"
+                    placeholder="Observações adicionais"
+                    {...register('notes')}
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="pt-2">
+              <Button variant="outline" onClick={onClose} type="button">Cancelar</Button>
+              <Button type="submit">Registrar</Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     );
@@ -105,7 +235,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
 
   // Otherwise render the search form
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSearchSubmit} className="space-y-4">
       <div className="grid gap-2">
         <label htmlFor="plate-search" className="text-sm font-medium leading-none">
           Registrar movimentação

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
@@ -167,13 +166,39 @@ const Dashboard = () => {
     setIsFormOpen(true);
   };
   
-  const handleMovementSubmit = (formData: Movement) => {
-    // Update recent movements after registration
-    refetchMovements();
-    
-    // Clear form after submission
-    setPlateSearch('');
-    setSelectedVehicle(null);
+  const handleMovementSubmit = async (formData: Movement) => {
+    try {
+      // Save movement to the service
+      await movementService.createMovement(formData);
+
+      // Update the vehicle's status to 'out'
+      if (selectedVehicle) {
+        await vehicleService.updateVehicle(selectedVehicle.id, {
+          location: 'out',
+          mileage: formData.initialMileage // Update vehicle mileage
+        });
+      }
+      
+      // Update recent movements after registration
+      refetchMovements();
+      
+      toast({
+        title: "Movimentação registrada",
+        description: "A movimentação foi registrada com sucesso.",
+      });
+      
+      // Clear form after submission
+      setPlateSearch('');
+      setSelectedVehicle(null);
+      setIsFormOpen(false);
+    } catch (error) {
+      console.error("Erro ao registrar movimentação:", error);
+      toast({
+        title: "Erro ao registrar movimentação",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao registrar a movimentação.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
