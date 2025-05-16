@@ -1,4 +1,3 @@
-
 import { Vehicle, Movement, Unit } from "../types";
 
 // Mock units
@@ -7,13 +6,17 @@ export const mockUnits: Unit[] = [
     id: "1",
     name: "Matriz",
     code: "MTZ",
-    address: "Av. Principal, 1000, Centro, São Paulo - SP"
+    address: "Av. Principal, 1000, Centro, São Paulo - SP",
+    vehicleCount: 3,
+    usersCount: 5
   },
   {
     id: "2",
     name: "Filial 6",
     code: "FL6",
-    address: "Rua Secundária, 500, Jardim Europa, São Paulo - SP"
+    address: "Rua Secundária, 500, Jardim Europa, São Paulo - SP",
+    vehicleCount: 1,
+    usersCount: 2
   }
 ];
 
