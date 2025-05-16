@@ -12,26 +12,31 @@ import { useMediaQuery } from '@/hooks/use-mobile';
 
 const Vehicles = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'table');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterUnit, setFilterUnit] = useState<string | null>(null);
   const [filterLocation, setFilterLocation] = useState<string | null>(null);
   
-  const { vehicles, isLoading, refetch } = useVehicles({
-    searchTerm,
-    unitId: filterUnit,
-    location: filterLocation as 'yard' | 'out' | null,
-  });
+  const { 
+    vehicles, 
+    isLoading, 
+    refetch,
+    viewMode, 
+    setViewMode, 
+    filters, 
+    handleFilterChange, 
+    resetFilters 
+  } = useVehicles();
   
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-  };
-
-  // Function to handle creating a new vehicle - we'll add this functionality
+  // Function to handle creating a new vehicle
   const handleCreateVehicle = () => {
     // This function would open a dialog to create a new vehicle
     console.log("Create new vehicle");
     // Implement the actual vehicle creation functionality
+  };
+
+  const handleVehicleClick = (vehicle) => {
+    console.log("Vehicle clicked:", vehicle);
+    // Implement navigation to vehicle details page
   };
 
   return (
@@ -47,7 +52,7 @@ const Vehicles = () => {
                 className="pl-8 max-w-[300px]"
                 placeholder="Buscar veículo..." 
                 value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
               />
             </div>
             
@@ -61,10 +66,9 @@ const Vehicles = () => {
         <VehiclesFilter 
           viewMode={viewMode}
           setViewMode={setViewMode}
-          unitId={filterUnit}
-          setUnitId={setFilterUnit}
-          location={filterLocation}
-          setLocation={setFilterLocation}
+          filters={filters}
+          onFilterChange={handleFilterChange}
+          onReset={resetFilters}
         />
         
         {viewMode === 'table' ? (
@@ -72,6 +76,7 @@ const Vehicles = () => {
             vehicles={vehicles}
             isLoading={isLoading}
             onRefresh={refetch}
+            onVehicleClick={handleVehicleClick}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
@@ -81,7 +86,11 @@ const Vehicles = () => {
               ))
             ) : vehicles.length > 0 ? (
               vehicles.map((vehicle) => (
-                <VehicleCard key={vehicle.id} vehicle={vehicle} />
+                <VehicleCard 
+                  key={vehicle.id} 
+                  vehicle={vehicle} 
+                  onClick={() => handleVehicleClick(vehicle)}
+                />
               ))
             ) : (
               <div className="col-span-full text-center py-10">

@@ -18,17 +18,15 @@ import {
 import { VehicleLocation } from '@/types';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
-type FilterValues = {
-  search: string;
-  location: VehicleLocation | null;
-};
-
 interface VehiclesFilterProps {
-  filters: FilterValues;
-  onFilterChange: (name: string, value: string | null) => void;
-  onReset: () => void;
   viewMode: 'grid' | 'table';
   setViewMode: (mode: 'grid' | 'table') => void;
+  filters: {
+    search: string;
+    location: VehicleLocation | null;
+  };
+  onFilterChange: (name: string, value: string | null) => void;
+  onReset: () => void;
 }
 
 const VehiclesFilter: React.FC<VehiclesFilterProps> = ({ 

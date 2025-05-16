@@ -4,10 +4,17 @@ import { Vehicle, VehicleLocation } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
-export const useVehicles = () => {
+interface VehicleFilters {
+  searchTerm?: string;
+  unitId?: string | null;
+  location?: VehicleLocation | null;
+}
+
+export const useVehicles = (initialFilters?: VehicleFilters) => {
   const [filters, setFilters] = useState({
-    search: '',
-    location: null as VehicleLocation | null,
+    search: initialFilters?.searchTerm || '',
+    location: initialFilters?.location || null as VehicleLocation | null,
+    unitId: initialFilters?.unitId || null as string | null,
   });
 
   const [page, setPage] = useState(1);
@@ -31,6 +38,10 @@ export const useVehicles = () => {
       query = query.eq('location', filters.location);
     }
 
+    if (filters.unitId) {
+      query = query.eq('unit_id', filters.unitId);
+    }
+
     // Execute the query
     const { data, error } = await query.order('plate', { ascending: true });
     
@@ -50,7 +61,7 @@ export const useVehicles = () => {
       mileage: item.mileage,
       photoUrl: item.photo_url,
       location: item.location as VehicleLocation,
-      unitId: item.unit_id // Map unit_id to unitId
+      unitId: item.unit_id
     }));
   };
 
@@ -87,6 +98,7 @@ export const useVehicles = () => {
     setFilters({
       search: '',
       location: null,
+      unitId: null,
     });
     setPage(1);
   };

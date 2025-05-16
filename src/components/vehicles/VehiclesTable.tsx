@@ -13,10 +13,60 @@ import { Badge } from '@/components/ui/badge';
 
 interface VehiclesTableProps {
   vehicles: Vehicle[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
   onVehicleClick?: (vehicle: Vehicle) => void;
 }
 
-const VehiclesTable: React.FC<VehiclesTableProps> = ({ vehicles, onVehicleClick }) => {
+const VehiclesTable: React.FC<VehiclesTableProps> = ({ 
+  vehicles, 
+  isLoading, 
+  onRefresh, 
+  onVehicleClick 
+}) => {
+  if (isLoading) {
+    return (
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Placa</TableHead>
+              <TableHead className="hidden md:table-cell">Veículo</TableHead>
+              <TableHead className="hidden lg:table-cell">Cor</TableHead>
+              <TableHead className="hidden lg:table-cell">Ano</TableHead>
+              <TableHead>Quilometragem</TableHead>
+              <TableHead>Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 5 }).map((_, index) => (
+              <TableRow key={`loading-${index}`}>
+                <TableCell className="font-medium">
+                  <div className="h-4 bg-muted rounded animate-pulse w-20"></div>
+                </TableCell>
+                <TableCell className="hidden md:table-cell">
+                  <div className="h-4 bg-muted rounded animate-pulse w-32"></div>
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <div className="h-4 bg-muted rounded animate-pulse w-16"></div>
+                </TableCell>
+                <TableCell className="hidden lg:table-cell">
+                  <div className="h-4 bg-muted rounded animate-pulse w-12"></div>
+                </TableCell>
+                <TableCell>
+                  <div className="h-4 bg-muted rounded animate-pulse w-24"></div>
+                </TableCell>
+                <TableCell>
+                  <div className="h-6 bg-muted rounded animate-pulse w-16"></div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-md border">
       <Table>
