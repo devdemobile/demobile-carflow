@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Unit } from '@/types';
@@ -41,9 +40,7 @@ export const fetchUnits = async (): Promise<Unit[]> => {
     try {
       // Obter contagem de veículos por unidade - método corrigido
       const { data: vehicleCounts, error: vehicleError } = await supabase
-        .from('vehicles')
-        .select('unit_id, count')
-        .select('unit_id, count(*)');
+        .rpc('count_vehicles_by_unit');
       
       if (vehicleError) {
         console.error('Erro ao contar veículos:', vehicleError);
@@ -51,16 +48,14 @@ export const fetchUnits = async (): Promise<Unit[]> => {
         vehicleCounts.forEach(item => {
           const unit = units.find(u => u.id === item.unit_id);
           if (unit) {
-            unit.vehicleCount = item.count;
+            unit.vehicleCount = parseInt(item.count);
           }
         });
       }
       
       // Obter contagem de usuários por unidade - método corrigido
       const { data: userCounts, error: userError } = await supabase
-        .from('system_users')
-        .select('unit_id, count')
-        .select('unit_id, count(*)');
+        .rpc('count_users_by_unit');
       
       if (userError) {
         console.error('Erro ao contar usuários:', userError);
@@ -68,7 +63,7 @@ export const fetchUnits = async (): Promise<Unit[]> => {
         userCounts.forEach(item => {
           const unit = units.find(u => u.id === item.unit_id);
           if (unit) {
-            unit.usersCount = item.count;
+            unit.usersCount = parseInt(item.count);
           }
         });
       }
