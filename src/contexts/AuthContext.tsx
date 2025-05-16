@@ -1,15 +1,14 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 
 export type UserRole = 'admin' | 'operator';
 export type UserShift = 'day' | 'night';
 export type UserStatus = 'active' | 'inactive';
 
-export interface User {
+export interface AppUser {
   id: string;
   name: string;
   username: string;
@@ -30,7 +29,7 @@ export interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
+  user: AppUser | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
@@ -52,7 +51,7 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -64,7 +63,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       (event, session) => {
         setSession(session);
         if (session?.user) {
-          // Delay fetching user data to avoid potential deadlock
+          // Delay fetching user profile to avoid potential deadlock
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);

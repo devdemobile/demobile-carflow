@@ -1,223 +1,154 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '@/integrations/supabase/client';
-import { Eye, EyeOff, UserPlus } from 'lucide-react';
-
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-
-const signupSchema = z.object({
-  name: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
-  username: z.string().min(3, 'Nome de usuário deve ter pelo menos 3 caracteres'),
-  email: z.string().email('Email inválido'),
-  password: z.string().min(6, 'A senha deve ter pelo menos 6 caracteres'),
-  confirmPassword: z.string()
-}).refine(data => data.password === data.confirmPassword, {
-  message: "As senhas não coincidem",
-  path: ["confirmPassword"],
-});
-
-type SignupFormData = z.infer<typeof signupSchema>;
+import { useAuth } from '@/contexts/AuthContext';
 
 const Signup = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [showPassword, setShowPassword] = React.useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
+  const { user } = useAuth();
   
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<SignupFormData>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      name: '',
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    },
-  });
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
-  const onSubmit = async (data: SignupFormData) => {
-    setIsLoading(true);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Erro no cadastro",
+        description: "As senhas não coincidem.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (password.length < 6) {
+      toast({
+        title: "Erro no cadastro",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setLoading(true);
+    
     try {
-      const { error } = await supabase.auth.signUp({ 
-        email: data.email, 
-        password: data.password,
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
         options: {
           data: {
-            name: data.name,
-            username: data.username,
-          },
+            name,
+          }
         }
       });
-
+      
       if (error) {
         throw error;
       }
-
+      
       toast({
-        title: 'Conta criada com sucesso!',
-        description: 'Você será redirecionado para o login.',
+        title: "Cadastro realizado",
+        description: "Seu cadastro foi realizado com sucesso! Faça login para continuar.",
       });
       
-      setTimeout(() => {
-        navigate('/login');
-      }, 2000);
+      navigate('/login');
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Error signing up:', error);
       toast({
-        title: 'Erro ao criar conta',
-        description: error.message || 'Ocorreu um erro inesperado. Tente novamente.',
-        variant: 'destructive',
+        title: "Erro no cadastro",
+        description: error.message || "Ocorreu um erro ao tentar criar sua conta.",
+        variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const toggleShowPassword = () => setShowPassword(!showPassword);
-  const toggleShowConfirmPassword = () => setShowConfirmPassword(!showConfirmPassword);
-
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-muted/40">
       <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold text-primary">Criar Conta</CardTitle>
-          <CardDescription>Preencha os dados abaixo para criar uma nova conta</CardDescription>
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">
+            Car<span className="text-carflow-700">Flow</span>
+          </CardTitle>
+          <CardDescription>
+            Crie sua conta para acessar o sistema
+          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Nome Completo</Label>
-              <Input
-                id="name"
-                placeholder="Seu nome completo"
-                {...register('name')}
+              <Label htmlFor="name">Nome completo</Label>
+              <Input 
+                id="name" 
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
               />
-              {errors.name && (
-                <span className="text-sm text-destructive">{errors.name.message}</span>
-              )}
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="username">Nome de Usuário</Label>
-              <Input
-                id="username"
-                placeholder="Seu nome de usuário"
-                {...register('username')}
-              />
-              {errors.username && (
-                <span className="text-sm text-destructive">{errors.username.message}</span>
-              )}
-            </div>
-            
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                placeholder="seu@email.com"
-                {...register('email')}
-                autoComplete="email"
+              <Input 
+                id="email" 
+                type="email" 
+                placeholder="seu@email.com" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
               />
-              {errors.email && (
-                <span className="text-sm text-destructive">{errors.email.message}</span>
-              )}
             </div>
-            
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="******"
-                  {...register('password')}
-                  autoComplete="new-password"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={toggleShowPassword}
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {errors.password && (
-                <span className="text-sm text-destructive">{errors.password.message}</span>
-              )}
+              <Input 
+                id="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
-            
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  placeholder="******"
-                  {...register('confirmPassword')}
-                  autoComplete="new-password"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full"
-                  onClick={toggleShowConfirmPassword}
-                >
-                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-              {errors.confirmPassword && (
-                <span className="text-sm text-destructive">{errors.confirmPassword.message}</span>
-              )}
+              <Label htmlFor="confirmPassword">Confirmar senha</Label>
+              <Input 
+                id="confirmPassword" 
+                type="password" 
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
             </div>
-            
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <span className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Criando conta...
-                </span>
-              ) : (
-                <span className="flex items-center">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Criar Conta
-                </span>
-              )}
+          </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? "Criando conta..." : "Criar conta"}
             </Button>
-          </form>
-        </CardContent>
-        <CardFooter className="flex flex-col space-y-2">
-          <div className="text-center text-sm">
-            Já tem uma conta?{' '}
-            <Link to="/login" className="text-primary hover:underline">
-              Faça login
-            </Link>
-          </div>
-        </CardFooter>
+            <div className="text-center text-sm">
+              Já tem uma conta?{" "}
+              <Link to="/login" className="text-primary hover:underline">Faça login</Link>
+            </div>
+          </CardFooter>
+        </form>
       </Card>
     </div>
   );
