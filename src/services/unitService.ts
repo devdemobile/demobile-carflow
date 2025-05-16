@@ -39,14 +39,15 @@ export const fetchUnits = async (): Promise<Unit[]> => {
 
     // Agora carregamos as contagens em uma única operação por tipo
     try {
-      // Obter contagem de veículos por unidade
-      const { data: vehicleCounts } = await supabase
+      // Obter contagem de veículos por unidade - método corrigido
+      const { data: vehicleCounts, error: vehicleError } = await supabase
         .from('vehicles')
         .select('unit_id, count')
-        .select('unit_id, count(*)', { count: 'exact', head: false })
-        .group('unit_id');
+        .select('unit_id, count(*)');
       
-      if (vehicleCounts) {
+      if (vehicleError) {
+        console.error('Erro ao contar veículos:', vehicleError);
+      } else if (vehicleCounts) {
         vehicleCounts.forEach(item => {
           const unit = units.find(u => u.id === item.unit_id);
           if (unit) {
@@ -55,14 +56,15 @@ export const fetchUnits = async (): Promise<Unit[]> => {
         });
       }
       
-      // Obter contagem de usuários por unidade
-      const { data: userCounts } = await supabase
+      // Obter contagem de usuários por unidade - método corrigido
+      const { data: userCounts, error: userError } = await supabase
         .from('system_users')
         .select('unit_id, count')
-        .select('unit_id, count(*)', { count: 'exact', head: false })
-        .group('unit_id');
+        .select('unit_id, count(*)');
       
-      if (userCounts) {
+      if (userError) {
+        console.error('Erro ao contar usuários:', userError);
+      } else if (userCounts) {
         userCounts.forEach(item => {
           const unit = units.find(u => u.id === item.unit_id);
           if (unit) {
