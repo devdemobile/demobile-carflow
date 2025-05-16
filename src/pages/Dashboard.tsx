@@ -22,6 +22,7 @@ const Dashboard = () => {
   const [plateSearch, setPlateSearch] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   
   // Fetch vehicle stats
   const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 } } = useQuery({
@@ -166,6 +167,12 @@ const Dashboard = () => {
     setIsFormOpen(true);
   };
   
+  const handleMovementClick = (movement: Movement) => {
+    setSelectedMovement(movement);
+    // Adicionar lógica para abrir um modal de detalhes ou navegar para a página de detalhes
+    console.log("Movimento selecionado:", movement);
+  };
+  
   const handleMovementSubmit = async (formData: Movement) => {
     try {
       // Save movement to the service
@@ -304,7 +311,7 @@ const Dashboard = () => {
                 <MovementCard 
                   key={movement.id} 
                   movement={movement} 
-                  onClick={() => handleMovementClick(movement)}
+                  onClick={handleMovementClick}
                 />
               ))
             )}

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -132,7 +131,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     const movement: Movement = {
       id: Math.random().toString(),
       vehicleId: vehicle.id,
-      plate: vehicle.plate,
+      vehiclePlate: vehicle.plate, // Usar vehiclePlate em vez de plate
       vehicleName: `${vehicle.make} ${vehicle.model}`,
       driver: data.driver,
       destination: data.destination,

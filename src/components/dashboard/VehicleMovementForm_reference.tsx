@@ -82,7 +82,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
                 const mockMovement: Movement = {
                   id: Math.random().toString(),
                   vehicleId: vehicle.id,
-                  plate: vehicle.plate,
+                  vehiclePlate: vehicle.plate, // Usar vehiclePlate em vez de plate
                   driver: "Example Driver",
                   initialMileage: vehicle.mileage,
                   departureUnitId: "unit-id",
