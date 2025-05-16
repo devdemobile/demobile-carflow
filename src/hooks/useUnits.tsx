@@ -65,7 +65,7 @@ export const useUnits = () => {
   };
 
   // Add a new unit to the database
-  const addUnit = async (unitData: Omit<Unit, 'id' | 'vehicleCount' | 'usersCount'>): Promise<Unit | null> => {
+  const addUnit = async (unitData: { name: string; code: string; address?: string }): Promise<Unit | null> => {
     const { data, error } = await supabase
       .from('units')
       .insert([
@@ -98,7 +98,7 @@ export const useUnits = () => {
   };
 
   // Update an existing unit
-  const updateUnit = async (id: string, unitData: Partial<Omit<Unit, 'id' | 'vehicleCount' | 'usersCount'>>): Promise<boolean> => {
+  const updateUnit = async (id: string, unitData: { name: string; code: string; address?: string }): Promise<boolean> => {
     const { error } = await supabase
       .from('units')
       .update({ 
