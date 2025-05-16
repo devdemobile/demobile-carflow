@@ -7,12 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, user } = useAuth();
+  const { loginWithSystem, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -25,10 +26,10 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "Erro no login",
-        description: "Email e senha são obrigatórios.",
+        description: "Nome de usuário e senha são obrigatórios.",
         variant: "destructive",
       });
       return;
@@ -37,9 +38,13 @@ const Login = () => {
     setLoading(true);
     
     try {
-      const success = await login(email, password);
+      const success = await loginWithSystem(username, password);
       
       if (success) {
+        toast({
+          title: "Login realizado",
+          description: "Bem-vindo de volta!",
+        });
         navigate('/');
       }
     } finally {
@@ -61,13 +66,13 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Nome de usuário</Label>
               <Input 
-                id="email" 
-                type="email" 
-                placeholder="seu@email.com" 
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username" 
+                type="text"
+                placeholder="usuario"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 required
               />
             </div>

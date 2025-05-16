@@ -15,7 +15,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, loading } = useAuth();
   const location = useLocation();
   
-  // Wait for auth to initialize
+  // Aguardar carregamento da autenticação
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -24,12 +24,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
   
-  // Not authenticated
+  // Não autenticado
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  // If a specific permission is required
+  // Se uma permissão específica for necessária
   if (requiredPermission) {
     const hasPermission = user.permissions && (user.permissions as any)[requiredPermission];
     const isAdmin = user.role === 'admin';
@@ -39,7 +39,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     }
   }
   
-  // User is authenticated and has required permissions
+  // Usuário está autenticado e tem as permissões necessárias
   return <>{children}</>;
 };
 

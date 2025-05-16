@@ -1,18 +1,19 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { Database } from '@/integrations/supabase/types';
 
 export type UserRole = 'admin' | 'operator';
 export type UserShift = 'day' | 'night';
 export type UserStatus = 'active' | 'inactive';
 
-export interface AppUser {
+export interface SystemUser {
   id: string;
   name: string;
   username: string;
-  email: string;
+  email?: string;
   role: UserRole;
   shift: UserShift;
   unitId: string;
@@ -25,13 +26,15 @@ export interface AppUser {
     canEditUnits: boolean;
     canViewUsers: boolean;
     canEditUsers: boolean;
+    canViewMovements: boolean;
+    canEditMovements: boolean;
   };
 }
 
 interface AuthContextType {
-  user: AppUser | null;
+  user: SystemUser | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<boolean>;
+  loginWithSystem: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   switchUnit: (unitId: string, password?: string) => Promise<boolean>;
 }
@@ -39,7 +42,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  login: async () => false,
+  loginWithSystem: async () => false,
   logout: () => {},
   switchUnit: async () => false,
 });
@@ -51,116 +54,130 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<AppUser | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<SystemUser | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Check for existing session on component mount
+  // Verificar login existente no localStorage
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        if (session?.user) {
-          // Delay fetching user profile to avoid potential deadlock
-          setTimeout(() => {
-            fetchUserProfile(session.user.id);
-          }, 0);
-        } else {
-          setUser(null);
-        }
-      }
-    );
+    const checkUserSession = async () => {
+      try {
+        const storedUser = localStorage.getItem('carflow_user');
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          // Verificar se o token ainda é válido
+          const { data, error } = await supabase
+            .rpc('verify_password', {
+              username: userData.username,
+              password_attempt: localStorage.getItem('carflow_token') || '',
+            });
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
+          if (data && !error) {
+            setUser(userData);
+          } else {
+            // Token inválido, limpar localStorage
+            localStorage.removeItem('carflow_user');
+            localStorage.removeItem('carflow_token');
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar sessão:', error);
+      } finally {
         setLoading(false);
       }
-    });
-
-    return () => {
-      subscription.unsubscribe();
     };
+
+    checkUserSession();
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const loginWithSystem = async (username: string, password: string): Promise<boolean> => {
     try {
-      // Fetch user profile data
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*, units(name)')
-        .eq('id', userId)
-        .single();
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      // Fetch user permissions
-      const { data: permissions, error: permissionsError } = await supabase
-        .from('user_permissions')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
-
-      if (permissionsError) {
-        console.error('Error fetching permissions:', permissionsError);
-      }
-
-      if (profile) {
-        setUser({
-          id: profile.id,
-          name: profile.name,
-          username: profile.username,
-          email: profile.email,
-          role: profile.role,
-          shift: profile.shift,
-          unitId: profile.unit_id,
-          unitName: profile.units?.name || '',
-          status: profile.status,
-          permissions: permissions ? {
-            canViewVehicles: permissions.can_view_vehicles,
-            canEditVehicles: permissions.can_edit_vehicles,
-            canViewUnits: permissions.can_view_units,
-            canEditUnits: permissions.can_edit_units,
-            canViewUsers: permissions.can_view_users,
-            canEditUsers: permissions.can_edit_users,
-          } : undefined
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const login = async (email: string, password: string) => {
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Verificar credenciais usando RPC do Supabase
+      const { data: userId, error } = await supabase.rpc('verify_password', {
+        username,
+        password_attempt: password,
       });
 
-      if (error) {
-        console.error('Login error:', error.message);
+      if (error || !userId) {
         toast({
           title: 'Erro no login',
-          description: error.message,
+          description: 'Nome de usuário ou senha incorretos.',
           variant: 'destructive',
         });
         return false;
       }
 
-      // Auth state change will handle setting the user
+      // Obter dados do usuário
+      const { data: userData, error: userError } = await supabase
+        .from('system_users')
+        .select('*, units(name)')
+        .eq('id', userId)
+        .single();
+
+      if (userError || !userData) {
+        toast({
+          title: 'Erro no login',
+          description: 'Erro ao carregar dados do usuário.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+
+      // Obter permissões do usuário
+      const { data: permissions, error: permissionsError } = await supabase
+        .from('system_user_permissions')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (permissionsError) {
+        console.error('Erro ao carregar permissões:', permissionsError);
+      }
+
+      // Montar objeto do usuário autenticado
+      const systemUser: SystemUser = {
+        id: userData.id,
+        name: userData.name,
+        username: userData.username,
+        email: userData.email,
+        role: userData.role,
+        shift: userData.shift,
+        unitId: userData.unit_id,
+        unitName: userData.units?.name || '',
+        status: userData.status,
+        permissions: permissions ? {
+          canViewVehicles: permissions.can_view_vehicles,
+          canEditVehicles: permissions.can_edit_vehicles,
+          canViewUnits: permissions.can_view_units,
+          canEditUnits: permissions.can_edit_units,
+          canViewUsers: permissions.can_view_users,
+          canEditUsers: permissions.can_edit_users,
+          canViewMovements: permissions.can_view_movements,
+          canEditMovements: permissions.can_edit_movements,
+        } : undefined
+      };
+
+      // Guardar usuário e token no localStorage
+      localStorage.setItem('carflow_user', JSON.stringify(systemUser));
+      localStorage.setItem('carflow_token', password); // Poderia ser um token JWT, mas por simplicidade usamos a senha
+
+      setUser(systemUser);
+      
+      // Registrar atividade
+      await supabase.from('activity_logs').insert({
+        user_id: systemUser.id,
+        action: 'login',
+        table_name: 'system_users',
+        record_id: systemUser.id,
+        details: {
+          username: systemUser.username,
+          date: new Date().toISOString()
+        }
+      });
+
       return true;
     } catch (error) {
-      console.error('Unexpected login error:', error);
+      console.error('Erro inesperado no login:', error);
       toast({
         title: 'Erro no login',
         description: 'Ocorreu um erro inesperado. Tente novamente.',
@@ -172,13 +189,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw error;
+      if (user) {
+        // Registrar atividade
+        await supabase.from('activity_logs').insert({
+          user_id: user.id,
+          action: 'logout',
+          table_name: 'system_users',
+          record_id: user.id,
+          details: {
+            username: user.username,
+            date: new Date().toISOString()
+          }
+        });
       }
-      // onAuthStateChange will handle clearing the user
+      
+      // Limpar localStorage e estado do usuário
+      localStorage.removeItem('carflow_user');
+      localStorage.removeItem('carflow_token');
+      setUser(null);
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Erro ao sair:', error);
       toast({
         title: 'Erro ao sair',
         description: 'Ocorreu um erro ao tentar sair. Tente novamente.',
@@ -187,18 +217,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const switchUnit = async (unitId: string, password?: string) => {
+  const switchUnit = async (unitId: string, password?: string): Promise<boolean> => {
     if (!user) return false;
 
     try {
-      // Verify password if user is not an admin
+      // Verificar senha se usuário não for admin
       if (user.role !== 'admin' && password) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: user.email,
-          password,
+        const { data, error } = await supabase.rpc('verify_password', {
+          username: user.username,
+          password_attempt: password,
         });
 
-        if (error) {
+        if (!data || error) {
           toast({
             title: 'Senha incorreta',
             description: 'A senha fornecida está incorreta.',
@@ -208,7 +238,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       }
 
-      // Fetch the unit name
+      // Obter o nome da unidade
       const { data: unit, error: unitError } = await supabase
         .from('units')
         .select('name')
@@ -219,9 +249,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw unitError;
       }
 
-      // Update the user's unit in the database
+      // Atualizar unidade do usuário no banco de dados
       const { error: updateError } = await supabase
-        .from('profiles')
+        .from('system_users')
         .update({ unit_id: unitId })
         .eq('id', user.id);
 
@@ -229,11 +259,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw updateError;
       }
 
-      // Log the unit switch
+      // Registrar troca de unidade
       await supabase.from('activity_logs').insert({
         user_id: user.id,
         action: 'unit_switch',
-        table_name: 'profiles',
+        table_name: 'system_users',
         record_id: user.id,
         details: {
           previous_unit_id: user.unitId,
@@ -243,12 +273,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       });
 
-      // Update the user state
-      setUser(prev => prev ? {
-        ...prev,
-        unitId,
-        unitName: unit.name
-      } : null);
+      // Atualizar estado e localStorage
+      const updatedUser = { 
+        ...user, 
+        unitId, 
+        unitName: unit.name 
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('carflow_user', JSON.stringify(updatedUser));
 
       toast({
         title: 'Unidade alterada',
@@ -257,7 +290,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       return true;
     } catch (error) {
-      console.error('Error switching unit:', error);
+      console.error('Erro ao trocar de unidade:', error);
       toast({
         title: 'Erro ao trocar de unidade',
         description: 'Ocorreu um erro ao trocar de unidade. Tente novamente.',
@@ -268,7 +301,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, switchUnit }}>
+    <AuthContext.Provider value={{ user, loading, loginWithSystem, logout, switchUnit }}>
       {children}
     </AuthContext.Provider>
   );

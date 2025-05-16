@@ -174,6 +174,112 @@ export type Database = {
           },
         ]
       }
+      system_user_permissions: {
+        Row: {
+          can_edit_movements: boolean
+          can_edit_units: boolean
+          can_edit_users: boolean
+          can_edit_vehicles: boolean
+          can_view_movements: boolean
+          can_view_units: boolean
+          can_view_users: boolean
+          can_view_vehicles: boolean
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_edit_movements?: boolean
+          can_edit_units?: boolean
+          can_edit_users?: boolean
+          can_edit_vehicles?: boolean
+          can_view_movements?: boolean
+          can_view_units?: boolean
+          can_view_users?: boolean
+          can_view_vehicles?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_edit_movements?: boolean
+          can_edit_units?: boolean
+          can_edit_users?: boolean
+          can_edit_vehicles?: boolean
+          can_view_movements?: boolean
+          can_view_units?: boolean
+          can_view_users?: boolean
+          can_view_vehicles?: boolean
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_users: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          password_hash: string
+          role: Database["public"]["Enums"]["user_role"]
+          shift: Database["public"]["Enums"]["user_shift"]
+          status: Database["public"]["Enums"]["user_status"]
+          unit_id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          password_hash: string
+          role?: Database["public"]["Enums"]["user_role"]
+          shift?: Database["public"]["Enums"]["user_shift"]
+          status?: Database["public"]["Enums"]["user_status"]
+          unit_id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          password_hash?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          shift?: Database["public"]["Enums"]["user_shift"]
+          status?: Database["public"]["Enums"]["user_status"]
+          unit_id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_users_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       units: {
         Row: {
           address: string | null
@@ -345,7 +451,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      hash_password: {
+        Args: { password: string }
+        Returns: string
+      }
+      verify_password: {
+        Args: { username: string; password_attempt: string }
+        Returns: string
+      }
     }
     Enums: {
       movement_type: "entry" | "exit" | "initial"
