@@ -32,6 +32,8 @@ interface ComboboxProps {
   allowCustomValue?: boolean;
   emptyMessage?: string;
   name?: string;
+  id?: string;
+  disabled?: boolean;
 }
 
 const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
@@ -43,7 +45,9 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
     className,
     allowCustomValue = false,
     emptyMessage = "Nenhum item encontrado.",
-    name
+    name,
+    id,
+    disabled = false
   }, ref) => {
     const [open, setOpen] = React.useState(false);
     const [searchValue, setSearchValue] = React.useState("");
@@ -74,15 +78,20 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
           type="hidden"
           ref={ref}
           name={name}
+          id={id}
           value={value}
         />
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
+        <Popover open={disabled ? false : open} onOpenChange={disabled ? undefined : setOpen}>
+          <PopoverTrigger asChild disabled={disabled}>
             <Button
               variant="outline"
               role="combobox"
               aria-expanded={open}
-              className="w-full justify-between"
+              className={cn(
+                "w-full justify-between",
+                disabled && "opacity-50 cursor-not-allowed"
+              )}
+              disabled={disabled}
             >
               {value ? selectedOptionLabel : placeholder}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />

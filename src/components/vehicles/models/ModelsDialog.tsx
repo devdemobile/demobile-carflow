@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -98,7 +97,6 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
           <div className="grid gap-2 w-full sm:w-auto sm:max-w-[240px]">
             <Label htmlFor="makeFilter">Filtrar por marca</Label>
             <Combobox
-              id="makeFilter"
               options={[
                 { label: 'Todas as marcas', value: '' },
                 ...makes.map(make => ({ label: make.name, value: make.id }))
