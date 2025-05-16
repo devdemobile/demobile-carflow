@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -40,7 +41,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { UserRole, UserShift, UserStatus } from '@/contexts/AuthContext';
+import { UserRole, UserShift, UserStatus } from '@/types/entities';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, UserRound, Filter } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';

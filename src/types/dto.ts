@@ -2,7 +2,7 @@
 /**
  * Data Transfer Objects para operações com APIs
  */
-import { Movement, Unit, Vehicle, SystemUser, UserPermissions } from './entities';
+import { Movement, Unit, Vehicle, SystemUser, UserPermissions, UserRole, UserShift, UserStatus } from './entities';
 
 export interface UnitDTO {
   name: string;
@@ -18,6 +18,7 @@ export interface VehicleDTO {
   year: number;
   mileage: number;
   photoUrl?: string;
+  location?: 'yard' | 'out';
   unitId: string;
 }
 
@@ -36,13 +37,14 @@ export interface MovementDTO {
   type: 'entry' | 'exit' | 'initial';
 }
 
-export interface SystemUserDTO {
+export interface UserDTO {
   name: string;
   username: string;
   email?: string;
   password: string;
-  role?: 'admin' | 'operator';
-  shift?: 'day' | 'night';
+  role?: UserRole;
+  shift?: UserShift;
+  status?: UserStatus;
   unitId: string;
   permissions?: UserPermissions;
 }

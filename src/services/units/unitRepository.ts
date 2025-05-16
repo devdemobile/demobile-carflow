@@ -131,30 +131,40 @@ export class UnitRepository implements IUnitRepository {
    * Obtém a contagem de veículos por unidade
    */
   async getVehicleCount(unitId: string): Promise<number> {
-    const { count } = await handleSupabaseRequest(
+    const result = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
         .select('id', { count: 'exact', head: true })
         .eq('unit_id', unitId),
       'Erro ao contar veículos da unidade'
-    ) || { count: 0 };
+    );
     
-    return count || 0;
+    // Corrigindo o acesso ao count
+    if (result && typeof result === 'object' && 'count' in result) {
+      return result.count || 0;
+    }
+    
+    return 0;
   }
 
   /**
    * Obtém a contagem de usuários por unidade
    */
   async getUsersCount(unitId: string): Promise<number> {
-    const { count } = await handleSupabaseRequest(
+    const result = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
         .select('id', { count: 'exact', head: true })
         .eq('unit_id', unitId),
       'Erro ao contar usuários da unidade'
-    ) || { count: 0 };
+    );
     
-    return count || 0;
+    // Corrigindo o acesso ao count
+    if (result && typeof result === 'object' && 'count' in result) {
+      return result.count || 0;
+    }
+    
+    return 0;
   }
 
   /**

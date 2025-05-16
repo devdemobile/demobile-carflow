@@ -1,27 +1,24 @@
 
-/**
- * Serviço de negócios para Usuários
- */
-import { SystemUser, SystemUserDTO, UserPermissions, UserStatus } from '@/types';
-import { IUserRepository, userRepository } from './userRepository';
+import { toast } from 'sonner';
+import { SystemUser, UserPermissions, UserRole, UserStatus } from '@/types';
+import { UserDTO, LoginCredentials } from '@/types/dto';
+import { userRepository, IUserRepository } from './userRepository';
 
 /**
- * Interface do serviço de usuários
+ * Interface para o serviço de usuários
  */
 export interface IUserService {
   getAllUsers(): Promise<SystemUser[]>;
   getUserById(id: string): Promise<SystemUser | null>;
-  getUserByUsername(username: string): Promise<SystemUser | null>;
   getUsersByUnit(unitId: string): Promise<SystemUser[]>;
-  authenticateUser(username: string, password: string): Promise<SystemUser | null>;
-  createUser(userData: SystemUserDTO): Promise<SystemUser | null>;
-  updateUser(id: string, userData: Partial<SystemUserDTO>): Promise<boolean>;
-  changePassword(id: string, newPassword: string): Promise<boolean>;
-  activateUser(id: string): Promise<boolean>;
-  deactivateUser(id: string): Promise<boolean>;
+  validateCredentials(credentials: LoginCredentials): Promise<SystemUser | null>;
+  createUser(userData: UserDTO, createdBy: string): Promise<SystemUser | null>;
+  updateUser(id: string, userData: Partial<UserDTO>): Promise<boolean>;
+  changePassword(userId: string, newPassword: string): Promise<boolean>;
+  updateUserStatus(userId: string, status: UserStatus): Promise<boolean>;
+  updateUserPermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean>;
   deleteUser(id: string): Promise<boolean>;
   getUserPermissions(userId: string): Promise<UserPermissions | null>;
-  updateUserPermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean>;
 }
 
 /**
@@ -29,161 +26,195 @@ export interface IUserService {
  */
 export class UserService implements IUserService {
   private repository: IUserRepository;
-
-  constructor(userRepository: IUserRepository) {
-    this.repository = userRepository;
+  
+  constructor(repository: IUserRepository) {
+    this.repository = repository;
   }
-
+  
   /**
-   * Obtém todos os usuários
+   * Busca todos os usuários
    */
   async getAllUsers(): Promise<SystemUser[]> {
-    return this.repository.findAll();
+    try {
+      return await this.repository.findAll();
+    } catch (error) {
+      console.error('Erro ao buscar usuários:', error);
+      toast.error('Erro ao carregar dados dos usuários');
+      return [];
+    }
   }
-
+  
   /**
-   * Obtém um usuário pelo ID
+   * Busca um usuário pelo ID
    */
   async getUserById(id: string): Promise<SystemUser | null> {
-    return this.repository.findById(id);
+    try {
+      return await this.repository.findById(id);
+    } catch (error) {
+      console.error(`Erro ao buscar usuário ${id}:`, error);
+      toast.error('Erro ao carregar dados do usuário');
+      return null;
+    }
   }
-
+  
   /**
-   * Obtém um usuário pelo nome de usuário
-   */
-  async getUserByUsername(username: string): Promise<SystemUser | null> {
-    return this.repository.findByUsername(username);
-  }
-
-  /**
-   * Obtém usuários por unidade
+   * Busca usuários por unidade
    */
   async getUsersByUnit(unitId: string): Promise<SystemUser[]> {
-    return this.repository.findByUnit(unitId);
+    try {
+      return await this.repository.findByUnitId(unitId);
+    } catch (error) {
+      console.error(`Erro ao buscar usuários da unidade ${unitId}:`, error);
+      toast.error('Erro ao carregar usuários da unidade');
+      return [];
+    }
   }
-
+  
   /**
-   * Autentica um usuário
+   * Valida credenciais de usuário
    */
-  async authenticateUser(username: string, password: string): Promise<SystemUser | null> {
-    // Validar credenciais
-    const userId = await this.repository.validateCredentials(username, password);
-    
-    if (!userId) return null;
-    
-    // Buscar dados do usuário
-    return this.repository.findById(userId);
+  async validateCredentials(credentials: LoginCredentials): Promise<SystemUser | null> {
+    try {
+      const userId = await this.repository.verifyPassword(credentials.username, credentials.password);
+      
+      if (!userId) {
+        toast.error('Credenciais inválidas');
+        return null;
+      }
+      
+      return this.repository.findById(userId);
+    } catch (error) {
+      console.error('Erro ao validar credenciais:', error);
+      toast.error('Erro ao fazer login');
+      return null;
+    }
   }
-
+  
   /**
    * Cria um novo usuário
    */
-  async createUser(userData: SystemUserDTO): Promise<SystemUser | null> {
-    // Verificar se já existe usuário com o mesmo username
-    const existingUser = await this.repository.findByUsername(userData.username);
-    if (existingUser) {
-      throw new Error(`Nome de usuário '${userData.username}' já está em uso`);
+  async createUser(userData: UserDTO, createdBy: string): Promise<SystemUser | null> {
+    try {
+      const user = await this.repository.create(userData, createdBy);
+      
+      if (user) {
+        toast.success('Usuário criado com sucesso');
+      }
+      
+      return user;
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
+      toast.error('Erro ao criar usuário');
+      return null;
     }
-    
-    return this.repository.create(userData);
   }
-
+  
   /**
    * Atualiza um usuário existente
    */
-  async updateUser(id: string, userData: Partial<SystemUserDTO>): Promise<boolean> {
-    // Verificar se o usuário existe
-    const user = await this.repository.findById(id);
-    if (!user) {
-      throw new Error('Usuário não encontrado');
-    }
-    
-    // Se estiver alterando o username, verificar se já não está em uso
-    if (userData.username && userData.username !== user.username) {
-      const existingUser = await this.repository.findByUsername(userData.username);
-      if (existingUser) {
-        throw new Error(`Nome de usuário '${userData.username}' já está em uso`);
+  async updateUser(id: string, userData: Partial<UserDTO>): Promise<boolean> {
+    try {
+      const success = await this.repository.update(id, userData);
+      
+      if (success) {
+        toast.success('Usuário atualizado com sucesso');
       }
+      
+      return success;
+    } catch (error) {
+      console.error(`Erro ao atualizar usuário ${id}:`, error);
+      toast.error('Erro ao atualizar usuário');
+      return false;
     }
-    
-    return this.repository.update(id, userData);
   }
-
+  
   /**
    * Altera a senha de um usuário
    */
-  async changePassword(id: string, newPassword: string): Promise<boolean> {
-    // Verificar se o usuário existe
-    const user = await this.repository.findById(id);
-    if (!user) {
-      throw new Error('Usuário não encontrado');
+  async changePassword(userId: string, newPassword: string): Promise<boolean> {
+    try {
+      const success = await this.repository.updateUserPassword(userId, newPassword);
+      
+      if (success) {
+        toast.success('Senha alterada com sucesso');
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`Erro ao alterar senha do usuário ${userId}:`, error);
+      toast.error('Erro ao alterar senha');
+      return false;
     }
-    
-    // Validar complexidade da senha
-    if (newPassword.length < 6) {
-      throw new Error('A senha deve ter pelo menos 6 caracteres');
-    }
-    
-    return this.repository.updatePassword(id, newPassword);
   }
-
+  
   /**
-   * Ativa um usuário
+   * Atualiza o status de um usuário
    */
-  async activateUser(id: string): Promise<boolean> {
-    // Verificar se o usuário existe
-    const user = await this.repository.findById(id);
-    if (!user) {
-      throw new Error('Usuário não encontrado');
+  async updateUserStatus(userId: string, status: UserStatus): Promise<boolean> {
+    try {
+      const success = await this.repository.updateStatus(userId, status);
+      
+      if (success) {
+        toast.success(`Usuário ${status === 'active' ? 'ativado' : 'desativado'} com sucesso`);
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`Erro ao atualizar status do usuário ${userId}:`, error);
+      toast.error('Erro ao atualizar status do usuário');
+      return false;
     }
-    
-    return this.repository.updateStatus(id, 'active');
   }
-
-  /**
-   * Desativa um usuário
-   */
-  async deactivateUser(id: string): Promise<boolean> {
-    // Verificar se o usuário existe
-    const user = await this.repository.findById(id);
-    if (!user) {
-      throw new Error('Usuário não encontrado');
-    }
-    
-    return this.repository.updateStatus(id, 'inactive');
-  }
-
-  /**
-   * Remove um usuário
-   */
-  async deleteUser(id: string): Promise<boolean> {
-    // Verificar se o usuário existe
-    const user = await this.repository.findById(id);
-    if (!user) {
-      throw new Error('Usuário não encontrado');
-    }
-    
-    return this.repository.delete(id);
-  }
-
-  /**
-   * Obtém as permissões de um usuário
-   */
-  async getUserPermissions(userId: string): Promise<UserPermissions | null> {
-    return this.repository.getPermissions(userId);
-  }
-
+  
   /**
    * Atualiza as permissões de um usuário
    */
   async updateUserPermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean> {
-    // Verificar se o usuário existe
-    const user = await this.repository.findById(userId);
-    if (!user) {
-      throw new Error('Usuário não encontrado');
+    try {
+      const success = await this.repository.updatePermissions(userId, permissions);
+      
+      if (success) {
+        toast.success('Permissões atualizadas com sucesso');
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`Erro ao atualizar permissões do usuário ${userId}:`, error);
+      toast.error('Erro ao atualizar permissões');
+      return false;
     }
-    
-    return this.repository.updatePermissions(userId, permissions);
+  }
+  
+  /**
+   * Remove um usuário
+   */
+  async deleteUser(id: string): Promise<boolean> {
+    try {
+      const success = await this.repository.delete(id);
+      
+      if (success) {
+        toast.success('Usuário excluído com sucesso');
+      }
+      
+      return success;
+    } catch (error) {
+      console.error(`Erro ao excluir usuário ${id}:`, error);
+      toast.error('Erro ao excluir usuário');
+      return false;
+    }
+  }
+  
+  /**
+   * Obtém as permissões de um usuário
+   */
+  async getUserPermissions(userId: string): Promise<UserPermissions | null> {
+    try {
+      return await this.repository.getUserPermissions(userId);
+    } catch (error) {
+      console.error(`Erro ao buscar permissões do usuário ${userId}:`, error);
+      toast.error('Erro ao carregar permissões do usuário');
+      return null;
+    }
   }
 }
 
