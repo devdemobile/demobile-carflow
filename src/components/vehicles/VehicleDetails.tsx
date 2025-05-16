@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Vehicle } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Edit, Trash2, Car, MapPin } from 'lucide-react';
+import { Edit, Trash2, Car, MapPin, Warehouse, Navigation } from 'lucide-react';
 import { DeleteVehicleDialog } from './DeleteVehicleDialog';
 import VehicleForm from './VehicleForm';
 import { Badge } from '@/components/ui/badge';
@@ -29,6 +29,8 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
   const { userPermissions } = useAuth();
 
   if (!vehicle) return null;
+
+  const LocationIcon = vehicle.location === 'yard' ? Warehouse : Navigation;
 
   return (
     <>
@@ -102,8 +104,11 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
                   </li>
                   <li className="flex justify-between">
                     <span className="text-muted-foreground">Localização:</span>
-                    <Badge variant={vehicle.location === 'yard' ? 'outline' : 'secondary'}>
-                      <MapPin className="h-3 w-3 mr-1" />
+                    <Badge 
+                      variant={vehicle.location === 'yard' ? 'outline' : 'secondary'}
+                      className="flex items-center"
+                    >
+                      <LocationIcon className="h-3 w-3 mr-1" />
                       {vehicle.location === 'yard' ? 'No Pátio' : 'Em Uso'}
                     </Badge>
                   </li>

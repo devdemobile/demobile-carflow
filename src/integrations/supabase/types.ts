@@ -267,6 +267,59 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_makes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vehicle_models: {
+        Row: {
+          created_at: string
+          id: string
+          make_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          make_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          make_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_models_make_id_fkey"
+            columns: ["make_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_makes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       vehicles: {
         Row: {
           color: string
@@ -274,8 +327,10 @@ export type Database = {
           id: string
           location: Database["public"]["Enums"]["vehicle_location"]
           make: string
+          make_id: string | null
           mileage: number
           model: string
+          model_id: string | null
           photo_url: string | null
           plate: string
           unit_id: string
@@ -288,8 +343,10 @@ export type Database = {
           id?: string
           location?: Database["public"]["Enums"]["vehicle_location"]
           make: string
+          make_id?: string | null
           mileage: number
           model: string
+          model_id?: string | null
           photo_url?: string | null
           plate: string
           unit_id: string
@@ -302,8 +359,10 @@ export type Database = {
           id?: string
           location?: Database["public"]["Enums"]["vehicle_location"]
           make?: string
+          make_id?: string | null
           mileage?: number
           model?: string
+          model_id?: string | null
           photo_url?: string | null
           plate?: string
           unit_id?: string
@@ -311,6 +370,20 @@ export type Database = {
           year?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "vehicles_make_id_fkey"
+            columns: ["make_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_makes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_models"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "vehicles_unit_id_fkey"
             columns: ["unit_id"]

@@ -57,6 +57,24 @@ export interface Vehicle {
   location: VehicleLocation;
   unitId: string;
   unitName?: string;
+  makeId?: string;
+  modelId?: string;
+}
+
+export interface VehicleMake {
+  id: string;
+  name: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface VehicleModel {
+  id: string;
+  name: string;
+  makeId: string;
+  makeName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Movement {

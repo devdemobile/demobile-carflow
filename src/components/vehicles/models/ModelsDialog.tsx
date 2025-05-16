@@ -1,0 +1,219 @@
+
+import { useState } from 'react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle 
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { 
+  Table, 
+  TableHeader, 
+  TableRow, 
+  TableHead, 
+  TableBody, 
+  TableCell 
+} from '@/components/ui/table';
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import ModelForm from './ModelForm';
+import { DeleteModelDialog } from './DeleteModelDialog';
+import { useVehicleModels } from '@/hooks/useVehicleModels';
+import { useVehicleMakes } from '@/hooks/useVehicleMakes';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Combobox } from '@/components/ui/combobox';
+import { Label } from '@/components/ui/label';
+import { useAuth } from '@/hooks/useAuth';
+
+interface ModelsDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedMakeId, setSelectedMakeId] = useState<string | null>(null);
+  const { userPermissions } = useAuth();
+  
+  const { makes } = useVehicleMakes();
+  
+  const {
+    models,
+    isLoading,
+    selectedModel,
+    isAddModelOpen,
+    isEditModelOpen,
+    isDeleteModelOpen,
+    openAddModel,
+    closeAddModel,
+    openEditModel,
+    closeEditModel,
+    openDeleteModel,
+    closeDeleteModel,
+    createModel,
+    updateModel,
+    deleteModel,
+    isCreating,
+    isUpdating,
+    isDeleting
+  } = useVehicleModels(selectedMakeId || undefined);
+
+  // Filtra os modelos pelo termo de pesquisa
+  const filteredModels = models.filter(model => 
+    model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (model.makeName && model.makeName.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  const handleCreateModel = (data: { name: string; makeId: string }) => {
+    createModel(data);
+  };
+
+  const handleUpdateModel = (data: { name: string; makeId: string }) => {
+    if (selectedModel) {
+      updateModel({ 
+        id: selectedModel.id,
+        name: data.name,
+        makeId: data.makeId 
+      });
+    }
+  };
+
+  const handleDeleteModel = (id: string) => {
+    deleteModel(id);
+  };
+
+  const handleOpenAddModel = () => {
+    openAddModel();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Gerenciar Modelos</DialogTitle>
+        </DialogHeader>
+        
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between my-4">
+          <div className="grid gap-2 w-full sm:w-auto sm:max-w-[240px]">
+            <Label htmlFor="makeFilter">Filtrar por marca</Label>
+            <Combobox
+              id="makeFilter"
+              options={[
+                { label: 'Todas as marcas', value: '' },
+                ...makes.map(make => ({ label: make.name, value: make.id }))
+              ]}
+              value={selectedMakeId || ''}
+              onSelect={(value) => setSelectedMakeId(value || null)}
+              placeholder="Selecione uma marca"
+            />
+          </div>
+          
+          <div className="relative flex-1">
+            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              className="pl-8"
+              placeholder="Buscar modelos..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          {userPermissions?.canEditVehicles && (
+            <Button onClick={handleOpenAddModel}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Modelo
+            </Button>
+          )}
+        </div>
+        
+        <ScrollArea className="flex-1 border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Modelo</TableHead>
+                <TableHead>Marca</TableHead>
+                {userPermissions?.canEditVehicles && (
+                  <TableHead className="w-[120px] text-right">Ações</TableHead>
+                )}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center">
+                    Carregando...
+                  </TableCell>
+                </TableRow>
+              ) : filteredModels.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center">
+                    {searchTerm ? 'Nenhum modelo encontrado' : 'Nenhum modelo cadastrado'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredModels.map((model) => (
+                  <TableRow key={model.id}>
+                    <TableCell>{model.name}</TableCell>
+                    <TableCell>{model.makeName}</TableCell>
+                    {userPermissions?.canEditVehicles && (
+                      <TableCell className="text-right">
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => openEditModel(model)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon"
+                          onClick={() => openDeleteModel(model)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </ScrollArea>
+        
+        <div className="mt-4 flex justify-end">
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </div>
+        
+        {/* Formulários e diálogos */}
+        <ModelForm
+          isOpen={isAddModelOpen}
+          onClose={closeAddModel}
+          onSave={handleCreateModel}
+          isLoading={isCreating}
+          defaultMakeId={selectedMakeId || undefined}
+        />
+        
+        <ModelForm
+          isOpen={isEditModelOpen}
+          onClose={closeEditModel}
+          onSave={handleUpdateModel}
+          isLoading={isUpdating}
+          editingModel={selectedModel}
+        />
+        
+        <DeleteModelDialog
+          isOpen={isDeleteModelOpen}
+          onClose={closeDeleteModel}
+          onDelete={handleDeleteModel}
+          model={selectedModel}
+          isLoading={isDeleting}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default ModelsDialog;

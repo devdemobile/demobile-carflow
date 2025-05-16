@@ -1,8 +1,9 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Tag, Cog } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import VehiclesTable from '@/components/vehicles/VehiclesTable';
 import VehiclesFilter from '@/components/vehicles/VehiclesFilter';
@@ -13,10 +14,14 @@ import VehicleForm from '@/components/vehicles/VehicleForm';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
+import MakesDialog from '@/components/vehicles/makes/MakesDialog';
+import ModelsDialog from '@/components/vehicles/models/ModelsDialog';
 
 const Vehicles = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { userPermissions } = useAuth();
+  const [isMakesDialogOpen, setIsMakesDialogOpen] = useState(false);
+  const [isModelsDialogOpen, setIsModelsDialogOpen] = useState(false);
   
   const { 
     vehicles, 
@@ -46,7 +51,30 @@ const Vehicles = () => {
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-          <h1 className="text-3xl font-bold">Veículos</h1>
+          <div className="flex items-center space-x-2">
+            <h1 className="text-3xl font-bold">Veículos</h1>
+            
+            {userPermissions?.canEditVehicles && (
+              <>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsMakesDialogOpen(true)}
+                >
+                  <Tag className="h-4 w-4 mr-1" />
+                  Marcas
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setIsModelsDialogOpen(true)}
+                >
+                  <Cog className="h-4 w-4 mr-1" />
+                  Modelos
+                </Button>
+              </>
+            )}
+          </div>
           
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
@@ -122,6 +150,17 @@ const Vehicles = () => {
         isOpen={isAddVehicleOpen}
         onClose={closeAddVehicle}
         onSave={refetch}
+      />
+      
+      {/* Diálogos de gerenciamento de marcas e modelos */}
+      <MakesDialog
+        isOpen={isMakesDialogOpen}
+        onClose={() => setIsMakesDialogOpen(false)}
+      />
+      
+      <ModelsDialog
+        isOpen={isModelsDialogOpen}
+        onClose={() => setIsModelsDialogOpen(false)}
       />
     </Layout>
   );

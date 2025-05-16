@@ -323,7 +323,9 @@ export class VehicleRepository implements IVehicleRepository {
       photoUrl: data.photo_url,
       location: data.location,
       unitId: data.unit_id,
-      unitName: data.units?.name
+      unitName: data.units?.name,
+      makeId: data.make_id,
+      modelId: data.model_id
     };
   }
 }

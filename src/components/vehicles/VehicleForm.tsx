@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
@@ -18,6 +17,9 @@ import { toast } from 'sonner';
 import CameraModal from './CameraModal';
 import { useUnits } from '@/hooks/useUnits';
 import { vehicleService } from '@/services/vehicles/vehicleService';
+import { useVehicleMakes } from '@/hooks/useVehicleMakes';
+import { useVehicleModels } from '@/hooks/useVehicleModels';
+import { formatMileage } from '@/lib/utils';
 
 // Lista de marcas comuns de veículos
 const commonMakes = [
@@ -58,20 +60,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
-  const [currentModels, setCurrentModels] = useState<string[]>([]);
+  const [mileageInput, setMileageInput] = useState('');
   
   const { units } = useUnits();
-  const watchMake = watch('make');
-
-  // Carrega os modelos com base na marca selecionada
-  useEffect(() => {
-    if (watchMake) {
-      const models = commonModelsByMake[watchMake] || [];
-      setCurrentModels(models);
-    } else {
-      setCurrentModels([]);
-    }
-  }, [watchMake]);
+  const { makes } = useVehicleMakes();
+  
+  const watchMakeId = watch('makeId');
+  const { models } = useVehicleModels(watchMakeId);
   
   // Carrega os dados do veículo quando estiver editando
   useEffect(() => {
@@ -83,14 +78,13 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       setValue('year', editingVehicle.year);
       setValue('mileage', editingVehicle.mileage);
       setValue('unitId', editingVehicle.unitId);
+      setValue('makeId', editingVehicle.makeId);
+      setValue('modelId', editingVehicle.modelId);
+      
+      setMileageInput(formatMileage(editingVehicle.mileage));
       
       if (editingVehicle.photoUrl) {
         setPhoto(editingVehicle.photoUrl);
-      }
-
-      // Atualiza os modelos para a marca do veículo
-      if (editingVehicle.make && commonModelsByMake[editingVehicle.make]) {
-        setCurrentModels(commonModelsByMake[editingVehicle.make]);
       }
     } else {
       reset({
@@ -101,10 +95,34 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         year: new Date().getFullYear(),
         mileage: 0,
         unitId: units.length > 0 ? units[0].id : '',
+        makeId: '',
+        modelId: ''
       });
       setPhoto(null);
+      setMileageInput('');
     }
   }, [editingVehicle, reset, setValue, units]);
+  
+  // Atualiza make e model quando o usuário seleciona makeId e modelId
+  useEffect(() => {
+    if (watchMakeId) {
+      const selectedMake = makes.find(make => make.id === watchMakeId);
+      if (selectedMake) {
+        setValue('make', selectedMake.name);
+      }
+    }
+  }, [watchMakeId, makes, setValue]);
+  
+  const watchModelId = watch('modelId');
+  
+  useEffect(() => {
+    if (watchModelId) {
+      const selectedModel = models.find(model => model.id === watchModelId);
+      if (selectedModel) {
+        setValue('model', selectedModel.name);
+      }
+    }
+  }, [watchModelId, models, setValue]);
 
   const handleCapturePhoto = (photoDataUrl: string) => {
     setPhoto(photoDataUrl);
@@ -115,7 +133,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     setIsCameraOpen(true);
   };
   
-  // Nova função para lidar com o upload de fotos
+  // Função para lidar com o upload de fotos
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -139,6 +157,23 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       };
       reader.readAsDataURL(file);
     }
+  };
+  
+  // Funções para formatar a quilometragem
+  const handleMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Remove todos os caracteres não numéricos
+    const numericValue = value.replace(/\D/g, '');
+    
+    // Converte para número
+    const mileage = numericValue ? parseInt(numericValue, 10) : 0;
+    
+    // Atualiza o valor no formulário
+    setValue('mileage', mileage);
+    
+    // Atualiza o valor exibido com formatação
+    setMileageInput(formatMileage(mileage));
   };
 
   const handleSave = async (data: VehicleDTO) => {
@@ -187,44 +222,48 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                 <Label htmlFor="mileage">Quilometragem Atual*</Label>
                 <Input 
                   id="mileage"
-                  type="number"
-                  placeholder="0"
-                  {...register('mileage', { 
-                    required: 'Quilometragem é obrigatória',
-                    valueAsNumber: true,
-                    min: {
-                      value: 0,
-                      message: 'Quilometragem não pode ser negativa'
-                    }
-                  })}
+                  value={mileageInput}
+                  onChange={handleMileageChange}
+                  placeholder="0 km"
                 />
+                <input type="hidden" {...register('mileage', { 
+                  required: 'Quilometragem é obrigatória',
+                  valueAsNumber: true,
+                  min: {
+                    value: 0,
+                    message: 'Quilometragem não pode ser negativa'
+                  }
+                })} />
                 {errors.mileage && <p className="text-sm text-red-500">{errors.mileage.message}</p>}
               </div>
               
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="make">Marca*</Label>
+                <Label htmlFor="makeId">Marca*</Label>
                 <Combobox
-                  options={commonMakes.map(make => ({ label: make, value: make }))}
-                  {...register('make', { required: 'Marca é obrigatória' })}
-                  value={watch('make') || ''}
-                  onSelect={(value) => setValue('make', value)}
-                  placeholder="Selecione ou digite a marca"
-                  allowCustomValue
+                  id="makeId"
+                  options={makes.map(make => ({ label: make.name, value: make.id }))}
+                  {...register('makeId', { required: 'Marca é obrigatória' })}
+                  value={watch('makeId') || ''}
+                  onSelect={(value) => setValue('makeId', value)}
+                  placeholder="Selecione a marca"
                 />
-                {errors.make && <p className="text-sm text-red-500">{errors.make.message}</p>}
+                <input type="hidden" {...register('make', { required: true })} />
+                {errors.makeId && <p className="text-sm text-red-500">{errors.makeId.message}</p>}
               </div>
               
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="model">Modelo*</Label>
+                <Label htmlFor="modelId">Modelo*</Label>
                 <Combobox
-                  options={currentModels.map(model => ({ label: model, value: model }))}
-                  {...register('model', { required: 'Modelo é obrigatório' })}
-                  value={watch('model') || ''}
-                  onSelect={(value) => setValue('model', value)}
-                  placeholder="Selecione ou digite o modelo"
-                  allowCustomValue
+                  id="modelId"
+                  options={models.map(model => ({ label: model.name, value: model.id }))}
+                  {...register('modelId', { required: 'Modelo é obrigatório' })}
+                  value={watch('modelId') || ''}
+                  onSelect={(value) => setValue('modelId', value)}
+                  placeholder={watchMakeId ? "Selecione o modelo" : "Selecione uma marca primeiro"}
+                  disabled={!watchMakeId}
                 />
-                {errors.model && <p className="text-sm text-red-500">{errors.model.message}</p>}
+                <input type="hidden" {...register('model', { required: true })} />
+                {errors.modelId && <p className="text-sm text-red-500">{errors.modelId.message}</p>}
               </div>
               
               <div className="flex flex-col space-y-1.5">
