@@ -8,27 +8,22 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { 
-  Popover,
-  PopoverContent,
-  PopoverTrigger
-} from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
 import { 
-  Calendar as CalendarIcon,
   Filter as FilterIcon,
   Search as SearchIcon 
 } from 'lucide-react';
+import { VehicleLocation } from '@/types';
 
 type FilterValues = {
   search: string;
-  status: string;
+  status: VehicleLocation | null;
   dateRange: string;
 };
 
 interface MovementsFilterProps {
   filters: FilterValues;
-  onFilterChange: (name: string, value: string) => void;
+  onFilterChange: (name: string, value: string | null) => void;
   onReset: () => void;
 }
 
@@ -46,14 +41,14 @@ const MovementsFilter: React.FC<MovementsFilterProps> = ({ filters, onFilterChan
       </div>
 
       <Select 
-        value={filters.status}
-        onValueChange={(value) => onFilterChange('status', value)}
+        value={filters.status || undefined}
+        onValueChange={(value: VehicleLocation | undefined) => onFilterChange('status', value || null)}
       >
         <SelectTrigger className="w-full md:w-[180px]">
           <SelectValue placeholder="Status" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Todos</SelectItem>
+          <SelectItem value="all">Todos</SelectItem>
           <SelectItem value="yard">Completados</SelectItem>
           <SelectItem value="out">Em Andamento</SelectItem>
         </SelectContent>

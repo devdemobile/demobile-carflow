@@ -1,13 +1,13 @@
 
 import { useState, useEffect, useMemo } from 'react';
-import { Movement } from '@/types';
+import { Movement, VehicleLocation } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 export const useMovements = () => {
   const [filters, setFilters] = useState({
     search: '',
-    status: '',
+    status: null as VehicleLocation | null,
     dateRange: '',
   });
 
@@ -104,7 +104,7 @@ export const useMovements = () => {
     queryFn: fetchMovements
   });
 
-  const handleFilterChange = (name: string, value: string) => {
+  const handleFilterChange = (name: string, value: string | null) => {
     setFilters(prev => ({ ...prev, [name]: value }));
     setPage(1); // Reset to first page when filters change
   };
@@ -112,7 +112,7 @@ export const useMovements = () => {
   const resetFilters = () => {
     setFilters({
       search: '',
-      status: '',
+      status: null,
       dateRange: '',
     });
     setPage(1);
