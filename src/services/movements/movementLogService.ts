@@ -4,6 +4,7 @@
  */
 import { MovementLog, LogActionType } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { handleSupabaseRequest } from '@/services/api/supabase';
 
 export interface IMovementLogService {
   createLog(log: Partial<MovementLog>): Promise<MovementLog | null>;
@@ -36,7 +37,7 @@ export class MovementLogService implements IMovementLogService {
         id: data.id,
         movementId: data.movement_id,
         userId: data.user_id,
-        userName: data.user_name || '',
+        userName: '', // Initialize with empty string as user_name isn't directly stored
         actionType: data.action_type as LogActionType,
         actionDetails: data.action_details,
         createdAt: data.created_at
