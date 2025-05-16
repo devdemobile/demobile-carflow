@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Car, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '@/hooks/useVehicles';
 import { Vehicle, Movement } from '@/types';
-import { formatMileage, parseMileage } from '@/lib/utils';
+import { formatMileage } from '@/lib/utils';
 import { 
   Dialog,
   DialogContent,

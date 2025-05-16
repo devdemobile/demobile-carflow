@@ -11,6 +11,7 @@ import {
 import { Movement } from '@/types';
 import { format, isValid, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatMileage } from '@/lib/utils';
 
 interface MovementsTableProps {
   movements: Movement[];
@@ -54,8 +55,12 @@ const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }
             <TableHead>Veículo</TableHead>
             <TableHead>Motorista</TableHead>
             <TableHead>Destino</TableHead>
+            <TableHead>KM Inicial</TableHead>
+            <TableHead>KM Final</TableHead>
+            <TableHead>KM Rodado</TableHead>
             <TableHead>Saída</TableHead>
             <TableHead>Chegada</TableHead>
+            <TableHead>Duração</TableHead>
             <TableHead className="text-right">Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -73,6 +78,9 @@ const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }
                 <TableCell>{movement.vehicleName}</TableCell>
                 <TableCell>{movement.driver}</TableCell>
                 <TableCell>{movement.destination || '-'}</TableCell>
+                <TableCell>{formatMileage(movement.initialMileage)}</TableCell>
+                <TableCell>{isComplete ? formatMileage(movement.finalMileage || 0) : '-'}</TableCell>
+                <TableCell>{isComplete && movement.mileageRun ? formatMileage(movement.mileageRun) : '-'}</TableCell>
                 <TableCell>
                   {formatDate(movement.departureDate)} {movement.departureTime}
                 </TableCell>
@@ -80,6 +88,9 @@ const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }
                   {isComplete 
                     ? `${formatDate(movement.arrivalDate)} ${movement.arrivalTime}` 
                     : '-'}
+                </TableCell>
+                <TableCell>
+                  {movement.duration || '-'}
                 </TableCell>
                 <TableCell className="text-right">
                   <span className={movement.status === 'yard' ? 'text-green-600 font-medium' : 'text-amber-600 font-medium'}>

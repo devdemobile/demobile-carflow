@@ -17,7 +17,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   
   return (
     <Card 
-      className={`overflow-hidden hover:shadow-md transition-shadow ${statusClass} cursor-pointer`}
+      className={`overflow-hidden hover:shadow-md transition-shadow ${statusClass} cursor-pointer border-l-4 ${movement.status === 'yard' ? 'border-l-green-500' : 'border-l-amber-500'}`}
       onClick={onClick}
     >
       <CardContent className="p-4">
@@ -25,7 +25,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
           <h3 className="font-bold">{movement.plate}</h3>
           <div className="flex items-center">
             <StatusIcon className="h-3 w-3 mr-1" />
-            <span className={movement.status === 'yard' ? 'text-yard' : 'text-out'}>
+            <span className={movement.status === 'yard' ? 'text-green-600 font-medium' : 'text-amber-600 font-medium'}>
               {movement.status === 'yard' ? 'Completado' : 'Em Andamento'}
             </span>
           </div>
@@ -46,6 +46,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
           <div className="flex flex-col">
             <span className="text-muted-foreground">Saída</span>
             <span>{movement.departureDate.split('-').reverse().join('/')} {movement.departureTime}</span>
+            <span className="text-muted-foreground mt-1">KM: {formatMileage(movement.initialMileage)}</span>
           </div>
           
           <ArrowRight className="h-4 w-4 text-muted-foreground mx-2" />
@@ -57,11 +58,14 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
                 ? `${movement.arrivalDate?.split('-').reverse().join('/')} ${movement.arrivalTime}` 
                 : "-"}
             </span>
+            {isComplete && movement.finalMileage && (
+              <span className="text-muted-foreground mt-1">KM: {formatMileage(movement.finalMileage)}</span>
+            )}
           </div>
         </div>
         
         {isComplete && movement.mileageRun && (
-          <div className="mt-2 text-xs flex justify-between">
+          <div className="mt-2 text-xs flex justify-between border-t pt-2">
             <span>{formatMileage(movement.mileageRun)} km percorridos</span>
             <span>{movement.duration}</span>
           </div>

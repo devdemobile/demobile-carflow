@@ -24,7 +24,7 @@ const Dashboard = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  // Buscar estatísticas de veículos
+  // Fetch vehicle stats
   const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 } } = useQuery({
     queryKey: ['vehicle-stats'],
     queryFn: async () => {
@@ -51,15 +51,15 @@ const Dashboard = () => {
     }
   });
   
-  // Buscar movimentações de hoje
+  // Fetch today's movements
   const { data: todayMovements = 0 } = useQuery({
     queryKey: ['today-movements-count'],
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
         
-        // Filtra movimentações de hoje
-        const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        // Filter today's movements
+        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
         return allMovements.filter(m => m.departureDate === today).length;
       } catch (error) {
         console.error('Erro ao buscar movimentações de hoje:', error);
@@ -68,20 +68,20 @@ const Dashboard = () => {
     }
   });
   
-  // Buscar movimentações recentes
+  // Fetch recent movements
   const { data: recentMovements = [], refetch: refetchMovements } = useQuery({
     queryKey: ['recent-movements'],
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
-        // Ordenar por data de partida mais recente
+        // Sort by most recent departure date
         return allMovements
           .sort((a, b) => {
             const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
             const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
             return dateB.getTime() - dateA.getTime();
           })
-          .slice(0, 4); // Limitar aos 4 mais recentes
+          .slice(0, 4); // Limit to 4 most recent
       } catch (error) {
         console.error('Erro ao buscar movimentações recentes:', error);
         return [];
@@ -89,7 +89,7 @@ const Dashboard = () => {
     }
   });
   
-  // Buscar veículos mais frequentemente utilizados
+  // Fetch frequently used vehicles
   const { data: frequentVehicles = [] } = useQuery({
     queryKey: ['frequent-vehicles'],
     queryFn: async () => {
@@ -97,7 +97,7 @@ const Dashboard = () => {
         const vehicles = await vehicleService.getAllVehicles();
         const allMovements = await movementService.getAllMovements();
         
-        // Contar quantas movimentações cada veículo tem
+        // Count movements per vehicle
         const vehicleMovementCount = new Map<string, number>();
         
         allMovements.forEach(movement => {
@@ -110,14 +110,14 @@ const Dashboard = () => {
           }
         });
         
-        // Adicionar contagem de movimentações aos veículos e ordenar
+        // Add movement count to vehicles and sort
         return vehicles
           .map(vehicle => ({
             ...vehicle,
             movementCount: vehicleMovementCount.get(vehicle.id) || 0
           }))
           .sort((a, b) => (b.movementCount || 0) - (a.movementCount || 0))
-          .slice(0, 4); // Pegar os 4 mais frequentes
+          .slice(0, 4); // Get top 4 most frequent
       } catch (error) {
         console.error('Erro ao buscar veículos frequentes:', error);
         return [];
@@ -125,7 +125,7 @@ const Dashboard = () => {
     }
   });
   
-  // Buscar veículo pelo número da placa
+  // Search for vehicle by plate
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -139,7 +139,7 @@ const Dashboard = () => {
     }
     
     try {
-      // Buscar veículo pelo número da placa usando o serviço real
+      // Search for vehicle by plate using the service
       const vehicle = await vehicleService.getVehicleByPlate(plateSearch);
       
       if (vehicle) {
@@ -168,10 +168,10 @@ const Dashboard = () => {
   };
   
   const handleMovementSubmit = (formData: Movement) => {
-    // Atualizar movimentações recentes após o registro
+    // Update recent movements after registration
     refetchMovements();
     
-    // Limpar formulário após submissão
+    // Clear form after submission
     setPlateSearch('');
     setSelectedVehicle(null);
   };
@@ -180,7 +180,7 @@ const Dashboard = () => {
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
         <h1 className="text-2xl font-bold">
-          Olá, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal">Bem-vindo ao CarFlow</span>
+          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal">Controle a entrada e saída de veículos.</span>
         </h1>
         
         {/* Vehicle Search */}
@@ -190,7 +190,7 @@ const Dashboard = () => {
             <div className="flex w-full items-center space-x-2">
               <Input
                 id="plate-search"
-                placeholder="Digite a placa do veículo"
+                placeholder="BRA2E25"
                 value={plateSearch}
                 onChange={(e) => setPlateSearch(e.target.value.toUpperCase())}
                 className="uppercase"
@@ -200,6 +200,7 @@ const Dashboard = () => {
                 Pesquisar
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">Digite a placa do veículo</p>
           </form>
         </div>
         
@@ -279,7 +280,6 @@ const Dashboard = () => {
           onClose={() => setIsFormOpen(false)}
           vehicle={selectedVehicle}
           onSubmit={handleMovementSubmit}
-          lastMovement={undefined}
         />
       )}
     </Layout>

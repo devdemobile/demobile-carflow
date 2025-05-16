@@ -110,7 +110,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     refetch();
   };
 
-  // Add the missing findVehicleByPlate function
+  // Find vehicle by plate function
   const findVehicleByPlate = async (plate: string): Promise<Vehicle | null> => {
     try {
       return await vehicleService.getVehicleByPlate(plate);
@@ -142,6 +142,6 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     isAddVehicleOpen,
     openAddVehicle,
     closeAddVehicle,
-    findVehicleByPlate // Added the missing function
+    findVehicleByPlate // Ensuring this is properly exported
   };
 };
