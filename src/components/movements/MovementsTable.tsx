@@ -9,97 +9,123 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Movement } from '@/types';
-import { format, isValid, parse } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { formatMileage } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { formatDateForDisplay, formatTimeForDisplay } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface MovementsTableProps {
   movements: Movement[];
-  onRowClick?: (movement: Movement) => void;
+  isLoading?: boolean;
+  onRowClick: (movement: Movement) => void;
+  showUnits?: boolean;
 }
 
-const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }) => {
-  if (!movements.length) {
-    return <div className="text-center py-8 text-muted-foreground">Nenhuma movimentação encontrada</div>;
+const MovementsTable: React.FC<MovementsTableProps> = ({ 
+  movements, 
+  isLoading = false,
+  onRowClick,
+  showUnits = false
+}) => {
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className="w-full h-16 flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   }
 
-  // Função para formatar data de forma segura
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return '-';
-    
-    try {
-      // Se a data estiver no formato ISO (YYYY-MM-DD)
-      if (dateString.includes('-') && dateString.split('-').length === 3) {
-        const [year, month, day] = dateString.split('-');
-        return `${day}/${month}/${year}`;
-      }
-      
-      // Se já estiver no formato brasileiro (DD/MM/YYYY)
-      if (dateString.includes('/') && dateString.split('/').length === 3) {
-        return dateString;
-      }
-      
-      return dateString;
-    } catch (error) {
-      console.error("Erro ao formatar data:", error);
-      return dateString;
-    }
-  };
+  if (!movements || movements.length === 0) {
+    return (
+      <div className="text-center p-4 bg-background border rounded-md text-muted-foreground">
+        Nenhuma movimentação encontrada
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Placa</TableHead>
             <TableHead>Veículo</TableHead>
-            <TableHead>Motorista</TableHead>
-            <TableHead>Destino</TableHead>
-            <TableHead>KM Inicial</TableHead>
-            <TableHead>KM Final</TableHead>
-            <TableHead>KM Rodado</TableHead>
+            {showUnits && <TableHead>Origem</TableHead>}
             <TableHead>Saída</TableHead>
+            {showUnits && <TableHead>Destino</TableHead>}
             <TableHead>Chegada</TableHead>
-            <TableHead>Duração</TableHead>
-            <TableHead className="text-right">Status</TableHead>
+            <TableHead>Motorista</TableHead>
+            <TableHead>Km Inicial</TableHead>
+            <TableHead>Km Final</TableHead>
+            <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {movements.map((movement) => {
-            const isComplete = movement.arrivalDate && movement.arrivalTime;
-            
-            return (
-              <TableRow 
-                key={movement.id}
-                onClick={() => onRowClick?.(movement)}
-                className="cursor-pointer hover:bg-muted/60"
-              >
-                <TableCell className="font-medium">{movement.plate}</TableCell>
-                <TableCell>{movement.vehicleName}</TableCell>
-                <TableCell>{movement.driver}</TableCell>
-                <TableCell>{movement.destination || '-'}</TableCell>
-                <TableCell>{formatMileage(movement.initialMileage)}</TableCell>
-                <TableCell>{isComplete ? formatMileage(movement.finalMileage || 0) : '-'}</TableCell>
-                <TableCell>{isComplete && movement.mileageRun ? formatMileage(movement.mileageRun) : '-'}</TableCell>
+          {movements.map((movement) => (
+            <TableRow 
+              key={movement.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={() => onRowClick(movement)}
+            >
+              <TableCell className="font-medium">{movement.vehiclePlate || movement.vehicleId}</TableCell>
+              
+              {showUnits && (
                 <TableCell>
-                  {formatDate(movement.departureDate)} {movement.departureTime}
+                  {movement.departureUnitName || "—"}
                 </TableCell>
+              )}
+              
+              <TableCell>
+                {movement.departureDate ? (
+                  <div className="flex flex-col">
+                    <span>{formatDateForDisplay(movement.departureDate)}</span>
+                    <span className="text-xs text-muted-foreground">{formatTimeForDisplay(movement.departureTime)}</span>
+                  </div>
+                ) : "—"}
+              </TableCell>
+              
+              {showUnits && (
                 <TableCell>
-                  {isComplete 
-                    ? `${formatDate(movement.arrivalDate)} ${movement.arrivalTime}` 
-                    : '-'}
+                  {movement.arrivalUnitName || movement.destination || "—"}
                 </TableCell>
-                <TableCell>
-                  {movement.duration || '-'}
-                </TableCell>
-                <TableCell className="text-right">
-                  <span className={movement.status === 'yard' ? 'text-green-600 font-medium' : 'text-amber-600 font-medium'}>
-                    {movement.status === 'yard' ? 'Completado' : 'Em Andamento'}
-                  </span>
-                </TableCell>
-              </TableRow>
-            );
-          })}
+              )}
+              
+              <TableCell>
+                {movement.arrivalDate ? (
+                  <div className="flex flex-col">
+                    <span>{formatDateForDisplay(movement.arrivalDate)}</span>
+                    <span className="text-xs text-muted-foreground">{formatTimeForDisplay(movement.arrivalTime)}</span>
+                  </div>
+                ) : "—"}
+              </TableCell>
+              
+              <TableCell>{movement.driver}</TableCell>
+              
+              <TableCell>{movement.initialMileage?.toLocaleString()}</TableCell>
+              
+              <TableCell>{movement.finalMileage?.toLocaleString() || "—"}</TableCell>
+              
+              <TableCell>
+                <Badge 
+                  variant={
+                    movement.status === 'yard' ? 'outline' :
+                    movement.status === 'out' ? 'secondary' :
+                    'default'
+                  }
+                >
+                  {movement.status === 'yard' ? 'No pátio' : 
+                   movement.status === 'out' ? 'Em rota' : 
+                   movement.status}
+                </Badge>
+              </TableCell>
+            </TableRow>
+          ))}
         </TableBody>
       </Table>
     </div>

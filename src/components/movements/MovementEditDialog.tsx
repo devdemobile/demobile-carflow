@@ -1,23 +1,32 @@
 
 import React, { useState } from 'react';
-import { 
+import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useForm } from 'react-hook-form';
-import { Movement, MovementLog, LogActionType } from '@/types';
-import { formatMileage } from '@/lib/utils';
-import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
-import { Loader2 } from 'lucide-react';
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Movement } from "@/types";
+import { formatDateForDisplay, formatTimeForDisplay } from "@/lib/utils";
+import { Badge } from "../ui/badge";
+import { Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { useAuth } from "@/hooks/useAuth";
 
 interface MovementEditDialogProps {
   isOpen: boolean;
@@ -25,17 +34,7 @@ interface MovementEditDialogProps {
   movement: Movement | null;
   onUpdate: (updatedMovement: Movement) => Promise<void>;
   onDelete: (movement: Movement, password: string) => Promise<void>;
-}
-
-interface MovementEditFormData {
-  driver: string;
-  destination: string;
-  initialMileage: number;
-  notes?: string;
-}
-
-interface DeleteConfirmData {
-  password: string;
+  showUnits?: boolean;
 }
 
 const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
@@ -43,228 +42,344 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
   onClose,
   movement,
   onUpdate,
-  onDelete
+  onDelete,
+  showUnits = false
 }) => {
-  const { user } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const { userPermissions } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [password, setPassword] = useState('');
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [passwordError, setPasswordError] = useState('');
 
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<MovementEditFormData>();
-  const [mileageInput, setMileageInput] = useState('');
-  
-  // Set initial values when movement changes
+  const formSchema = z.object({
+    driver: z.string().min(1, "Nome do motorista é obrigatório"),
+    destination: z.string().optional(),
+    initialMileage: z.number().int().positive(),
+    finalMileage: z.number().int().positive().optional(),
+    mileageRun: z.number().int().positive().optional(),
+  });
+
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      driver: movement?.driver || '',
+      destination: movement?.destination || '',
+      initialMileage: movement?.initialMileage || 0,
+      finalMileage: movement?.finalMileage || undefined,
+      mileageRun: movement?.mileageRun || undefined,
+    }
+  });
+
   React.useEffect(() => {
     if (movement) {
-      setValue('driver', movement.driver);
-      setValue('destination', movement.destination || '');
-      setValue('initialMileage', movement.initialMileage);
-      setValue('notes', movement.notes || '');
-      setMileageInput(formatMileage(movement.initialMileage));
+      form.reset({
+        driver: movement.driver,
+        destination: movement.destination || '',
+        initialMileage: movement.initialMileage,
+        finalMileage: movement.finalMileage,
+        mileageRun: movement.mileageRun,
+      });
     }
-  }, [movement, setValue]);
+  }, [movement, form]);
 
-  const handleMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    const numericValue = value.replace(/\D/g, '');
-    const mileage = numericValue ? parseInt(numericValue, 10) : 0;
-    
-    setValue('initialMileage', mileage);
-    setMileageInput(formatMileage(mileage));
-  };
-  
-  const handleUpdateSubmit = async (data: MovementEditFormData) => {
+  const handleDelete = async () => {
     if (!movement) return;
-    
-    setIsSubmitting(true);
-    
+
+    setIsLoading(true);
+    try {
+      await onDelete(movement, password);
+      toast.success("Movimentação excluída com sucesso");
+      onClose();
+    } catch (error: any) {
+      toast.error(`Erro ao excluir: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+      setIsDeleteAlertOpen(false);
+      setPassword('');
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    if (!movement) return;
+
+    setIsLoading(true);
     try {
       const updatedMovement: Movement = {
         ...movement,
-        driver: data.driver,
-        destination: data.destination,
-        initialMileage: data.initialMileage,
-        notes: data.notes
+        ...values,
       };
-      
-      await onUpdate(updatedMovement);
-      toast.success('Movimentação atualizada com sucesso!');
-      onClose();
-    } catch (error: any) {
-      toast.error(`Erro ao atualizar movimentação: ${error.message}`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-  
-  const handleOpenDeleteDialog = () => {
-    setIsDeleteDialogOpen(true);
-    setPassword('');
-    setPasswordError('');
-  };
-  
-  const handleDeleteConfirm = async () => {
-    if (!movement) return;
-    if (!password.trim()) {
-      setPasswordError('Por favor, digite sua senha para confirmar a exclusão');
-      return;
-    }
-    
-    setIsDeleting(true);
-    
-    try {
-      await onDelete(movement, password);
-      toast.success('Movimentação excluída com sucesso!');
-      setIsDeleteDialogOpen(false);
-      onClose();
-    } catch (error: any) {
-      setPasswordError(error.message || 'Senha incorreta ou problema ao excluir movimentação');
-      toast.error(`Erro ao excluir movimentação: ${error.message}`);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
 
-  // Determine the border color based on movement type
-  const borderColorClass = movement?.type === 'exit' ? 'border-amber-500' : 'border-emerald-500';
+      await onUpdate(updatedMovement);
+      toast.success("Movimentação atualizada com sucesso");
+      setIsEditing(false);
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar: ${error.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!movement) return null;
 
+  const getMovementTypeLabel = (type: string) => {
+    switch (type) {
+      case 'exit': return 'Saída';
+      case 'entry': return 'Entrada';
+      case 'initial': return 'Registro Inicial';
+      default: return type;
+    }
+  };
+
+  const getMovementStatusLabel = (status: string) => {
+    switch (status) {
+      case 'yard': return 'No Pátio';
+      case 'out': return 'Em Rota';
+      default: return status;
+    }
+  };
+
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className={`sm:max-w-[500px] ${borderColorClass} border-2`}>
+      <Dialog open={isOpen} onOpenChange={(open) => {
+        if (!open) {
+          setIsEditing(false);
+          onClose();
+        }
+      }}>
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle className={movement.type === 'exit' ? 'text-amber-600' : 'text-emerald-600'}>
-              Editar Movimentação
+            <DialogTitle className="flex items-center justify-between">
+              <span>Detalhes da Movimentação</span>
+              <div className="flex items-center gap-2">
+                <Badge>{getMovementTypeLabel(movement.type)}</Badge>
+                <Badge variant="outline">{getMovementStatusLabel(movement.status)}</Badge>
+              </div>
             </DialogTitle>
-            <DialogDescription>
-              {movement.plate} - {movement.vehicleName}
-              <span className="block text-muted-foreground text-xs mt-1">
-                {movement.departureDate.split('-').reverse().join('/')} às {movement.departureTime}
-              </span>
-            </DialogDescription>
           </DialogHeader>
-          
-          <form onSubmit={handleSubmit(handleUpdateSubmit)} className="space-y-4 py-2">
-            <div className="grid gap-3">
-              <div>
-                <Label htmlFor="driver" className="text-sm">Motorista*</Label>
-                <Input
-                  id="driver"
-                  placeholder="Nome do motorista"
-                  {...register('driver', { required: 'Motorista é obrigatório' })}
-                />
-                {errors.driver && <p className="text-xs text-destructive mt-1">{errors.driver.message}</p>}
+
+          <div className="space-y-4">
+            {!isEditing ? (
+              // View mode
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Veículo</h3>
+                    <p className="text-sm">{movement.vehiclePlate || movement.vehicleId}</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Motorista</h3>
+                    <p className="text-sm">{movement.driver}</p>
+                  </div>
+
+                  {showUnits && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Unidade de Origem</h3>
+                      <p className="text-sm">{movement.departureUnitName || "—"}</p>
+                    </div>
+                  )}
+
+                  {movement.destination && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Destino</h3>
+                      <p className="text-sm">{movement.destination}</p>
+                    </div>
+                  )}
+
+                  {showUnits && movement.arrivalUnitName && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Unidade de Chegada</h3>
+                      <p className="text-sm">{movement.arrivalUnitName}</p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Data e Hora de Saída</h3>
+                    <p className="text-sm">
+                      {movement.departureDate ? 
+                        `${formatDateForDisplay(movement.departureDate)} ${formatTimeForDisplay(movement.departureTime)}` 
+                        : "—"}
+                    </p>
+                  </div>
+
+                  {movement.arrivalDate && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Data e Hora de Chegada</h3>
+                      <p className="text-sm">
+                        {`${formatDateForDisplay(movement.arrivalDate)} ${formatTimeForDisplay(movement.arrivalTime || "")}`}
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <h3 className="font-medium">Quilometragem Inicial</h3>
+                    <p className="text-sm">{movement.initialMileage.toLocaleString()} km</p>
+                  </div>
+
+                  {movement.finalMileage && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Quilometragem Final</h3>
+                      <p className="text-sm">{movement.finalMileage.toLocaleString()} km</p>
+                    </div>
+                  )}
+
+                  {movement.mileageRun && (
+                    <div className="space-y-2">
+                      <h3 className="font-medium">Quilometragem Percorrida</h3>
+                      <p className="text-sm">{movement.mileageRun.toLocaleString()} km</p>
+                    </div>
+                  )}
+                </div>
+
+                {userPermissions?.canEditMovements && (
+                  <div className="flex justify-end space-x-2 pt-4 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsEditing(true)}
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Editar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setIsDeleteAlertOpen(true)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir
+                    </Button>
+                  </div>
+                )}
               </div>
-              
-              <div>
-                <Label htmlFor="destination" className="text-sm">Destino</Label>
-                <Input
-                  id="destination"
-                  placeholder="Local de destino"
-                  {...register('destination')}
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="initialMileage" className="text-sm">Quilometragem*</Label>
-                <Input
-                  id="initialMileage"
-                  placeholder="0 km"
-                  value={mileageInput}
-                  onChange={handleMileageChange}
-                />
-                {errors.initialMileage && <p className="text-xs text-destructive mt-1">{errors.initialMileage.message}</p>}
-              </div>
-              
-              <div>
-                <Label htmlFor="notes" className="text-sm">Observações</Label>
-                <Input
-                  id="notes"
-                  placeholder="Observações adicionais"
-                  {...register('notes')}
-                />
-              </div>
-            </div>
-            
-            <DialogFooter className="pt-2 flex flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleOpenDeleteDialog}
-              >
-                Excluir
-              </Button>
-              <div className="flex flex-1 justify-end gap-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={onClose}
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={isSubmitting}
-                  className={movement.type === 'exit' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : 'Salvar'}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
+            ) : (
+              // Edit mode
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="driver"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Motorista</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome do motorista" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="destination"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Destino</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Destino (opcional)" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="initialMileage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Km Inicial</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              {...field}
+                              onChange={(e) => field.onChange(Number(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="finalMileage"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Km Final</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Opcional"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="mileageRun"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Km Percorridos</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              placeholder="Opcional"
+                              value={field.value || ''}
+                              onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : undefined)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                      Cancelar
+                    </Button>
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? "Salvando..." : "Salvar alterações"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
-      
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+
+      <AlertDialog open={isDeleteAlertOpen} onOpenChange={setIsDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação não pode ser desfeita. A exclusão será registrada no log do sistema.
+              Digite sua senha para confirmar a exclusão desta movimentação.
+              Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          
-          <div className="py-4">
-            <Label htmlFor="delete-password" className="text-sm">Digite sua senha para confirmar*</Label>
+          <div className="py-3">
             <Input
-              id="delete-password"
               type="password"
+              placeholder="Digite sua senha"
               value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setPasswordError('');
-              }}
-              className="mt-2"
-              placeholder="Sua senha"
+              onChange={(e) => setPassword(e.target.value)}
             />
-            {passwordError && <p className="text-xs text-destructive mt-1">{passwordError}</p>}
           </div>
-          
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDeleteConfirm();
-              }}
-              disabled={isDeleting}
+            <AlertDialogCancel onClick={() => setPassword('')}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete} 
+              disabled={isLoading || !password}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Excluindo...
-                </>
-              ) : 'Excluir'}
+              {isLoading ? "Excluindo..." : "Excluir"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

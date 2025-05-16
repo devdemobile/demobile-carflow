@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,12 +43,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserRole, UserShift, UserStatus } from '@/types/entities';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserRound, Filter, Grid, List } from 'lucide-react';
+import { Pencil, Trash2, UserRound, Filter, Grid, List, Key, ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
+import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
+import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
 
 interface SystemUser {
   id: string;
@@ -89,6 +92,9 @@ const Users = () => {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -166,6 +172,18 @@ const Users = () => {
       email: "",
     });
     setIsDialogOpen(true);
+  };
+
+  // Abrir diálogo de alteração de senha
+  const handleChangePassword = (user: SystemUser) => {
+    setSelectedUser(user);
+    setIsPasswordDialogOpen(true);
+  };
+
+  // Abrir diálogo de edição de permissões
+  const handleEditPermissions = (user: SystemUser) => {
+    setSelectedUser(user);
+    setIsPermissionsDialogOpen(true);
   };
 
   // Alternar status do usuário (ativar/desativar)
@@ -328,6 +346,26 @@ const Users = () => {
     }
   };
 
+  // Atualizar usuários após alteração de permissões
+  const handlePermissionsUpdated = () => {
+    // Recarregar a lista de usuários
+    const fetchUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('system_users')
+          .select('*, units(name)')
+          .order('created_at', { ascending: false });
+          
+        if (error) throw error;
+        setUsers(data);
+      } catch (error) {
+        console.error('Erro ao recarregar usuários:', error);
+      }
+    };
+    
+    fetchUsers();
+  };
+
   // Filtrar usuários
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
@@ -387,7 +425,7 @@ const Users = () => {
         </div>
         
         {user?.role === 'admin' && (
-          <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
+          <div className="flex flex-wrap justify-end gap-2 mt-4 pt-2 border-t">
             <Button 
               variant="ghost" 
               size="sm"
@@ -396,7 +434,27 @@ const Users = () => {
               <Pencil className="h-4 w-4 mr-1" />
               Editar
             </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => handleChangePassword(userItem)}
+            >
+              <Key className="h-4 w-4 mr-1" />
+              Senha
+            </Button>
+            
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => handleEditPermissions(userItem)}
+            >
+              <ShieldCheck className="h-4 w-4 mr-1" />
+              Permissões
+            </Button>
+            
             <Switch size="sm" checked={userItem.status === 'active'} onCheckedChange={() => toggleUserStatus(userItem.id, userItem.status)} />
+            
             {userItem.id !== user.id && (
               <Button 
                 variant="ghost" 
@@ -530,21 +588,44 @@ const Users = () => {
                             variant="ghost" 
                             size="icon"
                             onClick={() => handleEditUser(userItem)}
+                            title="Editar usuário"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleChangePassword(userItem)}
+                            title="Alterar senha"
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
+                          
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEditPermissions(userItem)}
+                            title="Editar permissões"
+                          >
+                            <ShieldCheck className="h-4 w-4" />
+                          </Button>
+                          
                           <Button 
                             variant="ghost" 
                             size="icon"
                             onClick={() => toggleUserStatus(userItem.id, userItem.status)}
+                            title={userItem.status === 'active' ? "Desativar usuário" : "Ativar usuário"}
                           >
                             <Switch size="sm" checked={userItem.status === 'active'} />
                           </Button>
+                          
                           {userItem.id !== user.id && (
                             <Button 
                               variant="ghost" 
                               size="icon"
                               onClick={() => confirmDelete(userItem.id)}
+                              title="Excluir usuário"
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
@@ -748,6 +829,20 @@ const Users = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
+        {/* Diálogos adicionados */}
+        <ChangePasswordDialog
+          isOpen={isPasswordDialogOpen}
+          onClose={() => setIsPasswordDialogOpen(false)}
+          user={selectedUser}
+        />
+        
+        <UserPermissionsDialog
+          isOpen={isPermissionsDialogOpen}
+          onClose={() => setIsPermissionsDialogOpen(false)}
+          user={selectedUser}
+          onSaved={handlePermissionsUpdated}
+        />
       </div>
     </Layout>
   );

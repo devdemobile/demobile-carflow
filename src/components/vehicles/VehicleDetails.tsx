@@ -32,6 +32,25 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
 
   const LocationIcon = vehicle.location === 'yard' ? Warehouse : Navigation;
 
+  // Get the location or destination info
+  const getLocationInfo = () => {
+    if (vehicle.location === 'yard') {
+      return (
+        <div className="flex items-center">
+          <Warehouse className="h-4 w-4 mr-1 text-muted-foreground" />
+          <span>Unidade: {vehicle.unitName || "—"}</span>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex items-center">
+          <Navigation className="h-4 w-4 mr-1 text-muted-foreground" />
+          <span>Em rota</span>
+        </div>
+      );
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -98,12 +117,8 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
                     <span className="text-muted-foreground">Quilometragem:</span> 
                     <span className="font-medium">{vehicle.mileage.toLocaleString()} km</span>
                   </li>
-                  <li className="flex justify-between">
-                    <span className="text-muted-foreground">Unidade:</span> 
-                    <span className="font-medium">{vehicle.unitName || vehicle.unitId}</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-muted-foreground">Localização:</span>
+                  <li className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Status:</span>
                     <Badge 
                       variant={vehicle.location === 'yard' ? 'outline' : 'secondary'}
                       className="flex items-center"
@@ -111,6 +126,11 @@ const VehicleDetails: React.FC<VehicleDetailsProps> = ({
                       <LocationIcon className="h-3 w-3 mr-1" />
                       {vehicle.location === 'yard' ? 'No Pátio' : 'Em Uso'}
                     </Badge>
+                  </li>
+                  <li className="flex">
+                    <div className="text-muted-foreground w-full">
+                      {getLocationInfo()}
+                    </div>
                   </li>
                 </ul>
               </div>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Vehicle } from '@/types';
-import { Car, Warehouse, Navigation } from 'lucide-react';
+import { Car, Warehouse, Navigation, MapPin } from 'lucide-react';
 import { formatMileage } from '@/lib/utils';
 
 interface VehicleCardProps {
@@ -17,6 +17,16 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
   
   const LocationIcon = vehicle.location === 'yard' ? Warehouse : Navigation;
   const borderClass = vehicle.location === 'yard' ? 'border-l-4 border-l-yard' : 'border-l-4 border-l-out';
+
+  // Get the location display text
+  const getLocationDisplay = () => {
+    if (vehicle.location === 'yard') {
+      return vehicle.unitName || 'Sem unidade';
+    } else {
+      // Get destination from most recent exit movement (would be implemented in a real app)
+      return 'Em rota';
+    }
+  };
 
   return (
     <div 
@@ -58,9 +68,16 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
           {vehicle.make} {vehicle.model}
         </p>
         
-        <div className="flex justify-between mt-4 text-sm">
-          <span className="text-muted-foreground">{vehicle.color}</span>
+        <div className="flex justify-between mt-2 items-center text-sm">
+          <div className="flex items-center">
+            <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
+            <span className="text-muted-foreground line-clamp-1">{getLocationDisplay()}</span>
+          </div>
           <span className="font-medium">{formatMileage(vehicle.mileage)} km</span>
+        </div>
+        
+        <div className="mt-2 text-sm">
+          <span className="text-muted-foreground">{vehicle.color}</span>
         </div>
       </div>
     </div>

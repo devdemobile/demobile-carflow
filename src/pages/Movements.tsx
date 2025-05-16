@@ -272,6 +272,7 @@ const Movements = () => {
               <MovementsTable 
                 movements={movements} 
                 onRowClick={handleMovementClick}
+                showUnits={true}
               />
             )}
             
@@ -309,6 +310,7 @@ const Movements = () => {
         movement={selectedMovement}
         onUpdate={handleUpdateMovement}
         onDelete={handleDeleteMovement}
+        showUnits={true}
       />
     </Layout>
   );
