@@ -6,16 +6,16 @@ import { fetchUnits, createUnit, updateUnit, deleteUnit } from '@/services/unitS
 import { useMediaQuery } from '@/hooks/use-mobile';
 
 /**
- * Hook for managing units data and operations with responsive view mode
+ * Hook para gerenciar dados de unidades e operações com modo de visualização responsivo
  */
 export const useUnits = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
-  // Use media query to determine default view mode
+  // Usar media query para determinar o modo de visualização padrão
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   
-  // Fetch units with React Query
+  // Buscar unidades com React Query
   const { 
     data: allUnits = [], 
     isLoading, 
@@ -26,10 +26,10 @@ export const useUnits = () => {
     queryFn: fetchUnits,
     refetchOnWindowFocus: true,
     retry: 1,
-    staleTime: 30000 // 30 seconds
+    staleTime: 30000 // 30 segundos
   });
 
-  // Filter units by search term
+  // Filtrar unidades pelo termo de busca
   const units = searchTerm 
     ? allUnits.filter(unit => {
         const term = searchTerm.toLowerCase();
@@ -39,7 +39,7 @@ export const useUnits = () => {
       })
     : allUnits;
 
-  // Add a new unit
+  // Adicionar uma nova unidade
   const addUnit = async (unitData: { name: string; code: string; address?: string }): Promise<Unit | null> => {
     const result = await createUnit(unitData);
     if (result) {
@@ -48,7 +48,7 @@ export const useUnits = () => {
     return result;
   };
 
-  // Update an existing unit
+  // Atualizar uma unidade existente
   const handleUpdateUnit = async (id: string, unitData: { name: string; code: string; address?: string }): Promise<boolean> => {
     const success = await updateUnit(id, unitData);
     if (success) {
@@ -57,7 +57,7 @@ export const useUnits = () => {
     return success;
   };
 
-  // Delete a unit
+  // Excluir uma unidade
   const handleDeleteUnit = async (id: string): Promise<boolean> => {
     const success = await deleteUnit(id);
     if (success) {
