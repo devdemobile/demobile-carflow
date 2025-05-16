@@ -171,10 +171,10 @@ const Dashboard = () => {
       // Save movement to the service
       await movementService.createMovement(formData);
 
-      // Update the vehicle's status to 'out'
+      // Update the vehicle's status to match the movement type
       if (selectedVehicle) {
         await vehicleService.updateVehicle(selectedVehicle.id, {
-          location: 'out',
+          location: formData.type === 'exit' ? 'out' : 'yard',
           mileage: formData.initialMileage // Update vehicle mileage
         });
       }
@@ -183,8 +183,8 @@ const Dashboard = () => {
       refetchMovements();
       
       toast({
-        title: "Movimentação registrada",
-        description: "A movimentação foi registrada com sucesso.",
+        title: formData.type === 'exit' ? "Saída registrada" : "Entrada registrada",
+        description: `A ${formData.type === 'exit' ? 'saída' : 'entrada'} do veículo foi registrada com sucesso.`,
       });
       
       // Clear form after submission

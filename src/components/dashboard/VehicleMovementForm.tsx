@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -31,8 +30,6 @@ interface MovementFormData {
   driver: string;
   destination: string;
   initialMileage: number;
-  departureDate: string;
-  departureTime: string;
   notes?: string;
 }
 
@@ -52,6 +49,19 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<MovementFormData>();
   const [mileageInput, setMileageInput] = useState('');
   
+  // Determinar se é entrada ou saída baseado na localização atual do veículo
+  const isExit = vehicle?.location === 'yard';
+  const movementType = isExit ? 'exit' : 'entry';
+  const formTitle = isExit ? 'Registrar Saída' : 'Registrar Entrada';
+  const buttonText = isExit ? 'Registrar Saída' : 'Registrar Entrada';
+  
+  // Obter a data e hora atual formatadas para exibição
+  const currentDate = new Date().toLocaleDateString('pt-BR');
+  const currentTime = new Date().toLocaleTimeString('pt-BR', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+  
   // Set initial values when vehicle changes
   useEffect(() => {
     if (vehicle) {
@@ -61,8 +71,6 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
       setValue('driver', '');
       setValue('destination', '');
       setValue('initialMileage', vehicle.mileage || 0);
-      setValue('departureDate', today);
-      setValue('departureTime', currentTime);
       setValue('notes', '');
       
       setMileageInput(formatMileage(vehicle.mileage || 0));
@@ -115,6 +123,10 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   const handleDialogFormSubmit = (data: MovementFormData) => {
     if (!vehicle || !onSubmit) return;
     
+    // Pega a data e hora atuais
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date().toTimeString().split(' ')[0].substring(0, 5);
+    
     // Create movement object from form data
     const movement: Movement = {
       id: Math.random().toString(),
@@ -124,16 +136,16 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
       driver: data.driver,
       destination: data.destination,
       initialMileage: data.initialMileage,
-      departureDate: data.departureDate,
-      departureTime: data.departureTime,
+      departureDate: today,
+      departureTime: now,
       notes: data.notes,
       departureUnitId: vehicle.unitId || '',
-      status: 'out',
-      type: 'exit'
+      status: isExit ? 'out' : 'yard',
+      type: isExit ? 'exit' : 'entry'
     };
     
     onSubmit(movement);
-    toast.success('Movimentação registrada com sucesso!');
+    toast.success(`Movimentação de ${isExit ? 'saída' : 'entrada'} registrada com sucesso!`);
   };
 
   // If this is being used as a dialog, render the dialog version
@@ -142,9 +154,17 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Registrar Movimentação</DialogTitle>
+            <DialogTitle className={isExit ? 'text-amber-600' : 'text-emerald-600'}>
+              {formTitle}
+            </DialogTitle>
             <DialogDescription>
-              Preencha os campos abaixo para registrar a saída do veículo.
+              {isExit 
+                ? 'Preencha os campos abaixo para registrar a saída do veículo.' 
+                : 'Preencha os campos abaixo para registrar a entrada do veículo.'
+              }
+              <span className="block text-muted-foreground text-xs mt-1">
+                {currentDate} às {currentTime}
+              </span>
             </DialogDescription>
           </DialogHeader>
           
@@ -180,7 +200,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
                 </div>
                 
                 <div>
-                  <Label htmlFor="initialMileage" className="text-sm">Quilometragem inicial*</Label>
+                  <Label htmlFor="initialMileage" className="text-sm">Quilometragem atual*</Label>
                   <Input
                     id="initialMileage"
                     placeholder="0 km"
@@ -189,43 +209,17 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
                   />
                   {errors.initialMileage && <p className="text-xs text-destructive mt-1">{errors.initialMileage.message}</p>}
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <Label htmlFor="departureDate" className="text-sm">Data de saída*</Label>
-                    <Input
-                      type="date"
-                      id="departureDate"
-                      {...register('departureDate', { required: 'Data é obrigatória' })}
-                    />
-                    {errors.departureDate && <p className="text-xs text-destructive mt-1">{errors.departureDate.message}</p>}
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="departureTime" className="text-sm">Hora de saída*</Label>
-                    <Input
-                      type="time"
-                      id="departureTime"
-                      {...register('departureTime', { required: 'Hora é obrigatória' })}
-                    />
-                    {errors.departureTime && <p className="text-xs text-destructive mt-1">{errors.departureTime.message}</p>}
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="notes" className="text-sm">Observações</Label>
-                  <Input
-                    id="notes"
-                    placeholder="Observações adicionais"
-                    {...register('notes')}
-                  />
-                </div>
               </div>
             </div>
             
             <DialogFooter className="pt-2">
               <Button variant="outline" onClick={onClose} type="button">Cancelar</Button>
-              <Button type="submit">Registrar</Button>
+              <Button 
+                type="submit" 
+                className={isExit ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}
+              >
+                {buttonText}
+              </Button>
             </DialogFooter>
           </form>
         </DialogContent>

@@ -97,5 +97,5 @@ export interface Movement {
   status: VehicleLocation;
   type: MovementType;
   createdBy?: string;
-  notes?: string; // Adding the missing notes field
+  notes?: string;
 }
