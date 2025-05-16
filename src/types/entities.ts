@@ -85,7 +85,7 @@ export interface Movement {
   vehicleId: string;
   vehiclePlate?: string; // Placa do veículo
   plate?: string; // Mantido para compatibilidade com código existente
-  vehicleName?: string;
+  vehicleName?: string; // Nome completo do veículo (make + model + color)
   driver: string;
   destination?: string;
   initialMileage: number;

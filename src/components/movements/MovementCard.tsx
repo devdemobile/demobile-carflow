@@ -4,7 +4,7 @@ import { Movement } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay, formatTimeForDisplay } from '@/lib/utils';
-import { ArrowRight, MapPin, Car } from 'lucide-react';
+import { ArrowRight, MapPin, Car, Clock, User } from 'lucide-react';
 
 interface MovementCardProps {
   movement: Movement;
@@ -29,78 +29,110 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
     }
   };
 
-  const mileageText = movement.finalMileage 
-    ? `${movement.initialMileage.toLocaleString()} → ${movement.finalMileage.toLocaleString()} km`
-    : `${movement.initialMileage.toLocaleString()} km`;
+  // Determina a cor da borda baseada no status
+  const getBorderColor = (status: string) => {
+    switch (status) {
+      case 'yard': return 'border-green-500'; 
+      case 'out': return 'border-amber-500';
+      default: return 'border-gray-300';
+    }
+  };
+
+  // Calcular quilometragem percorrida
+  const mileageRun = movement.finalMileage && movement.initialMileage 
+    ? movement.finalMileage - movement.initialMileage 
+    : movement.mileageRun || 0;
+
+  // Formatar quilometragem atual como string
+  const initialMileageFormatted = movement.initialMileage?.toLocaleString() || '0';
+  const finalMileageFormatted = movement.finalMileage?.toLocaleString() || '—';
+  
+  // Informações do veículo
+  const vehicleInfo = `${movement.vehicleName || ''}`; // Nome do veículo (se disponível)
 
   return (
     <Card 
-      className="cursor-pointer hover:shadow-md transition-shadow"
+      className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderColor(movement.status)}`}
       onClick={() => onClick(movement)}
     >
       <CardContent className="pt-6">
+        {/* Cabeçalho: Placa e Status */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex flex-col">
-            <span className="text-lg font-medium">{movement.vehiclePlate || movement.vehicleId}</span>
-            <span className="text-sm text-muted-foreground">{movement.driver}</span>
+            <span className="text-lg font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span>
+            <span className="text-sm text-muted-foreground">{vehicleInfo}</span>
           </div>
-          <div className="flex gap-2">
-            <Badge>{getMovementTypeLabel(movement.type)}</Badge>
-            <Badge variant="outline">{getMovementStatusLabel(movement.status)}</Badge>
-          </div>
+          <Badge variant={movement.status === 'yard' ? 'outline' : 'secondary'}>
+            {getMovementStatusLabel(movement.status)}
+          </Badge>
         </div>
         
-        <div className="flex flex-col gap-1 text-sm mb-4">
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Car className="h-3.5 w-3.5 flex-shrink-0" />
-            <span className="truncate">{mileageText}</span>
+        {/* Motorista */}
+        <div className="flex items-center gap-2 mb-4">
+          <User className="h-4 w-4 text-muted-foreground" />
+          <span className="text-sm">Motorista: <span className="font-medium">{movement.driver}</span></span>
+        </div>
+        
+        {/* Origem e Destino */}
+        <div className="flex items-center justify-between gap-2 mb-4">
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-muted-foreground">Origem</span>
+            <span className="text-sm">{movement.departureUnitName || "—"}</span>
           </div>
           
-          <div className="flex items-center gap-3 mt-3">
-            <div className="flex flex-col flex-1">
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
-                <span className="font-medium">Origem</span>
-              </div>
-              <span className="text-xs text-muted-foreground truncate">
-                {movement.departureUnitName || "—"}
-              </span>
-            </div>
-            
-            <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            
-            <div className="flex flex-col flex-1">
-              <div className="flex items-center gap-1">
-                <MapPin className="h-3.5 w-3.5 text-destructive" />
-                <span className="font-medium">Destino</span>
-              </div>
-              <span className="text-xs text-muted-foreground truncate">
-                {movement.arrivalUnitName || movement.destination || "—"}
-              </span>
-            </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          
+          <div className="flex flex-col">
+            <span className="text-xs font-semibold text-muted-foreground">Destino</span>
+            <span className="text-sm">{movement.arrivalUnitName || movement.destination || "—"}</span>
           </div>
         </div>
         
-        <div className="flex justify-between border-t pt-2 text-xs text-muted-foreground">
-          <div>
+        {/* Detalhes de Saída e Chegada */}
+        <div className="grid grid-cols-2 gap-4 mb-3">
+          {/* Detalhes de Saída */}
+          <div className="bg-muted/40 p-2 rounded-md">
+            <p className="text-xs font-semibold text-muted-foreground mb-1">Saída</p>
             {movement.departureDate && (
-              <div>
-                <span>Saída: </span>
-                <span>{formatDateForDisplay(movement.departureDate)}</span>
-                <span className="ml-1">{formatTimeForDisplay(movement.departureTime)}</span>
-              </div>
+              <>
+                <p className="text-xs">
+                  {formatDateForDisplay(movement.departureDate)} {formatTimeForDisplay(movement.departureTime)}
+                </p>
+                <p className="text-xs text-muted-foreground">{movement.departureUnitName}</p>
+                <p className="text-xs">KM: {initialMileageFormatted}</p>
+              </>
             )}
           </div>
-          <div>
-            {movement.arrivalDate && (
-              <div>
-                <span>Chegada: </span>
-                <span>{formatDateForDisplay(movement.arrivalDate)}</span>
-                <span className="ml-1">{formatTimeForDisplay(movement.arrivalTime || "")}</span>
-              </div>
+          
+          {/* Detalhes de Chegada */}
+          <div className="bg-muted/40 p-2 rounded-md">
+            <p className="text-xs font-semibold text-muted-foreground mb-1">Chegada</p>
+            {movement.arrivalDate ? (
+              <>
+                <p className="text-xs">
+                  {formatDateForDisplay(movement.arrivalDate)} {formatTimeForDisplay(movement.arrivalTime || "")}
+                </p>
+                <p className="text-xs text-muted-foreground">{movement.arrivalUnitName || "—"}</p>
+                <p className="text-xs">KM: {finalMileageFormatted}</p>
+              </>
+            ) : (
+              <p className="text-xs text-muted-foreground">—</p>
             )}
           </div>
         </div>
+        
+        {/* Rodapé: Duração e Distância */}
+        {(movement.duration || mileageRun > 0) && (
+          <div className="border-t pt-2 text-xs">
+            <div className="flex items-center gap-1">
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <span>
+                Duração: {movement.duration || "—"} 
+                {mileageRun > 0 && ` - ${mileageRun} km percorridos`}
+              </span>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
