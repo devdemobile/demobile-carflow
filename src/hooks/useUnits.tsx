@@ -3,13 +3,18 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Unit } from '@/types';
 import { fetchUnits, createUnit, updateUnit, deleteUnit } from '@/services/unitService';
+import { useMediaQuery } from '@/hooks/use-mobile';
 
 /**
- * Hook for managing units data and operations
+ * Hook for managing units data and operations with responsive view mode
  */
 export const useUnits = () => {
   const [searchTerm, setSearchTerm] = useState('');
-
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  
+  // Use media query to determine default view mode
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  
   // Fetch units with React Query
   const { 
     data: allUnits = [], 
@@ -19,17 +24,18 @@ export const useUnits = () => {
   } = useQuery({
     queryKey: ['units'],
     queryFn: fetchUnits,
-    staleTime: 5000, // Short stale time to allow for frequent refreshes
-    refetchOnWindowFocus: true // Refetch when window gains focus
+    refetchOnWindowFocus: true,
+    retry: 1,
+    staleTime: 30000 // 30 seconds
   });
 
-  // Filter units by search term on the client side
+  // Filter units by search term
   const units = searchTerm 
     ? allUnits.filter(unit => {
         const term = searchTerm.toLowerCase();
         return unit.name.toLowerCase().includes(term) || 
                unit.code.toLowerCase().includes(term) || 
-               unit.address.toLowerCase().includes(term);
+               (unit.address && unit.address.toLowerCase().includes(term));
       })
     : allUnits;
 
@@ -64,6 +70,9 @@ export const useUnits = () => {
     units,
     searchTerm,
     setSearchTerm,
+    viewMode,
+    setViewMode,
+    isDesktop,
     isLoading,
     isError,
     refetch,

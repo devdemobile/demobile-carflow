@@ -4,15 +4,32 @@ import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Search, Map, Users, Car, Trash } from 'lucide-react';
+import { Plus, Search, Map, Users, Car, Trash2, Pencil, Grid, List } from 'lucide-react';
 import { useUnits } from '@/hooks/useUnits';
 import { UnitSkeleton } from '@/components/units/UnitSkeleton';
 import UnitDialog from '@/components/units/UnitDialog';
 import DeleteUnitDialog from '@/components/units/DeleteUnitDialog';
 import { Unit } from '@/types';
+import { UnitsTable } from '@/components/units/UnitsTable';
+import { useToast } from '@/hooks/use-toast';
 
 const Units = () => {
-  const { units, searchTerm, setSearchTerm, isLoading, refetch, addUnit, updateUnit, deleteUnit } = useUnits();
+  const { 
+    units, 
+    searchTerm, 
+    setSearchTerm, 
+    viewMode,
+    setViewMode,
+    isDesktop,
+    isLoading, 
+    isError,
+    refetch, 
+    addUnit, 
+    updateUnit, 
+    deleteUnit 
+  } = useUnits();
+  
+  const { toast } = useToast();
   
   // State for dialogs
   const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
@@ -49,18 +66,21 @@ const Units = () => {
         const success = await updateUnit(selectedUnit.id, formData);
         if (success) {
           setIsUnitDialogOpen(false);
-          refetch();
         }
       } else {
         // Create new unit
         const newUnit = await addUnit(formData);
         if (newUnit) {
           setIsUnitDialogOpen(false);
-          refetch();
         }
       }
     } catch (error) {
       console.error('Error saving unit:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao salvar a unidade.",
+        variant: "destructive"
+      });
     } finally {
       setIsSaving(false);
     }
@@ -76,10 +96,14 @@ const Units = () => {
       const success = await deleteUnit(selectedUnit.id);
       if (success) {
         setIsDeleteDialogOpen(false);
-        refetch();
       }
     } catch (error) {
       console.error('Error deleting unit:', error);
+      toast({
+        title: "Erro",
+        description: "Ocorreu um erro ao excluir a unidade.",
+        variant: "destructive"
+      });
     } finally {
       setIsDeleting(false);
     }
@@ -87,9 +111,23 @@ const Units = () => {
 
   // Handler for viewing unit details
   const handleViewDetails = (unit: Unit) => {
-    // Implementar tela de detalhes da unidade futuramente
     console.log("Ver detalhes da unidade:", unit);
+    // Implementar tela de detalhes da unidade futuramente
   };
+
+  // Show error message if failed to load units
+  if (isError) {
+    return (
+      <Layout>
+        <div className="container mx-auto py-6">
+          <div className="flex flex-col items-center justify-center h-64">
+            <h1 className="text-2xl font-bold text-red-500 mb-4">Erro ao carregar unidades</h1>
+            <Button onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -110,66 +148,105 @@ const Units = () => {
               <Plus className="h-4 w-4 mr-2" />
               Nova Unidade
             </Button>
+            
+            {isDesktop && (
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="icon"
+                  className="rounded-r-none"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="icon"
+                  className="rounded-l-none"
+                  onClick={() => setViewMode('table')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {isLoading ? (
-            // Show loading skeletons while data is loading
-            Array.from({ length: 4 }).map((_, index) => (
+        {isLoading ? (
+          // Show loading skeletons while data is loading
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {Array.from({ length: 4 }).map((_, index) => (
               <UnitSkeleton key={`skeleton-${index}`} />
-            ))
-          ) : units.length > 0 ? (
-            units.map((unit) => (
-              <Card key={unit.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{unit.name}</span>
-                    <span className="text-sm bg-muted px-2 py-1 rounded">{unit.code}</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start">
-                    <Map className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
-                    <span className="text-sm">{unit.address || 'Endereço não cadastrado'}</span>
-                  </div>
-                  <div className="flex space-x-4">
-                    <div className="flex items-center">
-                      <Car className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm">{unit.vehicleCount} veículos</span>
+            ))}
+          </div>
+        ) : units.length > 0 ? (
+          viewMode === 'grid' ? (
+            // Grid view
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {units.map((unit) => (
+                <Card key={unit.id}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>{unit.name}</span>
+                      <span className="text-sm bg-muted px-2 py-1 rounded">{unit.code}</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start">
+                      <Map className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                      <span className="text-sm">{unit.address || 'Endereço não cadastrado'}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm">{unit.usersCount} usuários</span>
+                    <div className="flex space-x-4">
+                      <div className="flex items-center">
+                        <Car className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="text-sm">{unit.vehicleCount} veículos</span>
+                      </div>
+                      <div className="flex items-center">
+                        <Users className="h-4 w-4 mr-2 text-muted-foreground" />
+                        <span className="text-sm">{unit.usersCount} usuários</span>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-between space-x-2 pt-0">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => handleDeleteClick(unit)}
-                  >
-                    <Trash className="h-4 w-4" />
-                  </Button>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => handleEditUnit(unit)}>
-                      Editar
+                  </CardContent>
+                  <CardFooter className="flex justify-between space-x-2 pt-0">
+                    <Button 
+                      variant="ghost" 
+                      size="icon"
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      onClick={() => handleDeleteClick(unit)}
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
-                    <Button size="sm" onClick={() => handleViewDetails(unit)}>
-                      Detalhes
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-8">
-              <p className="text-muted-foreground">Nenhuma unidade encontrada</p>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => handleEditUnit(unit)}>
+                        <Pencil className="h-3.5 w-3.5 mr-1" />
+                        Editar
+                      </Button>
+                      <Button size="sm" onClick={() => handleViewDetails(unit)}>
+                        Detalhes
+                      </Button>
+                    </div>
+                  </CardFooter>
+                </Card>
+              ))}
             </div>
-          )}
-        </div>
+          ) : (
+            // Table view
+            <UnitsTable 
+              units={units} 
+              onEdit={handleEditUnit} 
+              onDelete={handleDeleteClick}
+              onViewDetails={handleViewDetails}
+            />
+          )
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Nenhuma unidade encontrada</p>
+            <Button variant="outline" className="mt-4" onClick={handleCreateUnit}>
+              <Plus className="h-4 w-4 mr-2" />
+              Adicionar unidade
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Unit Create/Edit Dialog */}
