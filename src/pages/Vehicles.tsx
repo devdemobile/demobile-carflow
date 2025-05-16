@@ -1,134 +1,94 @@
 
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Vehicle } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Plus, Search } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
+import VehiclesTable from '@/components/vehicles/VehiclesTable';
 import VehiclesFilter from '@/components/vehicles/VehiclesFilter';
 import VehicleCard from '@/components/vehicles/VehicleCard';
-import VehiclesTable from '@/components/vehicles/VehiclesTable';
-import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useMediaQuery } from '@/hooks/use-mobile';
 
 const Vehicles = () => {
-  const isMobile = useIsMobile();
-  const { 
-    vehicles, 
-    isLoading, 
-    filters, 
-    handleFilterChange, 
-    resetFilters, 
-    page, 
-    setPage, 
-    totalPages,
-    viewMode,
-    setViewMode
-  } = useVehicles();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'table');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterUnit, setFilterUnit] = useState<string | null>(null);
+  const [filterLocation, setFilterLocation] = useState<string | null>(null);
   
-  const handleVehicleClick = (vehicle: Vehicle) => {
-    // For future implementation: show vehicle details or edit dialog
-    console.log('Vehicle clicked:', vehicle);
+  const { vehicles, isLoading, refetch } = useVehicles({
+    searchTerm,
+    unitId: filterUnit,
+    location: filterLocation as 'yard' | 'out' | null,
+  });
+  
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
   };
 
-  // Generate skeleton loaders for the grid view
-  const renderSkeletons = () => {
-    return Array(8).fill(0).map((_, i) => (
-      <div key={i} className="flex flex-col gap-2">
-        <Skeleton className="h-40 w-full" />
-        <Skeleton className="h-5 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-      </div>
-    ));
+  // Function to handle creating a new vehicle - we'll add this functionality
+  const handleCreateVehicle = () => {
+    // This function would open a dialog to create a new vehicle
+    console.log("Create new vehicle");
+    // Implement the actual vehicle creation functionality
   };
-  
+
   return (
     <Layout>
-      <div className="container mx-auto py-6">
-        <h1 className="text-3xl font-bold mb-6">Veículos</h1>
+      <div className="container mx-auto py-6 pb-16 md:pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+          <h1 className="text-3xl font-bold">Veículos</h1>
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                className="pl-8 max-w-[300px]"
+                placeholder="Buscar veículo..." 
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+              />
+            </div>
+            
+            <Button onClick={handleCreateVehicle}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Veículo
+            </Button>
+          </div>
+        </div>
         
         <VehiclesFilter 
-          filters={filters} 
-          onFilterChange={handleFilterChange} 
-          onReset={resetFilters} 
           viewMode={viewMode}
           setViewMode={setViewMode}
+          unitId={filterUnit}
+          setUnitId={setFilterUnit}
+          location={filterLocation}
+          setLocation={setFilterLocation}
         />
         
-        {isLoading ? (
-          viewMode === 'grid' ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {renderSkeletons()}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          )
-        ) : viewMode === 'grid' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {vehicles.length === 0 ? (
-              <div className="col-span-full text-center py-10">
-                <p className="text-muted-foreground">Nenhum veículo encontrado.</p>
-              </div>
-            ) : (
-              vehicles.map((vehicle) => (
-                <VehicleCard 
-                  key={vehicle.id} 
-                  vehicle={vehicle}
-                  onClick={() => handleVehicleClick(vehicle)}
-                />
+        {viewMode === 'table' ? (
+          <VehiclesTable 
+            vehicles={vehicles}
+            isLoading={isLoading}
+            onRefresh={refetch}
+          />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="h-36 bg-muted rounded-lg animate-pulse" />
               ))
+            ) : vehicles.length > 0 ? (
+              vehicles.map((vehicle) => (
+                <VehicleCard key={vehicle.id} vehicle={vehicle} />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-10">
+                <p className="text-muted-foreground">Nenhum veículo encontrado</p>
+              </div>
             )}
           </div>
-        ) : (
-          <VehiclesTable vehicles={vehicles} onVehicleClick={handleVehicleClick} />
-        )}
-        
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <Pagination className="mt-6">
-            <PaginationContent>
-              <PaginationItem>
-                <PaginationPrevious 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (page > 1) setPage(page - 1);
-                  }} 
-                  className={page === 1 ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-              
-              {[...Array(totalPages)].map((_, i) => (
-                <PaginationItem key={i} className="hidden md:block">
-                  <PaginationLink
-                    href="#"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setPage(i + 1);
-                    }}
-                    isActive={page === i + 1}
-                  >
-                    {i + 1}
-                  </PaginationLink>
-                </PaginationItem>
-              ))}
-              
-              <PaginationItem>
-                <PaginationNext 
-                  href="#" 
-                  onClick={(e) => {
-                    e.preventDefault();
-                    if (page < totalPages) setPage(page + 1);
-                  }} 
-                  className={page === totalPages ? "pointer-events-none opacity-50" : ""}
-                />
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
         )}
       </div>
     </Layout>

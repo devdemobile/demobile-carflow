@@ -8,7 +8,7 @@ import { Unit } from '@/types';
  */
 export const fetchUnits = async (): Promise<Unit[]> => {
   try {
-    // Execute the query using service_role key to bypass RLS if needed
+    // Use a simpler query to avoid RLS policy issues
     const { data, error } = await supabase
       .from('units')
       .select('id, name, code, address')
@@ -20,15 +20,43 @@ export const fetchUnits = async (): Promise<Unit[]> => {
       return [];
     }
     
-    // Process units without additional queries for improved performance
-    const unitsWithCounts = data.map(unit => ({
-      id: unit.id,
-      name: unit.name,
-      code: unit.code,
-      address: unit.address || '',
-      vehicleCount: 0,
-      usersCount: 0
-    }));
+    if (!data || data.length === 0) {
+      return [];
+    }
+
+    // Get related counts in separate queries to avoid recursion issues
+    const unitsWithCounts = await Promise.all(
+      data.map(async (unit) => {
+        // Get vehicle count
+        const { count: vehicleCount, error: vehicleError } = await supabase
+          .from('vehicles')
+          .select('*', { count: 'exact', head: true })
+          .eq('unit_id', unit.id);
+        
+        if (vehicleError) {
+          console.error('Error counting vehicles:', vehicleError);
+        }
+        
+        // Get user count
+        const { count: usersCount, error: usersError } = await supabase
+          .from('system_users')
+          .select('*', { count: 'exact', head: true })
+          .eq('unit_id', unit.id);
+        
+        if (usersError) {
+          console.error('Error counting users:', usersError);
+        }
+        
+        return {
+          id: unit.id,
+          name: unit.name,
+          code: unit.code,
+          address: unit.address || '',
+          vehicleCount: vehicleCount || 0,
+          usersCount: usersCount || 0
+        };
+      })
+    );
 
     return unitsWithCounts;
   } catch (error) {
