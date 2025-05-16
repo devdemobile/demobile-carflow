@@ -43,11 +43,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserRole, UserShift, UserStatus } from '@/types/entities';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserRound, Filter } from 'lucide-react';
+import { Pencil, Trash2, UserRound, Filter, Grid, List } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface SystemUser {
   id: string;
@@ -88,6 +89,7 @@ const Users = () => {
   const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -361,6 +363,57 @@ const Users = () => {
     );
   };
 
+  const renderUserCard = (userItem: SystemUser) => (
+    <Card key={userItem.id} className={userItem.status === 'inactive' ? 'opacity-60' : ''}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-4 mb-3">
+          <Avatar>
+            <AvatarFallback>{userItem.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h3 className="font-medium">{userItem.name}</h3>
+            <p className="text-sm text-muted-foreground">{userItem.username}</p>
+          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-3">
+          {getRoleBadge(userItem.role)}
+          {getShiftBadge(userItem.shift)}
+          {getStatusBadge(userItem.status)}
+        </div>
+        
+        <div className="text-sm mb-2">
+          <p className="text-muted-foreground">Unidade: {userItem.units?.name || "—"}</p>
+          {userItem.email && <p className="text-muted-foreground">Email: {userItem.email}</p>}
+        </div>
+        
+        {user?.role === 'admin' && (
+          <div className="flex justify-end gap-2 mt-4 pt-2 border-t">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => handleEditUser(userItem)}
+            >
+              <Pencil className="h-4 w-4 mr-1" />
+              Editar
+            </Button>
+            <Switch size="sm" checked={userItem.status === 'active'} onCheckedChange={() => toggleUserStatus(userItem.id, userItem.status)} />
+            {userItem.id !== user.id && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => confirmDelete(userItem.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-1 text-red-500" />
+                Excluir
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
@@ -387,6 +440,25 @@ const Users = () => {
                 <label htmlFor="show-inactive" className="text-sm cursor-pointer">
                   Mostrar inativos
                 </label>
+              </div>
+              
+              <div className="flex border rounded-md">
+                <Button
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  size="icon"
+                  className="rounded-r-none"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant={viewMode === 'table' ? 'default' : 'ghost'}
+                  size="icon"
+                  className="rounded-l-none"
+                  onClick={() => setViewMode('table')}
+                >
+                  <List className="h-4 w-4" />
+                </Button>
               </div>
             </div>
             
@@ -415,7 +487,7 @@ const Users = () => {
           <div className="text-center py-8">
             <p className="text-muted-foreground">Nenhum usuário encontrado</p>
           </div>
-        ) : (
+        ) : viewMode === 'table' ? (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -483,8 +555,13 @@ const Users = () => {
               </TableBody>
             </Table>
           </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredUsers.map(renderUserCard)}
+          </div>
         )}
         
+        {/* Diálogos */}
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[525px]">
             <DialogHeader>

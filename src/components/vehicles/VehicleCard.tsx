@@ -16,10 +16,11 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
   };
   
   const LocationIcon = vehicle.location === 'yard' ? Warehouse : Navigation;
+  const borderClass = vehicle.location === 'yard' ? 'border-l-4 border-l-yard' : 'border-l-4 border-l-out';
 
   return (
     <div 
-      className="bg-card border rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
+      className={`bg-card border rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer ${borderClass}`}
       onClick={handleClick}
     >
       <div className="aspect-[16/9] relative bg-muted">

@@ -2,7 +2,8 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Movement } from '@/types';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Warehouse, Navigation } from 'lucide-react';
+import { formatMileage } from '@/lib/utils';
 
 interface MovementCardProps {
   movement: Movement;
@@ -12,6 +13,7 @@ interface MovementCardProps {
 const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   const isComplete = movement.arrivalDate && movement.arrivalTime;
   const statusClass = movement.status === 'yard' ? 'card-status-yard' : 'card-status-out';
+  const StatusIcon = movement.status === 'yard' ? Warehouse : Navigation;
   
   return (
     <Card 
@@ -21,9 +23,12 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
       <CardContent className="p-4">
         <div className="flex justify-between items-start mb-2">
           <h3 className="font-bold">{movement.plate}</h3>
-          <span className={movement.status === 'yard' ? 'text-yard' : 'text-out'}>
-            {movement.status === 'yard' ? 'Completado' : 'Em Andamento'}
-          </span>
+          <div className="flex items-center">
+            <StatusIcon className="h-3 w-3 mr-1" />
+            <span className={movement.status === 'yard' ? 'text-yard' : 'text-out'}>
+              {movement.status === 'yard' ? 'Completado' : 'Em Andamento'}
+            </span>
+          </div>
         </div>
         
         <p className="text-sm text-muted-foreground mb-3 truncate">
@@ -57,7 +62,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
         
         {isComplete && movement.mileageRun && (
           <div className="mt-2 text-xs flex justify-between">
-            <span>{movement.mileageRun} km percorridos</span>
+            <span>{formatMileage(movement.mileageRun)} km percorridos</span>
             <span>{movement.duration}</span>
           </div>
         )}

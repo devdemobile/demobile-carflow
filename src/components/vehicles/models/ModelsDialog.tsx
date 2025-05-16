@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   Dialog, 
@@ -93,8 +94,8 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
           <DialogTitle className="text-2xl">Gerenciar Modelos</DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 justify-between my-4">
-          <div className="grid gap-2 w-full sm:w-auto sm:max-w-[240px]">
+        <div className="flex flex-col sm:flex-row items-center gap-4 justify-between my-4">
+          <div className="grid gap-2 w-full sm:w-auto">
             <Label htmlFor="makeFilter">Filtrar por marca</Label>
             <Combobox
               options={[
