@@ -18,6 +18,9 @@ export interface IUnitRepository {
   delete(id: string): Promise<boolean>;
   getVehicleCount(unitId: string): Promise<number>;
   getUsersCount(unitId: string): Promise<number>;
+  fetchVehicleCountByUnit(): Promise<Record<string, number>>;
+  fetchUserCountByUnit(): Promise<Record<string, number>>;
+  canDeleteUnit(id: string): Promise<{ canDelete: boolean; vehicleCount?: number; usersCount?: number }>;
 }
 
 /**
@@ -100,7 +103,7 @@ export class UnitRepository implements IUnitRepository {
           name: unitData.name,
           code: unitData.code,
           address: unitData.address || null,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         })
         .eq('id', id),
       'Erro ao atualizar unidade'
@@ -128,30 +131,76 @@ export class UnitRepository implements IUnitRepository {
    * Obtém a contagem de veículos por unidade
    */
   async getVehicleCount(unitId: string): Promise<number> {
-    const result = await handleSupabaseRequest(
+    const { count } = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
         .select('id', { count: 'exact', head: true })
         .eq('unit_id', unitId),
       'Erro ao contar veículos da unidade'
-    );
+    ) || { count: 0 };
     
-    return result?.count || 0;
+    return count || 0;
   }
 
   /**
    * Obtém a contagem de usuários por unidade
    */
   async getUsersCount(unitId: string): Promise<number> {
-    const result = await handleSupabaseRequest(
+    const { count } = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
         .select('id', { count: 'exact', head: true })
         .eq('unit_id', unitId),
       'Erro ao contar usuários da unidade'
-    );
+    ) || { count: 0 };
     
-    return result?.count || 0;
+    return count || 0;
+  }
+
+  /**
+   * Busca contagem de veículos por unidade
+   */
+  async fetchVehicleCountByUnit(): Promise<Record<string, number>> {
+    const counts = await handleSupabaseRequest(
+      async () => await supabase.rpc('count_vehicles_by_unit'),
+      'Erro ao buscar contagem de veículos por unidade'
+    ) || [];
+
+    const result: Record<string, number> = {};
+    counts.forEach((item: any) => {
+      result[item.unit_id] = Number(item.count);
+    });
+    
+    return result;
+  }
+
+  /**
+   * Busca contagem de usuários por unidade
+   */
+  async fetchUserCountByUnit(): Promise<Record<string, number>> {
+    const counts = await handleSupabaseRequest(
+      async () => await supabase.rpc('count_users_by_unit'),
+      'Erro ao buscar contagem de usuários por unidade'
+    ) || [];
+
+    const result: Record<string, number> = {};
+    counts.forEach((item: any) => {
+      result[item.unit_id] = Number(item.count);
+    });
+    
+    return result;
+  }
+
+  /**
+   * Verifica se uma unidade pode ser excluída
+   */
+  async canDeleteUnit(id: string): Promise<{ canDelete: boolean; vehicleCount?: number; usersCount?: number }> {
+    const vehicleCount = await this.getVehicleCount(id);
+    const usersCount = await this.getUsersCount(id);
+    
+    const canDelete = vehicleCount === 0 && usersCount === 0;
+    
+    return { canDelete, vehicleCount, usersCount };
   }
 }
 

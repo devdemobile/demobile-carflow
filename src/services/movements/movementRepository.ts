@@ -29,7 +29,7 @@ export class MovementRepository implements IMovementRepository {
    * Busca todas as movimentações
    */
   async findAll(): Promise<Movement[]> {
-    return handleSupabaseRequest(
+    const data = await handleSupabaseRequest(
       async () => await supabase
         .from('movements')
         .select(`
@@ -38,13 +38,17 @@ export class MovementRepository implements IMovementRepository {
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
           vehicle_id, vehicles(id, plate, make, model), 
-          departure_unit_id, units!departure_unit_id(id, name),
-          arrival_unit_id, units!arrival_unit_id(id, name)
+          departure_unit_id, units:departure_unit_id(id, name),
+          arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
         .order('departure_date', { ascending: false })
         .order('departure_time', { ascending: false }),
       'Erro ao buscar movimentações'
-    ) || [];
+    );
+    
+    if (!data) return [];
+    
+    return data.map(this.mapMovementFromDB);
   }
 
   /**
@@ -60,19 +64,17 @@ export class MovementRepository implements IMovementRepository {
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
           vehicle_id, vehicles(id, plate, make, model), 
-          departure_unit_id, units!departure_unit_id(id, name),
-          arrival_unit_id, units!arrival_unit_id(id, name)
+          departure_unit_id, units:departure_unit_id(id, name),
+          arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
         .eq('id', id)
         .single(),
       'Erro ao buscar movimentação'
     );
     
-    if (data) {
-      return this.mapMovementFromDB(data);
-    }
+    if (!data) return null;
     
-    return null;
+    return this.mapMovementFromDB(data);
   }
 
   /**
@@ -88,14 +90,16 @@ export class MovementRepository implements IMovementRepository {
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
           vehicle_id, vehicles(id, plate, make, model), 
-          departure_unit_id, units!departure_unit_id(id, name),
-          arrival_unit_id, units!arrival_unit_id(id, name)
+          departure_unit_id, units:departure_unit_id(id, name),
+          arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
         .eq('vehicle_id', vehicleId)
         .order('departure_date', { ascending: false })
         .order('departure_time', { ascending: false }),
       'Erro ao buscar movimentações do veículo'
-    ) || [];
+    );
+    
+    if (!data) return [];
     
     return data.map(this.mapMovementFromDB);
   }
@@ -113,14 +117,16 @@ export class MovementRepository implements IMovementRepository {
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
           vehicle_id, vehicles(id, plate, make, model), 
-          departure_unit_id, units!departure_unit_id(id, name),
-          arrival_unit_id, units!arrival_unit_id(id, name)
+          departure_unit_id, units:departure_unit_id(id, name),
+          arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
         .eq('status', status)
         .order('departure_date', { ascending: false })
         .order('departure_time', { ascending: false }),
       'Erro ao buscar movimentações por status'
-    ) || [];
+    );
+    
+    if (!data) return [];
     
     return data.map(this.mapMovementFromDB);
   }
@@ -140,14 +146,16 @@ export class MovementRepository implements IMovementRepository {
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
           vehicle_id, vehicles(id, plate, make, model), 
-          departure_unit_id, units!departure_unit_id(id, name),
-          arrival_unit_id, units!arrival_unit_id(id, name)
+          departure_unit_id, units:departure_unit_id(id, name),
+          arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
         .ilike('driver', searchTerm)
         .order('departure_date', { ascending: false })
         .order('departure_time', { ascending: false }),
       'Erro ao buscar movimentações por motorista'
-    ) || [];
+    );
+    
+    if (!data) return [];
     
     return data.map(this.mapMovementFromDB);
   }
@@ -169,14 +177,16 @@ export class MovementRepository implements IMovementRepository {
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
           vehicle_id, vehicles(id, plate, make, model), 
-          departure_unit_id, units!departure_unit_id(id, name),
-          arrival_unit_id, units!arrival_unit_id(id, name)
+          departure_unit_id, units:departure_unit_id(id, name),
+          arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
         .or(`driver.ilike.${searchTerm},destination.ilike.${searchTerm},vehicles.plate.ilike.${searchTerm}`)
         .order('departure_date', { ascending: false })
         .order('departure_time', { ascending: false }),
       'Erro ao pesquisar movimentações'
-    ) || [];
+    );
+    
+    if (!data) return [];
     
     return data.map(this.mapMovementFromDB);
   }
@@ -209,7 +219,9 @@ export class MovementRepository implements IMovementRepository {
       'Erro ao criar movimentação'
     );
     
-    return data as Movement | null;
+    if (!data) return null;
+    
+    return this.findById(data.id);
   }
 
   /**
@@ -217,7 +229,7 @@ export class MovementRepository implements IMovementRepository {
    */
   async updateWithReturn(id: string, data: Partial<Movement>): Promise<Movement | null> {
     const updateData: Record<string, any> = {
-      updated_at: new Date()
+      updated_at: new Date().toISOString()
     };
     
     if (data.driver) updateData.driver = data.driver;
@@ -245,7 +257,9 @@ export class MovementRepository implements IMovementRepository {
       'Erro ao atualizar movimentação'
     );
     
-    return result as Movement | null;
+    if (!result) return null;
+    
+    return this.findById(id);
   }
 
   /**
@@ -271,7 +285,7 @@ export class MovementRepository implements IMovementRepository {
       id: data.id,
       vehicleId: data.vehicle_id,
       plate: data.vehicles?.plate,
-      vehicleName: `${data.vehicles?.make} ${data.vehicles?.model}`,
+      vehicleName: data.vehicles ? `${data.vehicles.make} ${data.vehicles.model}` : undefined,
       driver: data.driver,
       destination: data.destination,
       initialMileage: data.initial_mileage,
@@ -285,7 +299,8 @@ export class MovementRepository implements IMovementRepository {
       arrivalTime: data.arrival_time,
       duration: data.duration,
       status: data.status,
-      type: data.type
+      type: data.type,
+      createdBy: data.created_by
     };
   }
 }

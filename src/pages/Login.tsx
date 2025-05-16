@@ -14,7 +14,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user, loginWithSystem, error: authError } = useAuth();
+  const { user, login, error: authError } = useAuth();
   const navigate = useNavigate();
 
   // Redirecionar se já estiver autenticado
@@ -44,7 +44,7 @@ const Login = () => {
     
     try {
       console.log("Tentando login com:", username);
-      const success = await loginWithSystem(username, password);
+      const success = await login({ username, password });
       
       if (success) {
         navigate('/');

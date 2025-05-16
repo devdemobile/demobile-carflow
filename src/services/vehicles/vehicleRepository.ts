@@ -1,71 +1,82 @@
 
-/**
- * Repositório de acesso a dados de Veículos
- */
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleDTO, VehicleLocation } from '@/types';
 import { handleSupabaseRequest } from '@/services/api/supabase';
 
-/**
- * Interface do repositório de veículos
- */
 export interface IVehicleRepository {
   findAll(): Promise<Vehicle[]>;
-  findByUnit(unitId: string): Promise<Vehicle[]>;
-  findByLocation(location: VehicleLocation): Promise<Vehicle[]>;
   findById(id: string): Promise<Vehicle | null>;
   findByPlate(plate: string): Promise<Vehicle | null>;
+  findByUnit(unitId: string): Promise<Vehicle[]>;
+  findByLocation(location: VehicleLocation): Promise<Vehicle[]>;
   search(term: string): Promise<Vehicle[]>;
   create(vehicleData: VehicleDTO): Promise<Vehicle | null>;
-  update(id: string, vehicleData: Partial<VehicleDTO>): Promise<boolean>;
-  updateMileage(id: string, mileage: number): Promise<boolean>;
-  updateLocation(id: string, location: VehicleLocation): Promise<boolean>;
+  update(id: string, vehicleData: Partial<Vehicle>): Promise<boolean>;
+  updateLocation(id: string, location: VehicleLocation, mileage?: number): Promise<boolean>;
   delete(id: string): Promise<boolean>;
 }
 
-/**
- * Implementação do repositório de veículos usando Supabase
- */
 export class VehicleRepository implements IVehicleRepository {
   /**
    * Busca todos os veículos
    */
   async findAll(): Promise<Vehicle[]> {
-    return handleSupabaseRequest(
+    const data = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .select('*, units(name)')
+        .select(`
+          *,
+          units(id, name)
+        `)
         .order('plate'),
       'Erro ao buscar veículos'
-    ) || [];
+    );
+    
+    if (!data) return [];
+    
+    return data.map(this.mapVehicleFromDb);
   }
 
   /**
    * Busca veículos por unidade
    */
   async findByUnit(unitId: string): Promise<Vehicle[]> {
-    return handleSupabaseRequest(
+    const data = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .select('*, units(name)')
+        .select(`
+          *,
+          units(id, name)
+        `)
         .eq('unit_id', unitId)
         .order('plate'),
       'Erro ao buscar veículos da unidade'
-    ) || [];
+    );
+    
+    if (!data) return [];
+    
+    return data.map(this.mapVehicleFromDb);
   }
 
   /**
    * Busca veículos por localização
    */
   async findByLocation(location: VehicleLocation): Promise<Vehicle[]> {
-    return handleSupabaseRequest(
+    const data = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .select('*, units(name)')
+        .select(`
+          *,
+          units(id, name)
+        `)
         .eq('location', location)
         .order('plate'),
       'Erro ao buscar veículos por localização'
-    ) || [];
+    );
+    
+    if (!data) return [];
+    
+    return data.map(this.mapVehicleFromDb);
   }
 
   /**
@@ -75,21 +86,18 @@ export class VehicleRepository implements IVehicleRepository {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .select('*, units(name)')
+        .select(`
+          *,
+          units(id, name)
+        `)
         .eq('id', id)
         .single(),
       'Erro ao buscar veículo'
     );
     
-    if (data) {
-      // Converter o resultado do join para o formato esperado
-      return {
-        ...data,
-        unitName: data.units?.name
-      } as unknown as Vehicle;
-    }
+    if (!data) return null;
     
-    return null;
+    return this.mapVehicleFromDb(data);
   }
 
   /**
@@ -99,38 +107,41 @@ export class VehicleRepository implements IVehicleRepository {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .select('*, units(name)')
+        .select(`
+          *,
+          units(id, name)
+        `)
         .eq('plate', plate)
         .single(),
       'Erro ao buscar veículo pela placa'
     );
     
-    if (data) {
-      return {
-        ...data,
-        unitName: data.units?.name
-      } as unknown as Vehicle;
-    }
+    if (!data) return null;
     
-    return null;
+    return this.mapVehicleFromDb(data);
   }
 
   /**
    * Busca veículos por termo de pesquisa
    */
   async search(term: string): Promise<Vehicle[]> {
-    if (!term) return this.findAll();
-    
     const searchTerm = `%${term.toLowerCase()}%`;
     
-    return handleSupabaseRequest(
+    const data = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .select('*, units(name)')
-        .or(`plate.ilike.${searchTerm},make.ilike.${searchTerm},model.ilike.${searchTerm},color.ilike.${searchTerm}`)
+        .select(`
+          *,
+          units(id, name)
+        `)
+        .or(`plate.ilike.${searchTerm},make.ilike.${searchTerm},model.ilike.${searchTerm}`)
         .order('plate'),
       'Erro ao pesquisar veículos'
-    ) || [];
+    );
+    
+    if (!data) return [];
+    
+    return data.map(this.mapVehicleFromDb);
   }
 
   /**
@@ -140,39 +151,43 @@ export class VehicleRepository implements IVehicleRepository {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .insert([{
+        .insert({
           plate: vehicleData.plate,
           make: vehicleData.make,
           model: vehicleData.model,
-          color: vehicleData.color,
           year: vehicleData.year,
+          color: vehicleData.color,
           mileage: vehicleData.mileage,
-          photo_url: vehicleData.photoUrl || null,
+          photo_url: vehicleData.photoUrl,
+          location: vehicleData.location || 'yard',
           unit_id: vehicleData.unitId
-        }])
+        })
         .select()
         .single(),
       'Erro ao criar veículo'
     );
     
-    return data as Vehicle | null;
+    if (!data) return null;
+    
+    return this.findById(data.id);
   }
 
   /**
-   * Atualiza um veículo existente
+   * Atualiza um veículo
    */
-  async update(id: string, vehicleData: Partial<VehicleDTO>): Promise<boolean> {
+  async update(id: string, vehicleData: Partial<Vehicle>): Promise<boolean> {
     const updateData: Record<string, any> = {
-      updated_at: new Date()
+      updated_at: new Date().toISOString()
     };
     
     if (vehicleData.plate) updateData.plate = vehicleData.plate;
     if (vehicleData.make) updateData.make = vehicleData.make;
     if (vehicleData.model) updateData.model = vehicleData.model;
-    if (vehicleData.color) updateData.color = vehicleData.color;
     if (vehicleData.year) updateData.year = vehicleData.year;
+    if (vehicleData.color) updateData.color = vehicleData.color;
     if (vehicleData.mileage !== undefined) updateData.mileage = vehicleData.mileage;
     if (vehicleData.photoUrl !== undefined) updateData.photo_url = vehicleData.photoUrl;
+    if (vehicleData.location) updateData.location = vehicleData.location;
     if (vehicleData.unitId) updateData.unit_id = vehicleData.unitId;
     
     const result = await handleSupabaseRequest(
@@ -187,23 +202,22 @@ export class VehicleRepository implements IVehicleRepository {
   }
 
   /**
-   * Atualiza a quilometragem de um veículo
-   */
-  async updateMileage(id: string, mileage: number): Promise<boolean> {
-    return this.update(id, { mileage });
-  }
-
-  /**
    * Atualiza a localização de um veículo
    */
-  async updateLocation(id: string, location: VehicleLocation): Promise<boolean> {
+  async updateLocation(id: string, location: VehicleLocation, mileage?: number): Promise<boolean> {
+    const updateData: Record<string, any> = {
+      location,
+      updated_at: new Date().toISOString()
+    };
+    
+    if (mileage !== undefined) {
+      updateData.mileage = mileage;
+    }
+    
     const result = await handleSupabaseRequest(
       async () => await supabase
         .from('vehicles')
-        .update({
-          location,
-          updated_at: new Date()
-        })
+        .update(updateData)
         .eq('id', id),
       'Erro ao atualizar localização do veículo'
     );
@@ -225,9 +239,25 @@ export class VehicleRepository implements IVehicleRepository {
     
     return result !== null;
   }
+
+  /**
+   * Mapeia dados do veículo do formato DB para o formato da aplicação
+   */
+  private mapVehicleFromDb(data: any): Vehicle {
+    return {
+      id: data.id,
+      plate: data.plate,
+      make: data.make,
+      model: data.model,
+      year: data.year,
+      color: data.color,
+      mileage: data.mileage,
+      photoUrl: data.photo_url,
+      location: data.location,
+      unitId: data.unit_id,
+      unitName: data.units?.name
+    };
+  }
 }
 
-/**
- * Instância singleton do repositório
- */
 export const vehicleRepository = new VehicleRepository();

@@ -15,7 +15,13 @@ export const useMovements = () => {
   const pageSize = 10;
 
   // Fetch movements with React Query
-  const { data: movements = [], isLoading, isError, refetch } = useQuery({
+  const { 
+    data: movements = [], 
+    isLoading, 
+    isError, 
+    error,
+    refetch 
+  } = useQuery({
     queryKey: ['movements', filters],
     queryFn: async () => {
       try {
@@ -67,6 +73,7 @@ export const useMovements = () => {
     totalCount: movements.length,
     isLoading,
     isError,
+    error,
     page,
     setPage,
     totalPages,

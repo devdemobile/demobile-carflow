@@ -1,32 +1,20 @@
 
-/**
- * Repositório de acesso a dados de Usuários
- */
 import { supabase } from '@/integrations/supabase/client';
-import { SystemUser, SystemUserDTO, UserPermissions, UserRole, UserShift, UserStatus } from '@/types';
+import { SystemUser, UserDTO, UserRole, UserShift, UserStatus, UserPermissions } from '@/types';
 import { handleSupabaseRequest } from '@/services/api/supabase';
 
-/**
- * Interface do repositório de usuários
- */
 export interface IUserRepository {
   findAll(): Promise<SystemUser[]>;
   findById(id: string): Promise<SystemUser | null>;
   findByUsername(username: string): Promise<SystemUser | null>;
-  findByUnit(unitId: string): Promise<SystemUser[]>;
-  validateCredentials(username: string, password: string): Promise<string | null>;
-  create(userData: SystemUserDTO): Promise<SystemUser | null>;
-  update(id: string, userData: Partial<SystemUserDTO>): Promise<boolean>;
-  updatePassword(id: string, newPassword: string): Promise<boolean>;
-  updateStatus(id: string, status: UserStatus): Promise<boolean>;
-  delete(id: string): Promise<boolean>;
-  getPermissions(userId: string): Promise<UserPermissions | null>;
+  create(userData: UserDTO, createdBy: string): Promise<SystemUser | null>;
+  update(id: string, userData: Partial<UserDTO>): Promise<boolean>;
   updatePermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean>;
+  updateStatus(userId: string, status: UserStatus): Promise<boolean>;
+  delete(id: string): Promise<boolean>;
+  verifyPassword(username: string, password: string): Promise<string | null>;
 }
 
-/**
- * Implementação do repositório de usuários usando Supabase
- */
 export class UserRepository implements IUserRepository {
   /**
    * Busca todos os usuários
@@ -35,12 +23,17 @@ export class UserRepository implements IUserRepository {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
-        .select('*, units(name), system_user_permissions(*)')
+        .select(`
+          *,
+          units(id, name)
+        `)
         .order('name'),
       'Erro ao buscar usuários'
-    ) || [];
-    
-    return data.map(this.mapUserFromDB);
+    );
+
+    if (!data) return [];
+
+    return data.map(this.mapUserFromDb);
   }
 
   /**
@@ -50,150 +43,138 @@ export class UserRepository implements IUserRepository {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
-        .select('*, units(name), system_user_permissions(*)')
+        .select(`
+          *,
+          units(id, name),
+          system_user_permissions!system_user_permissions_user_id_fkey(*)
+        `)
         .eq('id', id)
         .single(),
       'Erro ao buscar usuário'
     );
-    
-    if (data) {
-      return this.mapUserFromDB(data);
-    }
-    
-    return null;
+
+    if (!data) return null;
+
+    return this.mapUserWithPermissionsFromDb(data);
   }
 
   /**
-   * Busca um usuário pelo nome de usuário
+   * Busca um usuário pelo username
    */
   async findByUsername(username: string): Promise<SystemUser | null> {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
-        .select('*, units(name), system_user_permissions(*)')
+        .select(`
+          *,
+          units(id, name),
+          system_user_permissions!system_user_permissions_user_id_fkey(*)
+        `)
         .eq('username', username)
         .single(),
-      'Erro ao buscar usuário pelo nome de usuário'
+      'Erro ao buscar usuário por username'
     );
-    
-    if (data) {
-      return this.mapUserFromDB(data);
-    }
-    
-    return null;
-  }
 
-  /**
-   * Busca usuários por unidade
-   */
-  async findByUnit(unitId: string): Promise<SystemUser[]> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .select('*, units(name), system_user_permissions(*)')
-        .eq('unit_id', unitId)
-        .order('name'),
-      'Erro ao buscar usuários da unidade'
-    ) || [];
-    
-    return data.map(this.mapUserFromDB);
-  }
+    if (!data) return null;
 
-  /**
-   * Valida credenciais de usuário
-   */
-  async validateCredentials(username: string, password: string): Promise<string | null> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase.rpc('verify_password', {
-        username,
-        password_attempt: password
-      }),
-      'Erro ao validar credenciais'
-    );
-    
-    return data || null;
+    return this.mapUserWithPermissionsFromDb(data);
   }
 
   /**
    * Cria um novo usuário
    */
-  async create(userData: SystemUserDTO): Promise<SystemUser | null> {
-    // Primeiro cria o usuário
-    const user = await handleSupabaseRequest(
+  async create(userData: UserDTO, createdBy: string): Promise<SystemUser | null> {
+    // Hash da senha usando a função do banco de dados
+    const hashResult = await handleSupabaseRequest(
+      async () => await supabase.rpc('hash_password', {
+        password: userData.password
+      }),
+      'Erro ao criar hash da senha'
+    );
+
+    if (!hashResult) {
+      console.error('Falha ao gerar hash da senha');
+      return null;
+    }
+
+    // Inserir usuário
+    const userInsert = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
-        .insert([{
+        .insert({
           name: userData.name,
           username: userData.username,
-          email: userData.email || null,
-          password_hash: await this.hashPassword(userData.password),
-          role: userData.role || 'operator',
-          shift: userData.shift || 'day',
-          status: 'active',
-          unit_id: userData.unitId
-        }])
+          email: userData.email,
+          password_hash: hashResult,
+          role: userData.role,
+          shift: userData.shift,
+          status: userData.status || 'active',
+          unit_id: userData.unitId,
+          created_by: createdBy
+        })
         .select()
         .single(),
       'Erro ao criar usuário'
     );
-    
-    if (!user) return null;
-    
-    // Depois cria as permissões
-    if (userData.permissions) {
-      await handleSupabaseRequest(
-        async () => await supabase
-          .from('system_user_permissions')
-          .insert([{
-            user_id: user.id,
-            can_view_vehicles: userData.permissions.canViewVehicles || false,
-            can_edit_vehicles: userData.permissions.canEditVehicles || false,
-            can_view_units: userData.permissions.canViewUnits || false,
-            can_edit_units: userData.permissions.canEditUnits || false,
-            can_view_users: userData.permissions.canViewUsers || false,
-            can_edit_users: userData.permissions.canEditUsers || false,
-            can_view_movements: userData.permissions.canViewMovements || true,
-            can_edit_movements: userData.permissions.canEditMovements || false
-          }]),
-        'Erro ao criar permissões do usuário'
-      );
-    } else {
-      // Cria permissões padrão
-      await handleSupabaseRequest(
-        async () => await supabase
-          .from('system_user_permissions')
-          .insert([{
-            user_id: user.id,
-            can_view_vehicles: true,
-            can_edit_vehicles: false,
-            can_view_units: false,
-            can_edit_units: false,
-            can_view_users: false,
-            can_edit_users: false,
-            can_view_movements: true,
-            can_edit_movements: false
-          }]),
-        'Erro ao criar permissões padrão do usuário'
-      );
+
+    if (!userInsert) return null;
+
+    // Criar permissões para o usuário
+    const permissionsInsert = await handleSupabaseRequest(
+      async () => await supabase
+        .from('system_user_permissions')
+        .insert({
+          user_id: userInsert.id,
+          can_view_vehicles: userData.permissions?.canViewVehicles || false,
+          can_edit_vehicles: userData.permissions?.canEditVehicles || false,
+          can_view_units: userData.permissions?.canViewUnits || false,
+          can_edit_units: userData.permissions?.canEditUnits || false,
+          can_view_users: userData.permissions?.canViewUsers || false,
+          can_edit_users: userData.permissions?.canEditUsers || false,
+          can_view_movements: userData.permissions?.canViewMovements || true,
+          can_edit_movements: userData.permissions?.canEditMovements || false
+        }),
+      'Erro ao criar permissões do usuário'
+    );
+
+    if (!permissionsInsert) {
+      // Se falhou ao criar permissões, remover o usuário criado
+      await supabase.from('system_users').delete().eq('id', userInsert.id);
+      return null;
     }
-    
-    return this.findById(user.id);
+
+    return this.findById(userInsert.id);
   }
 
   /**
-   * Atualiza um usuário existente
+   * Atualiza um usuário
    */
-  async update(id: string, userData: Partial<SystemUserDTO>): Promise<boolean> {
+  async update(id: string, userData: Partial<UserDTO>): Promise<boolean> {
     const updateData: Record<string, any> = {
-      updated_at: new Date()
+      updated_at: new Date().toISOString()
     };
-    
+
     if (userData.name) updateData.name = userData.name;
     if (userData.email !== undefined) updateData.email = userData.email;
     if (userData.role) updateData.role = userData.role;
     if (userData.shift) updateData.shift = userData.shift;
+    if (userData.status) updateData.status = userData.status;
     if (userData.unitId) updateData.unit_id = userData.unitId;
-    
+
+    // Se houver senha, atualizar o hash
+    if (userData.password) {
+      const hashResult = await handleSupabaseRequest(
+        async () => await supabase.rpc('hash_password', {
+          password: userData.password
+        }),
+        'Erro ao criar hash da senha'
+      );
+
+      if (!hashResult) return false;
+
+      updateData.password_hash = hashResult;
+    }
+
     const result = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
@@ -201,48 +182,59 @@ export class UserRepository implements IUserRepository {
         .eq('id', id),
       'Erro ao atualizar usuário'
     );
-    
-    // Se tiver permissões para atualizar, atualiza
+
+    // Atualizar permissões se fornecidas
     if (userData.permissions) {
-      await this.updatePermissions(id, userData.permissions);
+      const success = await this.updatePermissions(id, userData.permissions);
+      if (!success) return false;
     }
-    
+
     return result !== null;
   }
 
   /**
-   * Atualiza a senha de um usuário
+   * Atualiza permissões de um usuário
    */
-  async updatePassword(id: string, newPassword: string): Promise<boolean> {
+  async updatePermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean> {
+    const updateData: Record<string, any> = {
+      updated_at: new Date().toISOString()
+    };
+
+    if (permissions.canViewVehicles !== undefined) updateData.can_view_vehicles = permissions.canViewVehicles;
+    if (permissions.canEditVehicles !== undefined) updateData.can_edit_vehicles = permissions.canEditVehicles;
+    if (permissions.canViewUnits !== undefined) updateData.can_view_units = permissions.canViewUnits;
+    if (permissions.canEditUnits !== undefined) updateData.can_edit_units = permissions.canEditUnits;
+    if (permissions.canViewUsers !== undefined) updateData.can_view_users = permissions.canViewUsers;
+    if (permissions.canEditUsers !== undefined) updateData.can_edit_users = permissions.canEditUsers;
+    if (permissions.canViewMovements !== undefined) updateData.can_view_movements = permissions.canViewMovements;
+    if (permissions.canEditMovements !== undefined) updateData.can_edit_movements = permissions.canEditMovements;
+
     const result = await handleSupabaseRequest(
       async () => await supabase
-        .from('system_users')
-        .update({
-          password_hash: await this.hashPassword(newPassword),
-          updated_at: new Date()
-        })
-        .eq('id', id),
-      'Erro ao atualizar senha'
+        .from('system_user_permissions')
+        .update(updateData)
+        .eq('user_id', userId),
+      'Erro ao atualizar permissões do usuário'
     );
-    
+
     return result !== null;
   }
 
   /**
    * Atualiza o status de um usuário
    */
-  async updateStatus(id: string, status: UserStatus): Promise<boolean> {
+  async updateStatus(userId: string, status: UserStatus): Promise<boolean> {
     const result = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
         .update({
           status,
-          updated_at: new Date()
+          updated_at: new Date().toISOString()
         })
-        .eq('id', id),
+        .eq('id', userId),
       'Erro ao atualizar status do usuário'
     );
-    
+
     return result !== null;
   }
 
@@ -257,104 +249,29 @@ export class UserRepository implements IUserRepository {
         .eq('id', id),
       'Erro ao excluir usuário'
     );
-    
+
     return result !== null;
   }
 
   /**
-   * Obtém as permissões de um usuário
+   * Verifica credenciais de usuário
    */
-  async getPermissions(userId: string): Promise<UserPermissions | null> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_user_permissions')
-        .select('*')
-        .eq('user_id', userId)
-        .single(),
-      'Erro ao buscar permissões do usuário'
-    );
-    
-    if (!data) return null;
-    
-    return {
-      canViewVehicles: data.can_view_vehicles,
-      canEditVehicles: data.can_edit_vehicles,
-      canViewUnits: data.can_view_units,
-      canEditUnits: data.can_edit_units,
-      canViewUsers: data.can_view_users,
-      canEditUsers: data.can_edit_users,
-      canViewMovements: data.can_view_movements,
-      canEditMovements: data.can_edit_movements
-    };
-  }
-
-  /**
-   * Atualiza as permissões de um usuário
-   */
-  async updatePermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean> {
-    const updateData: Record<string, any> = {
-      updated_at: new Date()
-    };
-    
-    if (permissions.canViewVehicles !== undefined) updateData.can_view_vehicles = permissions.canViewVehicles;
-    if (permissions.canEditVehicles !== undefined) updateData.can_edit_vehicles = permissions.canEditVehicles;
-    if (permissions.canViewUnits !== undefined) updateData.can_view_units = permissions.canViewUnits;
-    if (permissions.canEditUnits !== undefined) updateData.can_edit_units = permissions.canEditUnits;
-    if (permissions.canViewUsers !== undefined) updateData.can_view_users = permissions.canViewUsers;
-    if (permissions.canEditUsers !== undefined) updateData.can_edit_users = permissions.canEditUsers;
-    if (permissions.canViewMovements !== undefined) updateData.can_view_movements = permissions.canViewMovements;
-    if (permissions.canEditMovements !== undefined) updateData.can_edit_movements = permissions.canEditMovements;
-    
+  async verifyPassword(username: string, password: string): Promise<string | null> {
     const result = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_user_permissions')
-        .update(updateData)
-        .eq('user_id', userId),
-      'Erro ao atualizar permissões do usuário'
+      async () => await supabase.rpc('verify_password', {
+        username,
+        password_attempt: password
+      }),
+      'Erro ao verificar credenciais'
     );
-    
-    return result !== null;
+
+    return result || null;
   }
 
   /**
-   * Hash de senha utilizando a função do banco de dados
+   * Mapeia dados do usuário do formato do DB para o formato da aplicação
    */
-  private async hashPassword(password: string): Promise<string> {
-    const hash = await handleSupabaseRequest(
-      async () => await supabase.rpc('hash_password', { password }),
-      'Erro ao gerar hash da senha'
-    );
-    
-    if (!hash) throw new Error('Erro ao gerar hash da senha');
-    return hash;
-  }
-
-  /**
-   * Mapeia dados do usuário do formato DB para o formato da aplicação
-   */
-  private mapUserFromDB(data: any): SystemUser {
-    const permissions: UserPermissions = data.system_user_permissions?.[0] 
-      ? {
-        canViewVehicles: data.system_user_permissions[0].can_view_vehicles,
-        canEditVehicles: data.system_user_permissions[0].can_edit_vehicles,
-        canViewUnits: data.system_user_permissions[0].can_view_units,
-        canEditUnits: data.system_user_permissions[0].can_edit_units,
-        canViewUsers: data.system_user_permissions[0].can_view_users,
-        canEditUsers: data.system_user_permissions[0].can_edit_users,
-        canViewMovements: data.system_user_permissions[0].can_view_movements,
-        canEditMovements: data.system_user_permissions[0].can_edit_movements
-      }
-      : {
-        canViewVehicles: false,
-        canEditVehicles: false,
-        canViewUnits: false,
-        canEditUnits: false,
-        canViewUsers: false,
-        canEditUsers: false,
-        canViewMovements: true,
-        canEditMovements: false
-      };
-
+  private mapUserFromDb(data: any): SystemUser {
     return {
       id: data.id,
       name: data.name,
@@ -364,13 +281,33 @@ export class UserRepository implements IUserRepository {
       shift: data.shift,
       status: data.status,
       unitId: data.unit_id,
-      unitName: data.units?.name,
-      permissions
+      unitName: data.units?.name
     };
+  }
+
+  /**
+   * Mapeia dados do usuário com permissões do formato do DB para o formato da aplicação
+   */
+  private mapUserWithPermissionsFromDb(data: any): SystemUser {
+    const user = this.mapUserFromDb(data);
+    
+    const permissions = data.system_user_permissions?.[0];
+    
+    if (permissions) {
+      user.permissions = {
+        canViewVehicles: permissions.can_view_vehicles,
+        canEditVehicles: permissions.can_edit_vehicles,
+        canViewUnits: permissions.can_view_units,
+        canEditUnits: permissions.can_edit_units,
+        canViewUsers: permissions.can_view_users,
+        canEditUsers: permissions.can_edit_users,
+        canViewMovements: permissions.can_view_movements,
+        canEditMovements: permissions.can_edit_movements
+      };
+    }
+    
+    return user;
   }
 }
 
-/**
- * Instância singleton do repositório
- */
 export const userRepository = new UserRepository();

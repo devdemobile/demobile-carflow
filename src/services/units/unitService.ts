@@ -4,7 +4,7 @@
  */
 import { toast } from 'sonner';
 import { Unit, UnitDTO } from '@/types';
-import * as unitRepository from './unitRepository';
+import { unitRepository } from './unitRepository';
 
 /**
  * Busca todas as unidades com contagens
@@ -12,7 +12,7 @@ import * as unitRepository from './unitRepository';
 export const fetchUnits = async (): Promise<Unit[]> => {
   try {
     // Buscar unidades básicas
-    const units = await unitRepository.fetchUnits();
+    const units = await unitRepository.findAll();
     
     // Se não há unidades, retornar lista vazia
     if (units.length === 0) {
@@ -61,7 +61,7 @@ export const fetchUnits = async (): Promise<Unit[]> => {
  * Cria uma nova unidade
  */
 export const createUnit = async (unitData: UnitDTO): Promise<Unit | null> => {
-  const newUnit = await unitRepository.createUnit(unitData);
+  const newUnit = await unitRepository.create(unitData);
   
   if (newUnit) {
     toast.success('Unidade adicionada com sucesso');
@@ -74,7 +74,7 @@ export const createUnit = async (unitData: UnitDTO): Promise<Unit | null> => {
  * Atualiza uma unidade existente
  */
 export const updateUnit = async (id: string, unitData: UnitDTO): Promise<boolean> => {
-  const success = await unitRepository.updateUnit(id, unitData);
+  const success = await unitRepository.update(id, unitData);
   
   if (success) {
     toast.success('Unidade atualizada com sucesso');
@@ -103,7 +103,7 @@ export const deleteUnit = async (id: string): Promise<boolean> => {
   }
   
   // Excluir unidade
-  const success = await unitRepository.deleteUnit(id);
+  const success = await unitRepository.delete(id);
   
   if (success) {
     toast.success('Unidade excluída com sucesso');
