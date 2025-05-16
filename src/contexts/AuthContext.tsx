@@ -1,119 +1,68 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { SystemUser } from '@/types';
-import { loginWithCredentials, switchUserUnit } from '@/services/auth/authService';
+import { SystemUser, LoginCredentials } from '@/types';
+import { authService } from '@/services/auth/authService';
 
-interface AuthContextType {
+interface AuthContextValue {
   user: SystemUser | null;
   loading: boolean;
-  error: string | null;
-  loginWithSystem: (username: string, password: string) => Promise<boolean>;
+  login: (credentials: LoginCredentials) => Promise<boolean>;
   logout: () => void;
-  switchUnit: (unitId: string) => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextType>({
+const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
-  error: null,
-  loginWithSystem: async () => false,
+  login: async () => false,
   logout: () => {},
-  switchUnit: async () => false
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SystemUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   
-  // Verificar se há um usuário salvo no localStorage
+  // Carregar dados do usuário do localStorage na inicialização
   useEffect(() => {
-    const storedUser = localStorage.getItem('carflow_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (err) {
-        console.error('Erro ao carregar dados do usuário:', err);
-        localStorage.removeItem('carflow_user');
-      }
-    }
-    setLoading(false);
-  }, []);
-  
-  // Login com sistema próprio
-  const loginWithSystem = async (username: string, password: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-    
     try {
-      const loggedUser = await loginWithCredentials({ username, password });
-      
-      if (!loggedUser) {
-        setError('Nome de usuário ou senha incorretos');
-        setLoading(false);
-        return false;
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
       }
-      
-      // Salvar no estado e localStorage
-      setUser(loggedUser);
-      localStorage.setItem('carflow_user', JSON.stringify(loggedUser));
-      return true;
-    } catch (err: any) {
-      console.error('Erro ao fazer login:', err);
-      setError(err.message || 'Ocorreu um erro ao fazer login');
-      return false;
+    } catch (error) {
+      console.error('Erro ao restaurar sessão:', error);
+      localStorage.removeItem('user');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
   
-  // Logout
-  const logout = () => {
-    localStorage.removeItem('carflow_user');
-    setUser(null);
-  };
-  
-  // Trocar unidade do usuário
-  const switchUnit = async (unitId: string): Promise<boolean> => {
-    if (!user) return false;
-    
+  // Função de login
+  const login = async (credentials: LoginCredentials): Promise<boolean> => {
     setLoading(true);
     try {
-      const success = await switchUserUnit(user.id, unitId);
+      const userData = await authService.login(credentials);
       
-      if (success && user) {
-        // Atualize apenas o ID da unidade e mantenha as outras informações
-        const updatedUser = { ...user, unitId };
-        setUser(updatedUser);
-        localStorage.setItem('carflow_user', JSON.stringify(updatedUser));
+      if (userData) {
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
         return true;
       }
       return false;
-    } catch (err) {
-      console.error('Erro ao trocar unidade:', err);
-      return false;
     } finally {
       setLoading(false);
     }
   };
   
-  const contextValue: AuthContextType = {
-    user,
-    loading,
-    error,
-    loginWithSystem,
-    logout,
-    switchUnit
+  // Função de logout
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem('user');
   };
   
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,178 +1,161 @@
 
 /**
- * Repositório para operações com unidades
+ * Repositório de acesso a dados de Unidades
  */
 import { supabase } from '@/integrations/supabase/client';
 import { Unit, UnitDTO } from '@/types';
-import { handleSupabaseRequest } from '../api/supabase';
+import { handleSupabaseRequest } from '@/services/api/supabase';
 
 /**
- * Busca todas as unidades
+ * Interface do repositório de unidades
  */
-export const fetchUnits = async (): Promise<Unit[]> => {
-  const data = await handleSupabaseRequest<any[]>(
-    () => supabase.from('units').select('*').order('name'),
-    'Erro ao carregar unidades'
-  );
-  
-  if (!data || data.length === 0) {
-    return [];
+export interface IUnitRepository {
+  findAll(): Promise<Unit[]>;
+  findById(id: string): Promise<Unit | null>;
+  findByCode(code: string): Promise<Unit | null>;
+  create(unitData: UnitDTO): Promise<Unit | null>;
+  update(id: string, unitData: UnitDTO): Promise<boolean>;
+  delete(id: string): Promise<boolean>;
+  getVehicleCount(unitId: string): Promise<number>;
+  getUsersCount(unitId: string): Promise<number>;
+}
+
+/**
+ * Implementação do repositório de unidades usando Supabase
+ */
+export class UnitRepository implements IUnitRepository {
+  /**
+   * Busca todas as unidades
+   */
+  async findAll(): Promise<Unit[]> {
+    return handleSupabaseRequest(
+      async () => await supabase
+        .from('units')
+        .select('*')
+        .order('name'),
+      'Erro ao buscar unidades'
+    ) || [];
   }
-  
-  // Mapeia para o formato Unit
-  return data.map(unit => ({
-    id: unit.id,
-    name: unit.name,
-    code: unit.code,
-    address: unit.address || '',
-    vehicleCount: 0,
-    usersCount: 0
-  }));
-};
 
-/**
- * Busca as contagens de veículos por unidade
- */
-export const fetchVehicleCountByUnit = async (): Promise<Record<string, number>> => {
-  const data = await handleSupabaseRequest<any[]>(
-    () => supabase.from('vehicles').select('unit_id'),
-    'Erro ao contar veículos'
-  );
-  
-  if (!data) return {};
-  
-  // Conta manualmente por unit_id
-  const counts: Record<string, number> = {};
-  data.forEach(vehicle => {
-    if (vehicle.unit_id) {
-      counts[vehicle.unit_id] = (counts[vehicle.unit_id] || 0) + 1;
-    }
-  });
-  
-  return counts;
-};
-
-/**
- * Busca as contagens de usuários por unidade
- */
-export const fetchUserCountByUnit = async (): Promise<Record<string, number>> => {
-  const data = await handleSupabaseRequest<any[]>(
-    () => supabase.from('system_users').select('unit_id'),
-    'Erro ao contar usuários'
-  );
-  
-  if (!data) return {};
-  
-  // Conta manualmente por unit_id
-  const counts: Record<string, number> = {};
-  data.forEach(user => {
-    if (user.unit_id) {
-      counts[user.unit_id] = (counts[user.unit_id] || 0) + 1;
-    }
-  });
-  
-  return counts;
-};
-
-/**
- * Cria uma nova unidade
- */
-export const createUnit = async (unitData: UnitDTO): Promise<Unit | null> => {
-  const data = await handleSupabaseRequest<any[]>(
-    () => supabase
-      .from('units')
-      .insert([{ 
-        name: unitData.name,
-        code: unitData.code,
-        address: unitData.address || '' 
-      }])
-      .select(),
-    'Erro ao adicionar unidade'
-  );
-  
-  if (!data || data.length === 0) {
-    return null;
+  /**
+   * Busca uma unidade pelo ID
+   */
+  async findById(id: string): Promise<Unit | null> {
+    const data = await handleSupabaseRequest(
+      async () => await supabase
+        .from('units')
+        .select('*')
+        .eq('id', id)
+        .single(),
+      'Erro ao buscar unidade'
+    );
+    
+    return data as Unit | null;
   }
-  
-  const newUnit: Unit = {
-    id: data[0].id,
-    name: data[0].name,
-    code: data[0].code,
-    address: data[0].address || '',
-    vehicleCount: 0,
-    usersCount: 0
-  };
-  
-  return newUnit;
-};
 
-/**
- * Atualiza uma unidade existente
- */
-export const updateUnit = async (id: string, unitData: UnitDTO): Promise<boolean> => {
-  const result = await handleSupabaseRequest<null>(
-    () => supabase
-      .from('units')
-      .update({ 
-        name: unitData.name,
-        code: unitData.code,
-        address: unitData.address || '' 
-      })
-      .eq('id', id),
-    'Erro ao atualizar unidade'
-  );
-  
-  return result !== null;
-};
-
-/**
- * Verifica se uma unidade pode ser excluída
- */
-export const canDeleteUnit = async (id: string): Promise<{canDelete: boolean, vehicleCount?: number, usersCount?: number}> => {
-  // Verificar se há veículos associados
-  const vehicleData = await handleSupabaseRequest<{count: number}>(
-    () => supabase
-      .from('vehicles')
-      .select('*', { count: 'exact', head: true })
-      .eq('unit_id', id),
-    'Erro ao verificar veículos associados'
-  );
-  
-  const vehicleCount = vehicleData?.count || 0;
-  
-  if (vehicleCount > 0) {
-    return { canDelete: false, vehicleCount };
+  /**
+   * Busca uma unidade pelo código
+   */
+  async findByCode(code: string): Promise<Unit | null> {
+    const data = await handleSupabaseRequest(
+      async () => await supabase
+        .from('units')
+        .select('*')
+        .eq('code', code)
+        .single(),
+      'Erro ao buscar unidade pelo código'
+    );
+    
+    return data as Unit | null;
   }
-  
-  // Verificar se há usuários associados
-  const userData = await handleSupabaseRequest<{count: number}>(
-    () => supabase
-      .from('system_users')
-      .select('*', { count: 'exact', head: true })
-      .eq('unit_id', id),
-    'Erro ao verificar usuários associados'
-  );
-  
-  const usersCount = userData?.count || 0;
-  
-  if (usersCount > 0) {
-    return { canDelete: false, usersCount };
+
+  /**
+   * Cria uma nova unidade
+   */
+  async create(unitData: UnitDTO): Promise<Unit | null> {
+    const data = await handleSupabaseRequest(
+      async () => await supabase
+        .from('units')
+        .insert([{
+          name: unitData.name,
+          code: unitData.code,
+          address: unitData.address || null
+        }])
+        .select()
+        .single(),
+      'Erro ao criar unidade'
+    );
+    
+    return data as Unit | null;
   }
-  
-  return { canDelete: true };
-};
+
+  /**
+   * Atualiza uma unidade existente
+   */
+  async update(id: string, unitData: UnitDTO): Promise<boolean> {
+    const result = await handleSupabaseRequest(
+      async () => await supabase
+        .from('units')
+        .update({
+          name: unitData.name,
+          code: unitData.code,
+          address: unitData.address || null,
+          updated_at: new Date()
+        })
+        .eq('id', id),
+      'Erro ao atualizar unidade'
+    );
+    
+    return result !== null;
+  }
+
+  /**
+   * Remove uma unidade
+   */
+  async delete(id: string): Promise<boolean> {
+    const result = await handleSupabaseRequest(
+      async () => await supabase
+        .from('units')
+        .delete()
+        .eq('id', id),
+      'Erro ao excluir unidade'
+    );
+    
+    return result !== null;
+  }
+
+  /**
+   * Obtém a contagem de veículos por unidade
+   */
+  async getVehicleCount(unitId: string): Promise<number> {
+    const result = await handleSupabaseRequest(
+      async () => await supabase
+        .from('vehicles')
+        .select('id', { count: 'exact', head: true })
+        .eq('unit_id', unitId),
+      'Erro ao contar veículos da unidade'
+    );
+    
+    return result?.count || 0;
+  }
+
+  /**
+   * Obtém a contagem de usuários por unidade
+   */
+  async getUsersCount(unitId: string): Promise<number> {
+    const result = await handleSupabaseRequest(
+      async () => await supabase
+        .from('system_users')
+        .select('id', { count: 'exact', head: true })
+        .eq('unit_id', unitId),
+      'Erro ao contar usuários da unidade'
+    );
+    
+    return result?.count || 0;
+  }
+}
 
 /**
- * Exclui uma unidade
+ * Instância singleton do repositório
  */
-export const deleteUnit = async (id: string): Promise<boolean> => {
-  const result = await handleSupabaseRequest<null>(
-    () => supabase
-      .from('units')
-      .delete()
-      .eq('id', id),
-    'Erro ao excluir unidade'
-  );
-  
-  return result !== null;
-};
+export const unitRepository = new UnitRepository();
