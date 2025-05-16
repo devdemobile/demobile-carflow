@@ -13,12 +13,14 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { 
   Dialog, 
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription
 } from '@/components/ui/dialog';
 import {
   Form,
@@ -41,6 +43,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserRole, UserShift, UserStatus } from '@/contexts/AuthContext';
 import { Badge } from '@/components/ui/badge';
+import { Pencil, Trash2, UserRound, Filter } from 'lucide-react';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 interface SystemUser {
   id: string;
@@ -62,7 +69,7 @@ interface Unit {
 const formSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   username: z.string().min(1, "Nome de usuário é obrigatório"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres").optional().or(z.literal('')),
   role: z.enum(["admin", "operator"]),
   shift: z.enum(["day", "night"]),
   unit_id: z.string().uuid("Selecione uma unidade válida"),
@@ -71,11 +78,16 @@ const formSchema = z.object({
 
 const Users = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
+  const { toast: toastHook } = useToast();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [units, setUnits] = useState<Unit[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<SystemUser | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showInactiveUsers, setShowInactiveUsers] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<string | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -112,7 +124,7 @@ const Users = () => {
         setUnits(unitsResponse.data);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        toast({
+        toastHook({
           title: 'Erro',
           description: 'Não foi possível carregar os usuários',
           variant: 'destructive',
@@ -123,76 +135,207 @@ const Users = () => {
     };
 
     fetchData();
-  }, [toast]);
+  }, [toastHook]);
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  // Abrir o modal para editar usuário
+  const handleEditUser = (user: SystemUser) => {
+    setEditingUser(user);
+    form.reset({
+      name: user.name,
+      username: user.username,
+      password: "", // Não preencher a senha no formulário de edição
+      role: user.role,
+      shift: user.shift,
+      unit_id: user.unit_id,
+      email: user.email || "",
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Abrir o diálogo para criar novo usuário
+  const handleNewUser = () => {
+    setEditingUser(null);
+    form.reset({
+      name: "",
+      username: "",
+      password: "",
+      role: "operator",
+      shift: "day",
+      unit_id: "",
+      email: "",
+    });
+    setIsDialogOpen(true);
+  };
+
+  // Alternar status do usuário (ativar/desativar)
+  const toggleUserStatus = async (userId: string, currentStatus: UserStatus) => {
     try {
-      // Criar usuário no sistema
-      const { data, error } = await supabase.rpc('hash_password', {
-        password: values.password
-      });
+      const newStatus: UserStatus = currentStatus === 'active' ? 'inactive' : 'active';
+      
+      const { error } = await supabase
+        .from('system_users')
+        .update({ 
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
       
       if (error) throw error;
       
-      const passwordHash = data;
+      // Atualizar o estado local
+      setUsers(users.map(user => 
+        user.id === userId ? { ...user, status: newStatus } : user
+      ));
       
-      const { data: userData, error: insertError } = await supabase
+      toast.success(
+        newStatus === 'active' 
+          ? 'Usuário ativado com sucesso' 
+          : 'Usuário desativado com sucesso'
+      );
+      
+    } catch (error: any) {
+      console.error('Erro ao alternar status:', error);
+      toast.error('Não foi possível alterar o status do usuário');
+    }
+  };
+
+  // Confirmar exclusão de usuário
+  const confirmDelete = (userId: string) => {
+    setUserToDelete(userId);
+    setDeleteConfirmOpen(true);
+  };
+
+  // Excluir usuário
+  const handleDeleteUser = async () => {
+    if (!userToDelete) return;
+    
+    try {
+      const { error } = await supabase
         .from('system_users')
-        .insert({
+        .delete()
+        .eq('id', userToDelete);
+      
+      if (error) throw error;
+      
+      // Atualizar o estado local
+      setUsers(users.filter(user => user.id !== userToDelete));
+      toast.success('Usuário excluído com sucesso');
+      
+    } catch (error: any) {
+      console.error('Erro ao excluir usuário:', error);
+      toast.error('Não foi possível excluir o usuário');
+    } finally {
+      setDeleteConfirmOpen(false);
+      setUserToDelete(null);
+    }
+  };
+
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+    try {
+      if (editingUser) {
+        // Atualizar usuário existente
+        const updateData: any = {
           name: values.name,
-          username: values.username,
-          password_hash: passwordHash,
           role: values.role,
           shift: values.shift,
           unit_id: values.unit_id,
           email: values.email || null,
-          created_by: user?.id,
-        })
-        .select('*, units(name)')
-        .single();
-      
-      if (insertError) {
-        if (insertError.message.includes('unique constraint')) {
-          toast({
-            title: 'Erro',
-            description: 'Este nome de usuário já existe',
-            variant: 'destructive',
+          updated_at: new Date().toISOString()
+        };
+        
+        // Atualizar senha apenas se fornecida
+        if (values.password && values.password.length > 0) {
+          const { data: passwordHash, error: passwordError } = await supabase.rpc('hash_password', {
+            password: values.password
           });
-        } else {
-          throw insertError;
+          
+          if (passwordError) throw passwordError;
+          updateData.password_hash = passwordHash;
         }
-        return;
-      }
-      
-      // Adicionar permissões padrão
-      await supabase
-        .from('system_user_permissions')
-        .insert({
-          user_id: userData.id,
-          can_view_movements: true,
+        
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('system_users')
+          .update(updateData)
+          .eq('id', editingUser.id)
+          .select('*, units(name)')
+          .single();
+        
+        if (updateError) throw updateError;
+        
+        // Atualizar lista de usuários
+        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+        
+        toast.success('Usuário atualizado com sucesso');
+      } else {
+        // Criar novo usuário
+        const { data: passwordHash, error: passwordError } = await supabase.rpc('hash_password', {
+          password: values.password as string
         });
-      
-      // Atualizar lista de usuários
-      setUsers(prev => [userData, ...prev]);
-      
-      toast({
-        title: 'Sucesso',
-        description: 'Usuário criado com sucesso',
-      });
+        
+        if (passwordError) throw passwordError;
+        
+        const { data: userData, error: insertError } = await supabase
+          .from('system_users')
+          .insert({
+            name: values.name,
+            username: values.username,
+            password_hash: passwordHash,
+            role: values.role,
+            shift: values.shift,
+            unit_id: values.unit_id,
+            email: values.email || null,
+            created_by: user?.id,
+          })
+          .select('*, units(name)')
+          .single();
+        
+        if (insertError) {
+          if (insertError.message.includes('unique constraint')) {
+            toastHook({
+              title: 'Erro',
+              description: 'Este nome de usuário já existe',
+              variant: 'destructive',
+            });
+          } else {
+            throw insertError;
+          }
+          return;
+        }
+        
+        // Adicionar permissões padrão
+        await supabase
+          .from('system_user_permissions')
+          .insert({
+            user_id: userData.id,
+            can_view_movements: true,
+          });
+        
+        // Atualizar lista de usuários
+        setUsers(prev => [userData, ...prev]);
+        
+        toast.success('Usuário criado com sucesso');
+      }
       
       // Fechar diálogo e resetar form
       setIsDialogOpen(false);
       form.reset();
+      setEditingUser(null);
       
     } catch (error: any) {
-      console.error('Erro ao criar usuário:', error);
-      toast({
-        title: 'Erro',
-        description: error.message || 'Não foi possível criar o usuário',
-        variant: 'destructive',
-      });
+      console.error('Erro ao salvar usuário:', error);
+      toast.error(error.message || 'Não foi possível salvar o usuário');
     }
   };
+
+  // Filtrar usuários
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    return matchesSearch && (showInactiveUsers || user.status === 'active');
+  });
 
   const getRoleBadge = (role: string) => {
     return role === 'admin' ? (
@@ -220,19 +363,55 @@ const Users = () => {
 
   return (
     <Layout>
-      <div className="container mx-auto py-6">
-        <div className="flex justify-between items-center mb-6">
+      <div className="container mx-auto py-6 pb-16 md:pb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
           <h1 className="text-3xl font-bold">Usuários</h1>
-          {user?.role === 'admin' && (
-            <Button onClick={() => setIsDialogOpen(true)}>Novo Usuário</Button>
-          )}
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input 
+                  className="pl-2 max-w-[300px]"
+                  placeholder="Buscar usuário..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  id="show-inactive" 
+                  checked={showInactiveUsers}
+                  onCheckedChange={setShowInactiveUsers}
+                />
+                <label htmlFor="show-inactive" className="text-sm cursor-pointer">
+                  Mostrar inativos
+                </label>
+              </div>
+            </div>
+            
+            {user?.role === 'admin' && (
+              <Button onClick={handleNewUser}>
+                <UserRound className="h-4 w-4 mr-2" />
+                Novo Usuário
+              </Button>
+            )}
+          </div>
         </div>
         
         {loading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-pulse">Carregando...</div>
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map(i => (
+              <div key={i} className="w-full h-16 flex items-center gap-4">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-4 w-24" />
+                </div>
+              </div>
+            ))}
           </div>
-        ) : users.length === 0 ? (
+        ) : filteredUsers.length === 0 ? (
           <div className="text-center py-8">
             <p className="text-muted-foreground">Nenhum usuário encontrado</p>
           </div>
@@ -248,18 +427,57 @@ const Users = () => {
                   <TableHead>Unidade</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Email</TableHead>
+                  {user?.role === 'admin' && (
+                    <TableHead className="text-right">Ações</TableHead>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{getRoleBadge(user.role)}</TableCell>
-                    <TableCell>{getShiftBadge(user.shift)}</TableCell>
-                    <TableCell>{user.units.name}</TableCell>
-                    <TableCell>{getStatusBadge(user.status)}</TableCell>
-                    <TableCell>{user.email || '-'}</TableCell>
+                {filteredUsers.map((userItem) => (
+                  <TableRow key={userItem.id} className={userItem.status === 'inactive' ? 'opacity-60' : ''}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarFallback>{userItem.name.substring(0, 2).toUpperCase()}</AvatarFallback>
+                        </Avatar>
+                        <span>{userItem.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{userItem.username}</TableCell>
+                    <TableCell>{getRoleBadge(userItem.role)}</TableCell>
+                    <TableCell>{getShiftBadge(userItem.shift)}</TableCell>
+                    <TableCell>{userItem.units?.name || "—"}</TableCell>
+                    <TableCell>{getStatusBadge(userItem.status)}</TableCell>
+                    <TableCell>{userItem.email || '—'}</TableCell>
+                    {user?.role === 'admin' && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEditUser(userItem)}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => toggleUserStatus(userItem.id, userItem.status)}
+                          >
+                            <Switch size="sm" checked={userItem.status === 'active'} />
+                          </Button>
+                          {userItem.id !== user.id && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => confirmDelete(userItem.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -270,7 +488,14 @@ const Users = () => {
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[525px]">
             <DialogHeader>
-              <DialogTitle>Novo Usuário</DialogTitle>
+              <DialogTitle>
+                {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
+              </DialogTitle>
+              {editingUser && (
+                <DialogDescription>
+                  Edite os detalhes do usuário. Deixe o campo de senha em branco para manter a senha atual.
+                </DialogDescription>
+              )}
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -288,28 +513,36 @@ const Users = () => {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome de usuário</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome de acesso ao sistema" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {!editingUser && (
+                  <FormField
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Nome de usuário</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Nome de acesso ao sistema" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
                 
                 <FormField
                   control={form.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Senha</FormLabel>
+                      <FormLabel>
+                        {editingUser ? "Nova senha (opcional)" : "Senha"}
+                      </FormLabel>
                       <FormControl>
-                        <Input type="password" {...field} />
+                        <Input 
+                          type="password" 
+                          placeholder={editingUser ? "Deixe em branco para manter a atual" : "Digite uma senha"}
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -411,12 +644,31 @@ const Users = () => {
                 />
 
                 <DialogFooter>
-                  <Button type="submit">Criar Usuário</Button>
+                  <Button type="submit">
+                    {editingUser ? 'Salvar Alterações' : 'Criar Usuário'}
+                  </Button>
                 </DialogFooter>
               </form>
             </Form>
           </DialogContent>
         </Dialog>
+        
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza de que deseja excluir este usuário? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteUser} className="bg-red-500 text-white hover:bg-red-600">
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </Layout>
   );
