@@ -451,6 +451,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_users_by_unit: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          unit_id: string
+          count: number
+        }[]
+      }
+      count_vehicles_by_unit: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          unit_id: string
+          count: number
+        }[]
+      }
       hash_password: {
         Args: { password: string }
         Returns: string
