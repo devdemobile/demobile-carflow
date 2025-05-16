@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { 
   Select, 
@@ -8,60 +9,80 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { 
-  Filter as FilterIcon,
-  Search as SearchIcon 
-} from 'lucide-react';
-import { VehicleLocation } from '@/types';
-
-type FilterValues = {
-  search: string;
-  status: VehicleLocation | null;
-  dateRange: string;
-};
+import { Filter, Search, Grid, List } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface MovementsFilterProps {
-  filters: FilterValues;
+  filters: {
+    search: string;
+    status: string | null;
+  };
+  viewMode: 'grid' | 'table';
+  setViewMode: (mode: 'grid' | 'table') => void;
   onFilterChange: (name: string, value: string | null) => void;
   onReset: () => void;
 }
 
-const MovementsFilter: React.FC<MovementsFilterProps> = ({ filters, onFilterChange, onReset }) => {
+const MovementsFilter: React.FC<MovementsFilterProps> = ({ 
+  filters, 
+  onFilterChange, 
+  onReset,
+  viewMode,
+  setViewMode 
+}) => {
+  const isMobile = useIsMobile();
+
   return (
-    <div className="flex flex-col md:flex-row gap-4 mb-6">
-      <div className="relative flex-1">
-        <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          className="pl-9"
-          placeholder="Buscar por placa, motorista ou destino..."
-          value={filters.search}
-          onChange={(e) => onFilterChange('search', e.target.value)}
-        />
+    <div className="flex flex-col gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Buscar por placa, motorista, unidade..."
+            value={filters.search}
+            onChange={(e) => onFilterChange('search', e.target.value)}
+          />
+        </div>
+        
+        <Select
+          value={filters.status || "all"}
+          onValueChange={(value) => onFilterChange('status', value === "all" ? null : value)}
+        >
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="yard">No Pátio</SelectItem>
+            <SelectItem value="out">Em Rota</SelectItem>
+          </SelectContent>
+        </Select>
+        
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2 sm:w-auto" 
+          onClick={onReset}
+        >
+          <Filter className="h-4 w-4" />
+          <span>Limpar</span>
+        </Button>
       </div>
-
-      <Select 
-        value={filters.status || undefined}
-        onValueChange={(value: VehicleLocation | undefined) => onFilterChange('status', value || null)}
-      >
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="yard">Completados</SelectItem>
-          <SelectItem value="out">Em Andamento</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Button 
-        variant="outline" 
-        className="flex items-center gap-2" 
-        onClick={onReset}
-      >
-        <FilterIcon className="h-4 w-4" />
-        <span>Limpar Filtros</span>
-      </Button>
+      
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Movimentações</h2>
+        {!isMobile && (
+          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'table')}>
+            <ToggleGroupItem value="grid" aria-label="Ver em grade">
+              <Grid className="h-4 w-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="table" aria-label="Ver em tabela">
+              <List className="h-4 w-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        )}
+      </div>
     </div>
   );
 };

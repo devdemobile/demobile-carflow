@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocation } from "react-router-dom";
-import { Car, LayoutDashboard, Menu, User } from "lucide-react";
+import { Car, LayoutDashboard, List, User, MapPin } from "lucide-react";
 
 const MobileNavbar = () => {
   const { user, userPermissions } = useAuth();
@@ -28,7 +28,7 @@ const MobileNavbar = () => {
             location.pathname === "/movements" ? "text-primary" : "text-muted-foreground"
           }`}
         >
-          <Menu className="h-5 w-5" />
+          <List className="h-5 w-5" />
           <span className="text-xs mt-1">Movimentos</span>
         </Link>
         
@@ -41,6 +41,18 @@ const MobileNavbar = () => {
           >
             <Car className="h-5 w-5" />
             <span className="text-xs mt-1">Veículos</span>
+          </Link>
+        )}
+        
+        {userPermissions?.canViewVehicles && (
+          <Link 
+            to="/units" 
+            className={`flex flex-col items-center justify-center p-2 rounded-md ${
+              location.pathname === "/units" ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <MapPin className="h-5 w-5" />
+            <span className="text-xs mt-1">Unidades</span>
           </Link>
         )}
         

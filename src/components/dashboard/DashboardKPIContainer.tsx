@@ -1,7 +1,7 @@
 
 import React from 'react';
 import StatCard from './StatCard';
-import { useMediaQuery } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { Car, Warehouse, PackageCheck } from 'lucide-react';
 
 interface DashboardKPIContainerProps {
@@ -17,10 +17,8 @@ const DashboardKPIContainer: React.FC<DashboardKPIContainerProps> = ({
   vehiclesOut,
   isLoading = false
 }) => {
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useIsMobile();
   
-  const mobileClass = isMobile ? "flex items-center justify-between" : "";
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
       <StatCard
@@ -28,21 +26,21 @@ const DashboardKPIContainer: React.FC<DashboardKPIContainerProps> = ({
         value={totalVehicles}
         icon={<Car className="h-4 w-4" />}
         loading={isLoading}
-        className={mobileClass}
+        className={isMobile ? "flex items-center justify-between p-4" : ""}
       />
       <StatCard
         title="Veículos no Pátio"
         value={vehiclesInYard}
         icon={<Warehouse className="h-4 w-4" />}
         loading={isLoading}
-        className={mobileClass}
+        className={isMobile ? "flex items-center justify-between p-4" : ""}
       />
       <StatCard
         title="Veículos em Rota"
         value={vehiclesOut}
         icon={<PackageCheck className="h-4 w-4" />}
         loading={isLoading}
-        className={mobileClass}
+        className={isMobile ? "flex items-center justify-between p-4" : ""}
       />
     </div>
   );

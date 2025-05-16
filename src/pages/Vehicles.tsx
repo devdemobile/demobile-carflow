@@ -1,8 +1,8 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Plus, Search, Tag, Cog } from 'lucide-react';
+import { Plus, Tag, Cog } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import VehiclesTable from '@/components/vehicles/VehiclesTable';
 import VehiclesFilter from '@/components/vehicles/VehiclesFilter';
@@ -26,8 +26,6 @@ const Vehicles = () => {
     vehicles, 
     isLoading,
     refetch,
-    viewMode, 
-    setViewMode, 
     filters, 
     handleFilterChange, 
     resetFilters,
@@ -39,6 +37,8 @@ const Vehicles = () => {
     openAddVehicle,
     closeAddVehicle
   } = useVehicles();
+  
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'grid');
   
   // Redirecionar se o usuário não tem permissão
   if (userPermissions && !userPermissions.canViewVehicles) {
@@ -77,24 +77,12 @@ const Vehicles = () => {
             )}
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                className="pl-8 max-w-[300px]"
-                placeholder="Buscar por placa, marca, modelo..." 
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-              />
-            </div>
-            
-            {userPermissions?.canEditVehicles && (
-              <Button onClick={openAddVehicle}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Veículo
-              </Button>
-            )}
-          </div>
+          {userPermissions?.canEditVehicles && (
+            <Button onClick={openAddVehicle}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Veículo
+            </Button>
+          )}
         </div>
         
         <VehiclesFilter 

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -43,7 +42,7 @@ const Movements = () => {
 
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'table');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'grid');
 
   const handleMovementClick = (movement: Movement) => {
     setSelectedMovement(movement);
@@ -214,36 +213,14 @@ const Movements = () => {
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-          <h1 className="text-3xl font-bold">Movimentações</h1>
-          
-          {/* View Selector */}
-          {!isMobile && (
-            <div className="flex border rounded-md">
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="icon"
-                className="rounded-r-none"
-                onClick={() => setViewMode('grid')}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'table' ? 'default' : 'ghost'}
-                size="icon"
-                className="rounded-l-none"
-                onClick={() => setViewMode('table')}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </div>
+        <h1 className="text-3xl font-bold mb-6">Movimentações</h1>
         
         <MovementsFilter 
           filters={filters} 
           onFilterChange={handleFilterChange} 
-          onReset={resetFilters} 
+          onReset={resetFilters}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
         />
         
         {isLoading ? (

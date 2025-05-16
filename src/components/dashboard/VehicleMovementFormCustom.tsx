@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
-import { useMediaQuery } from '@/hooks/use-mobile';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface VehicleMovementFormCustomProps {
   onSearch: (plate: string) => void;
@@ -15,7 +15,7 @@ const VehicleMovementFormCustom: React.FC<VehicleMovementFormCustomProps> = ({
   isLoading = false 
 }) => {
   const [plate, setPlate] = useState<string>('');
-  const isMobile = useMediaQuery('(max-width: 768px)');
+  const isMobile = useIsMobile();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();

@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Building, User } from 'lucide-react';
+import { Building, User, LayoutDashboard, List as ListIcon, Car, MapPin } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import ThemeToggle from './ThemeToggle';
 
@@ -61,41 +61,46 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
             <nav className="ml-10 hidden md:flex gap-6 items-center">
               <Link
                 to="/"
-                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
               >
-                Dashboard
+                <LayoutDashboard className="h-4 w-4" />
+                <span>Dashboard</span>
               </Link>
               <Link
                 to="/movements"
-                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
               >
-                Movimentações
+                <ListIcon className="h-4 w-4" />
+                <span>Movimentações</span>
               </Link>
               
               {userPermissions?.canViewVehicles && (
                 <Link
                   to="/vehicles"
-                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                  Veículos
+                  <Car className="h-4 w-4" />
+                  <span>Veículos</span>
                 </Link>
               )}
               
               {userPermissions?.canViewVehicles && (
                 <Link
                   to="/units"
-                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                  Unidades
+                  <MapPin className="h-4 w-4" />
+                  <span>Unidades</span>
                 </Link>
               )}
               
               {userPermissions?.canViewUsers && (
                 <Link
                   to="/users"
-                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
                 >
-                  Usuários
+                  <User className="h-4 w-4" />
+                  <span>Usuários</span>
                 </Link>
               )}
             </nav>
