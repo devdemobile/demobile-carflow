@@ -110,6 +110,16 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     refetch();
   };
 
+  // Add the missing findVehicleByPlate function
+  const findVehicleByPlate = async (plate: string): Promise<Vehicle | null> => {
+    try {
+      return await vehicleService.getVehicleByPlate(plate);
+    } catch (error) {
+      console.error('Error finding vehicle by plate:', error);
+      return null;
+    }
+  };
+
   return {
     vehicles: paginatedVehicles,
     allVehicles,
@@ -131,6 +141,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     closeVehicleDetails,
     isAddVehicleOpen,
     openAddVehicle,
-    closeAddVehicle
+    closeAddVehicle,
+    findVehicleByPlate // Added the missing function
   };
 };

@@ -5,9 +5,30 @@ import { Button } from '@/components/ui/button';
 import { Car, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '@/hooks/useVehicles';
-import { Vehicle } from '@/types';
+import { Vehicle, Movement } from '@/types';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
 
-const VehicleMovementForm: React.FC = () => {
+interface VehicleMovementFormProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  vehicle?: Vehicle;
+  onSubmit?: (formData: Movement) => void;
+  lastMovement?: Movement;
+}
+
+const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
+  isOpen,
+  onClose,
+  vehicle,
+  onSubmit,
+  lastMovement
+}) => {
   const navigate = useNavigate();
   const { findVehicleByPlate } = useVehicles();
   const [plate, setPlate] = useState('');
@@ -40,6 +61,47 @@ const VehicleMovementForm: React.FC = () => {
       setIsSearching(false);
     }
   };
+
+  // If this is being used as a dialog, render the dialog version
+  if (isOpen !== undefined && onClose && vehicle) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Registrar Movimentação</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>Veículo: {vehicle.plate} - {vehicle.make} {vehicle.model}</p>
+            {/* Add more form fields as needed for the dialog version */}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="button" onClick={() => {
+              if (onSubmit) {
+                // Create a mock movement object - replace with actual form data
+                const mockMovement: Movement = {
+                  id: Math.random().toString(),
+                  vehicleId: vehicle.id,
+                  plate: vehicle.plate,
+                  driver: "Example Driver",
+                  initialMileage: vehicle.mileage,
+                  departureUnitId: "unit-id",
+                  departureDate: new Date().toISOString().split('T')[0],
+                  departureTime: new Date().toTimeString().split(' ')[0],
+                  status: 'yard',
+                  type: 'exit'
+                };
+                onSubmit(mockMovement);
+                onClose();
+              }
+            }}>
+              Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
