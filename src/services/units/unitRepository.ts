@@ -48,7 +48,7 @@ export class UnitRepository implements IUnitRepository {
       usersCount: 0,
       createdAt: unit.created_at,
       updatedAt: unit.updated_at,
-      createdBy: unit.created_by
+      createdBy: unit.created_by || null // Garantir que não é undefined
     }));
   }
 
@@ -76,7 +76,7 @@ export class UnitRepository implements IUnitRepository {
       usersCount: 0,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      createdBy: data.created_by
+      createdBy: data.created_by || null // Garantir que não é undefined
     };
   }
 
@@ -93,7 +93,19 @@ export class UnitRepository implements IUnitRepository {
       'Erro ao buscar unidade pelo código'
     );
     
-    return data as Unit | null;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      name: data.name,
+      code: data.code,
+      address: data.address || '',
+      vehicleCount: 0,
+      usersCount: 0,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      createdBy: data.created_by || null // Garantir que não é undefined
+    };
   }
 
   /**
