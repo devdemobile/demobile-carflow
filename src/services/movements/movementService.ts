@@ -1,4 +1,3 @@
-
 /**
  * Serviço de negócios para Movimentações
  */
@@ -22,6 +21,7 @@ export interface IMovementService {
     arrivalTime: string, 
     arrivalUnitId: string 
   }): Promise<Movement | null>;
+  updateMovement(id: string, data: Partial<Movement>): Promise<Movement | null>;
   deleteMovement(id: string): Promise<boolean>;
 }
 
@@ -76,8 +76,9 @@ export class MovementService implements IMovementService {
   async createMovement(movementData: Movement | MovementDTO): Promise<Movement | null> {
     // For simplicity when calling from components, allow passing Movement objects directly
     if ('id' in movementData) {
-      // Pass an empty string as the userId for existing Movement objects
-      return this.repository.create(movementData as Movement, '');
+      // Pass the createdBy field from the Movement object or empty string if not present
+      const userId = movementData.createdBy || '';
+      return this.repository.create(movementData as Movement, userId);
     }
 
     // Original implementation with validation
@@ -156,6 +157,27 @@ export class MovementService implements IMovementService {
       status: 'yard',
       type: 'entry'
     });
+  }
+
+  /**
+   * Atualiza uma movimentação existente
+   */
+  async updateMovement(id: string, data: Partial<Movement>): Promise<Movement | null> {
+    // Buscar movimentação atual
+    const movement = await this.repository.findById(id);
+    if (!movement) {
+      throw new Error('Movimentação não encontrada');
+    }
+    
+    // Update only allowed fields
+    const updateData: Partial<Movement> = {};
+    
+    if (data.driver !== undefined) updateData.driver = data.driver;
+    if (data.destination !== undefined) updateData.destination = data.destination;
+    if (data.initialMileage !== undefined) updateData.initialMileage = data.initialMileage;
+    if (data.notes !== undefined) updateData.notes = data.notes;
+    
+    return this.repository.updateWithReturn(id, updateData);
   }
 
   /**

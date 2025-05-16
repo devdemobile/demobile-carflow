@@ -8,6 +8,7 @@ export type MovementType = 'entry' | 'exit' | 'initial';
 export type UserRole = 'admin' | 'operator';
 export type UserShift = 'day' | 'night';
 export type UserStatus = 'active' | 'inactive';
+export type LogActionType = 'edit' | 'delete';
 
 export interface Unit {
   id: string;
@@ -98,4 +99,14 @@ export interface Movement {
   type: MovementType;
   createdBy?: string;
   notes?: string;
+}
+
+export interface MovementLog {
+  id: string;
+  movementId: string;
+  userId: string;
+  userName?: string;
+  actionType: LogActionType;
+  actionDetails: string;
+  createdAt: string;
 }

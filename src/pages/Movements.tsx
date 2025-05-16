@@ -16,13 +16,18 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from '@/components/ui/pagination';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Grid, List, Loader2 } from 'lucide-react';
+import MovementEditDialog from '@/components/movements/MovementEditDialog';
+import { movementService } from '@/services/movements/movementService';
+import { useAuth } from '@/hooks/useAuth';
+import { authService } from '@/services/auth/authService';
+import { movementLogService } from '@/services/movements/movementLogService';
 
 const Movements = () => {
   const isMobile = useIsMobile();
-  const { toast } = useToast();
+  const { user } = useAuth();
   const {
     movements,
     isLoading,
@@ -32,18 +37,76 @@ const Movements = () => {
     totalPages,
     filters,
     handleFilterChange,
-    resetFilters
+    resetFilters,
+    refetch
   } = useMovements();
 
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'table');
 
   const handleMovementClick = (movement: Movement) => {
     setSelectedMovement(movement);
-    toast({
-      title: `Movimentação selecionada: ${movement.plate}`,
-      description: `Motorista: ${movement.driver}`,
-    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateMovement = async (updatedMovement: Movement) => {
+    try {
+      // This is a simple update without backend validation
+      // For real implementation, you would call an API to update the movement
+      const result = await movementService.updateMovement(updatedMovement.id, updatedMovement);
+      
+      if (result) {
+        // Log the edit action
+        if (user) {
+          await movementLogService.createLog({
+            movementId: updatedMovement.id,
+            userId: user.id,
+            actionType: 'edit',
+            actionDetails: JSON.stringify({
+              before: selectedMovement,
+              after: updatedMovement
+            })
+          });
+        }
+        
+        refetch();
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao atualizar movimentação: ${error.message}`);
+      throw error;
+    }
+  };
+  
+  const handleDeleteMovement = async (movement: Movement, password: string) => {
+    try {
+      // First verify the password
+      if (!user) throw new Error('Usuário não autenticado');
+      
+      const isValid = await authService.verifyPassword(user.username, password);
+      
+      if (!isValid) {
+        throw new Error('Senha incorreta');
+      }
+      
+      // Delete the movement
+      const result = await movementService.deleteMovement(movement.id);
+      
+      if (result) {
+        // Log the delete action
+        await movementLogService.createLog({
+          movementId: movement.id,
+          userId: user.id,
+          actionType: 'delete',
+          actionDetails: JSON.stringify(movement)
+        });
+        
+        refetch();
+      }
+    } catch (error: any) {
+      toast.error(`Erro ao excluir movimentação: ${error.message}`);
+      throw error;
+    }
   };
 
   const renderPaginationItems = () => {
@@ -208,7 +271,7 @@ const Movements = () => {
             ) : (
               <MovementsTable 
                 movements={movements} 
-                onRowClick={handleMovementClick} 
+                onRowClick={handleMovementClick}
               />
             )}
             
@@ -238,6 +301,15 @@ const Movements = () => {
           </>
         )}
       </div>
+      
+      {/* Movement Edit Dialog */}
+      <MovementEditDialog 
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        movement={selectedMovement}
+        onUpdate={handleUpdateMovement}
+        onDelete={handleDeleteMovement}
+      />
     </Layout>
   );
 };

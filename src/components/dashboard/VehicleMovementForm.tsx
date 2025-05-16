@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -150,9 +151,11 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
 
   // If this is being used as a dialog, render the dialog version
   if (isOpen !== undefined && onClose && vehicle) {
+    const borderColorClass = isExit ? 'border-amber-500' : 'border-emerald-500';
+    
     return (
       <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className={`sm:max-w-[500px] ${borderColorClass} border-2`}>
           <DialogHeader>
             <DialogTitle className={isExit ? 'text-amber-600' : 'text-emerald-600'}>
               {formTitle}
@@ -232,7 +235,10 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     <form onSubmit={handleSearchSubmit} className="space-y-4">
       <div className="grid gap-2">
         <label htmlFor="plate-search" className="text-sm font-medium leading-none">
-          Registrar movimentação
+          {vehicle?.location === 'yard' ? 'Registrar Saída' : 'Registrar Entrada'}
+          <span className="text-xs text-muted-foreground ml-2">
+            {currentDate} às {currentTime}
+          </span>
         </label>
         <div className="relative">
           <Input
@@ -249,14 +255,18 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Button type="submit" disabled={isSearching || !plate.trim()}>
+      <Button 
+        type="submit" 
+        disabled={isSearching || !plate.trim()}
+        className={vehicle?.location === 'yard' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}
+      >
         {isSearching ? (
           <>
             <Search className="mr-2 h-4 w-4 animate-spin" />
             Buscando...
           </>
         ) : (
-          'Localizar veículo'
+          vehicle?.location === 'yard' ? 'Registrar Saída' : 'Registrar Entrada'
         )}
       </Button>
     </form>
