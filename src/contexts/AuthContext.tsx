@@ -76,6 +76,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(userData);
           } else {
             // Token inválido, limpar localStorage
+            console.log("Sessão inválida, limpando dados");
             localStorage.removeItem('carflow_user');
             localStorage.removeItem('carflow_token');
           }
@@ -92,13 +93,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const loginWithSystem = async (username: string, password: string): Promise<boolean> => {
     try {
+      console.log("LoginWithSystem chamado para usuário:", username);
+      
       // Verificar credenciais usando RPC do Supabase
       const { data: userId, error } = await supabase.rpc('verify_password', {
         username,
         password_attempt: password,
       });
 
-      if (error || !userId) {
+      if (error) {
+        console.error("Erro RPC verify_password:", error);
         toast({
           title: 'Erro no login',
           description: 'Nome de usuário ou senha incorretos.',
@@ -106,6 +110,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         return false;
       }
+      
+      if (!userId) {
+        console.log("Usuário ou senha incorretos (userId vazio)");
+        toast({
+          title: 'Erro no login',
+          description: 'Nome de usuário ou senha incorretos.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      
+      console.log("Usuário autenticado com ID:", userId);
 
       // Obter dados do usuário
       const { data: userData, error: userError } = await supabase
@@ -114,7 +130,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq('id', userId)
         .single();
 
-      if (userError || !userData) {
+      if (userError) {
+        console.error("Erro ao buscar dados do usuário:", userError);
         toast({
           title: 'Erro no login',
           description: 'Erro ao carregar dados do usuário.',
@@ -122,6 +139,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         });
         return false;
       }
+      
+      if (!userData) {
+        console.log("Dados do usuário não encontrados");
+        toast({
+          title: 'Erro no login',
+          description: 'Dados do usuário não encontrados.',
+          variant: 'destructive',
+        });
+        return false;
+      }
+      
+      console.log("Dados do usuário carregados:", userData);
 
       // Obter permissões do usuário
       const { data: permissions, error: permissionsError } = await supabase
@@ -130,9 +159,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         .eq('user_id', userId)
         .single();
 
-      if (permissionsError) {
+      if (permissionsError && !permissionsError.message.includes('No rows found')) {
         console.error('Erro ao carregar permissões:', permissionsError);
       }
+      
+      console.log("Permissões carregadas:", permissions);
 
       // Montar objeto do usuário autenticado
       const systemUser: SystemUser = {
@@ -156,6 +187,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           canEditMovements: permissions.can_edit_movements,
         } : undefined
       };
+      
+      console.log("Objeto de usuário criado:", systemUser);
 
       // Guardar usuário e token no localStorage
       localStorage.setItem('carflow_user', JSON.stringify(systemUser));

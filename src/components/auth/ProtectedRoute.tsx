@@ -30,8 +30,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Se uma permissão específica for necessária
-  if (requiredPermission) {
-    const hasPermission = user.permissions && (user.permissions as any)[requiredPermission];
+  if (requiredPermission && user) {
+    const hasPermission = user.permissions && 
+      (user.permissions as any)[requiredPermission];
     const isAdmin = user.role === 'admin';
     
     if (!hasPermission && !isAdmin) {
