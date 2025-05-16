@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Unit } from '@/types';
@@ -39,38 +38,52 @@ export const fetchUnits = async (): Promise<Unit[]> => {
 
     // Agora carregamos as contagens em uma única operação por tipo
     try {
-      // Obter contagem de veículos por unidade usando a função RPC
-      type VehicleCountResult = { unit_id: string; count: number }[];
-      const { data: vehicleCounts, error: vehicleError } = await supabase
+      // Obter contagem de veículos por unidade
+      const { data: vehiclesData, error: vehicleError } = await supabase
         .from('vehicles')
-        .select('unit_id, count(*)', { count: 'exact' })
-        .groupBy('unit_id');
+        .select('unit_id');
       
       if (vehicleError) {
-        console.error('Erro ao contar veículos:', vehicleError);
-      } else if (vehicleCounts) {
-        vehicleCounts.forEach((item: any) => {
-          const unit = units.find(u => u.id === item.unit_id);
+        console.error('Erro ao buscar veículos:', vehicleError);
+      } else if (vehiclesData) {
+        // Contar manualmente por unit_id
+        const vehicleCounts: Record<string, number> = {};
+        vehiclesData.forEach(vehicle => {
+          if (vehicle.unit_id) {
+            vehicleCounts[vehicle.unit_id] = (vehicleCounts[vehicle.unit_id] || 0) + 1;
+          }
+        });
+        
+        // Atualizar as unidades com as contagens
+        Object.entries(vehicleCounts).forEach(([unitId, count]) => {
+          const unit = units.find(u => u.id === unitId);
           if (unit) {
-            unit.vehicleCount = parseInt(item.count);
+            unit.vehicleCount = count;
           }
         });
       }
       
-      // Obter contagem de usuários por unidade usando a função RPC
-      type UserCountResult = { unit_id: string; count: number }[];
-      const { data: userCounts, error: userError } = await supabase
+      // Obter contagem de usuários por unidade
+      const { data: usersData, error: userError } = await supabase
         .from('system_users')
-        .select('unit_id, count(*)', { count: 'exact' })
-        .groupBy('unit_id');
+        .select('unit_id');
       
       if (userError) {
-        console.error('Erro ao contar usuários:', userError);
-      } else if (userCounts) {
-        userCounts.forEach((item: any) => {
-          const unit = units.find(u => u.id === item.unit_id);
+        console.error('Erro ao buscar usuários:', userError);
+      } else if (usersData) {
+        // Contar manualmente por unit_id
+        const userCounts: Record<string, number> = {};
+        usersData.forEach(user => {
+          if (user.unit_id) {
+            userCounts[user.unit_id] = (userCounts[user.unit_id] || 0) + 1;
+          }
+        });
+        
+        // Atualizar as unidades com as contagens
+        Object.entries(userCounts).forEach(([unitId, count]) => {
+          const unit = units.find(u => u.id === unitId);
           if (unit) {
-            unit.usersCount = parseInt(item.count);
+            unit.usersCount = count;
           }
         });
       }
