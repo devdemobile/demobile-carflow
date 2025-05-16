@@ -40,6 +40,8 @@ export interface Unit {
   name: string;
   code: string;
   address: string;
+  vehicleCount: number;
+  usersCount: number;
 }
 
 export interface VehicleMovementFormData {
