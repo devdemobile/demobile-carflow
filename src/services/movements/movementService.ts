@@ -1,3 +1,4 @@
+
 /**
  * Serviço de negócios para Movimentações
  */
@@ -75,7 +76,8 @@ export class MovementService implements IMovementService {
   async createMovement(movementData: Movement | MovementDTO): Promise<Movement | null> {
     // For simplicity when calling from components, allow passing Movement objects directly
     if ('id' in movementData) {
-      return this.repository.create(movementData as Movement);
+      // Pass an empty string as the userId for existing Movement objects
+      return this.repository.create(movementData as Movement, '');
     }
 
     // Original implementation with validation
