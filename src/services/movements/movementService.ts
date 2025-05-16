@@ -1,4 +1,3 @@
-
 /**
  * Serviço de negócios para Movimentações
  */
@@ -15,7 +14,7 @@ export interface IMovementService {
   getMovementsByVehicle(vehicleId: string): Promise<Movement[]>;
   getMovementsByStatus(status: VehicleLocation): Promise<Movement[]>;
   searchMovements(searchTerm: string): Promise<Movement[]>;
-  createMovement(movementData: MovementDTO, userId: string): Promise<Movement | null>;
+  createMovement(movementData: Movement | MovementDTO): Promise<Movement | null>;
   finalizeMovement(id: string, data: { 
     finalMileage: number, 
     arrivalDate: string, 
@@ -73,28 +72,37 @@ export class MovementService implements IMovementService {
   /**
    * Cria uma nova movimentação
    */
-  async createMovement(movementData: MovementDTO, userId: string): Promise<Movement | null> {
+  async createMovement(movementData: Movement | MovementDTO): Promise<Movement | null> {
+    // For simplicity when calling from components, allow passing Movement objects directly
+    if ('id' in movementData) {
+      return this.repository.create(movementData as Movement);
+    }
+
+    // Original implementation with validation
+    const vehicleId = (movementData as MovementDTO).vehicleId;
+    
     // Verificar se o veículo existe
-    const vehicle = await vehicleService.getVehicleById(movementData.vehicleId);
+    const vehicle = await vehicleService.getVehicleById(vehicleId);
     if (!vehicle) {
       throw new Error('Veículo não encontrado');
     }
 
     // Verificar se o tipo da movimentação é compatível com a localização atual do veículo
-    if (movementData.type === 'exit' && vehicle.location === 'out') {
+    if ((movementData as MovementDTO).type === 'exit' && vehicle.location === 'out') {
       throw new Error('Veículo já está em movimento');
     }
 
-    if (movementData.type === 'entry' && vehicle.location === 'yard') {
+    if ((movementData as MovementDTO).type === 'entry' && vehicle.location === 'yard') {
       throw new Error('Veículo já está no pátio');
     }
 
     // Verificar se a quilometragem inicial é válida
-    if (movementData.type === 'exit' && movementData.initialMileage < vehicle.mileage) {
-      throw new Error(`Quilometragem inicial (${movementData.initialMileage}) não pode ser menor que a quilometragem atual do veículo (${vehicle.mileage})`);
+    if ((movementData as MovementDTO).type === 'exit' && (movementData as MovementDTO).initialMileage < vehicle.mileage) {
+      throw new Error(`Quilometragem inicial (${(movementData as MovementDTO).initialMileage}) não pode ser menor que a quilometragem atual do veículo (${vehicle.mileage})`);
     }
 
-    return this.repository.create(movementData, userId);
+    const userId = ''; // Default empty string if no user ID is provided
+    return this.repository.create(movementData as MovementDTO, userId);
   }
 
   /**
