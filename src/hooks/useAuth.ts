@@ -35,11 +35,11 @@ export const useAuth = (): AuthHookReturn => {
   // Adiciona permissões do usuário baseadas no papel/função dele
   const userPermissions = context.user ? {
     canViewVehicles: true,
-    canEditVehicles: context.user.role === 'admin' || context.user.role === 'manager',
+    canEditVehicles: context.user.role === 'admin',
     canDeleteVehicles: context.user.role === 'admin',
     canViewMovements: true,
     canCreateMovements: true,
-    canViewUsers: context.user.role === 'admin' || context.user.role === 'manager',
+    canViewUsers: context.user.role === 'admin',
     canEditUsers: context.user.role === 'admin',
   } : null;
   
