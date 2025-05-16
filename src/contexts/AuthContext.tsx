@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 import { SystemUser, LoginCredentials } from '@/types';
@@ -14,7 +13,7 @@ interface AuthContextValue {
   switchUnit: (unitId: string) => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextValue>({
+export const AuthContext = createContext<AuthContextValue>({
   user: null,
   loading: true,
   error: null,

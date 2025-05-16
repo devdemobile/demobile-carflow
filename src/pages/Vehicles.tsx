@@ -1,9 +1,8 @@
-
-import React, { useEffect } from 'react';
+import React from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
 import VehiclesTable from '@/components/vehicles/VehiclesTable';
 import VehiclesFilter from '@/components/vehicles/VehiclesFilter';

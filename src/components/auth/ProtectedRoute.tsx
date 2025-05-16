@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { SystemUser } from '@/types';
 
 interface ProtectedRouteProps {
@@ -13,7 +13,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
   requiredPermission 
 }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, userPermissions } = useAuth();
   const location = useLocation();
   
   // Aguardar carregamento da autenticação
@@ -32,8 +32,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   
   // Se uma permissão específica for necessária
   if (requiredPermission && user) {
-    const hasPermission = user.permissions && 
-      user.permissions[requiredPermission as keyof typeof user.permissions];
+    // Verificar as permissões do usuário através do userPermissions
+    const hasPermission = userPermissions && 
+      (userPermissions as any)[requiredPermission];
     const isAdmin = user.role === 'admin';
     
     if (!hasPermission && !isAdmin) {

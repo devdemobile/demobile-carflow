@@ -1,8 +1,31 @@
 
 import { useContext } from 'react';
 import { AuthContext } from '@/contexts/AuthContext';
+import { SystemUser } from '@/types';
 
-export const useAuth = () => {
+// Define an interface for the user permissions
+interface UserPermissions {
+  canViewVehicles: boolean;
+  canEditVehicles: boolean;
+  canDeleteVehicles: boolean;
+  canViewMovements: boolean;
+  canCreateMovements: boolean;
+  canViewUsers: boolean;
+  canEditUsers: boolean;
+}
+
+// Define the return type for our useAuth hook
+interface AuthHookReturn {
+  user: SystemUser | null;
+  loading: boolean;
+  error: string | null;
+  login: (credentials: { username: string; password: string }) => Promise<boolean>;
+  logout: () => void;
+  switchUnit: (unitId: string) => Promise<boolean>;
+  userPermissions: UserPermissions | null;
+}
+
+export const useAuth = (): AuthHookReturn => {
   const context = useContext(AuthContext);
   
   if (!context) {
