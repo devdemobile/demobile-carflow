@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -114,7 +115,22 @@ const Users = () => {
         if (usersResponse.error) throw usersResponse.error;
         if (unitsResponse.error) throw unitsResponse.error;
 
-        setUsers(usersResponse.data);
+        // Map database users to SystemUser type
+        const mappedUsers: SystemUser[] = usersResponse.data.map(dbUser => ({
+          id: dbUser.id,
+          name: dbUser.name,
+          username: dbUser.username,
+          email: dbUser.email || undefined,
+          role: dbUser.role as UserRole,
+          shift: dbUser.shift as UserShift,
+          status: dbUser.status as UserStatus,
+          unitId: dbUser.unit_id,
+          unit_id: dbUser.unit_id, // Keep for compatibility
+          unitName: dbUser.units?.name,
+          units: dbUser.units // Keep for compatibility
+        }));
+
+        setUsers(mappedUsers);
         setUnits(unitsResponse.data);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -140,7 +156,7 @@ const Users = () => {
       password: "", // Não preencher a senha no formulário de edição
       role: user.role,
       shift: user.shift,
-      unit_id: user.unit_id,
+      unit_id: user.unitId || user.unit_id || "",
       email: user.email || "",
     });
     setIsDialogOpen(true);
@@ -268,8 +284,22 @@ const Users = () => {
         
         if (updateError) throw updateError;
         
-        // Atualizar lista de usuários
-        setUsers(prev => prev.map(u => u.id === updatedUser.id ? updatedUser : u));
+        // Atualizar lista de usuários com o formato correto
+        const mappedUpdatedUser: SystemUser = {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          username: updatedUser.username,
+          email: updatedUser.email || undefined,
+          role: updatedUser.role as UserRole,
+          shift: updatedUser.shift as UserShift,
+          status: updatedUser.status as UserStatus,
+          unitId: updatedUser.unit_id,
+          unit_id: updatedUser.unit_id,
+          unitName: updatedUser.units?.name,
+          units: updatedUser.units
+        };
+        
+        setUsers(prev => prev.map(u => u.id === mappedUpdatedUser.id ? mappedUpdatedUser : u));
         
         toast.success('Usuário atualizado com sucesso');
       } else {
@@ -316,8 +346,22 @@ const Users = () => {
             can_view_movements: true,
           });
         
-        // Atualizar lista de usuários
-        setUsers(prev => [userData, ...prev]);
+        // Mapear e adicionar o novo usuário à lista
+        const mappedNewUser: SystemUser = {
+          id: userData.id,
+          name: userData.name,
+          username: userData.username,
+          email: userData.email || undefined,
+          role: userData.role as UserRole,
+          shift: userData.shift as UserShift,
+          status: userData.status as UserStatus,
+          unitId: userData.unit_id,
+          unit_id: userData.unit_id,
+          unitName: userData.units?.name,
+          units: userData.units
+        };
+        
+        setUsers(prev => [mappedNewUser, ...prev]);
         
         toast.success('Usuário criado com sucesso');
       }
@@ -344,7 +388,23 @@ const Users = () => {
           .order('created_at', { ascending: false });
           
         if (error) throw error;
-        setUsers(data);
+        
+        // Map to SystemUser type
+        const mappedUsers: SystemUser[] = data.map(dbUser => ({
+          id: dbUser.id,
+          name: dbUser.name,
+          username: dbUser.username,
+          email: dbUser.email || undefined,
+          role: dbUser.role as UserRole,
+          shift: dbUser.shift as UserShift,
+          status: dbUser.status as UserStatus,
+          unitId: dbUser.unit_id,
+          unit_id: dbUser.unit_id,
+          unitName: dbUser.units?.name,
+          units: dbUser.units
+        }));
+        
+        setUsers(mappedUsers);
       } catch (error) {
         console.error('Erro ao recarregar usuários:', error);
       }
@@ -407,7 +467,7 @@ const Users = () => {
         </div>
         
         <div className="text-sm mb-2">
-          <p className="text-muted-foreground">Unidade: {userItem.units?.name || "—"}</p>
+          <p className="text-muted-foreground">Unidade: {userItem.unitName || userItem.units?.name || "—"}</p>
           {userItem.email && <p className="text-muted-foreground">Email: {userItem.email}</p>}
         </div>
         
@@ -565,7 +625,7 @@ const Users = () => {
                     <TableCell>{userItem.username}</TableCell>
                     <TableCell>{getRoleBadge(userItem.role)}</TableCell>
                     <TableCell>{getShiftBadge(userItem.shift)}</TableCell>
-                    <TableCell>{userItem.units?.name || "—"}</TableCell>
+                    <TableCell>{userItem.unitName || userItem.units?.name || "—"}</TableCell>
                     <TableCell>{getStatusBadge(userItem.status)}</TableCell>
                     <TableCell>{userItem.email || '—'}</TableCell>
                     {user?.role === 'admin' && (

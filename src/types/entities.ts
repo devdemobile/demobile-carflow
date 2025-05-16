@@ -30,8 +30,10 @@ export interface SystemUser {
   role: UserRole;
   shift: UserShift;
   status: UserStatus;
-  unitId: string;
+  unitId?: string;  // Make unitId optional to match database structure
+  unit_id?: string; // Support legacy field from database
   unitName?: string;
+  units?: { name: string }; // Support nested units object from Supabase join
   permissions?: UserPermissions;
 }
 
