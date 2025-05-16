@@ -4,7 +4,21 @@ import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Search, Map, Users, Car, Trash2, Pencil, Grid, List, RefreshCcw } from 'lucide-react';
+import { 
+  Plus, 
+  Search, 
+  Map, 
+  Users, 
+  Car, 
+  Trash2, 
+  Pencil, 
+  Grid, 
+  List, 
+  RefreshCcw,
+  Calendar,
+  Clock,
+  User
+} from 'lucide-react';
 import { useUnits } from '@/hooks/useUnits';
 import { UnitSkeleton } from '@/components/units/UnitSkeleton';
 import UnitDialog from '@/components/units/UnitDialog';
@@ -12,6 +26,8 @@ import DeleteUnitDialog from '@/components/units/DeleteUnitDialog';
 import { Unit } from '@/types';
 import { UnitsTable } from '@/components/units/UnitsTable';
 import { useToast } from '@/hooks/use-toast';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { format } from 'date-fns';
 
 const Units = () => {
   const { 
@@ -36,6 +52,7 @@ const Units = () => {
   const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<Unit | null>(null);
+  const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -49,12 +66,14 @@ const Units = () => {
   const handleEditUnit = useCallback((unit: Unit) => {
     setSelectedUnit(unit);
     setIsUnitDialogOpen(true);
+    setIsDetailsDialogOpen(false); // Fechar diálogo de detalhes se estiver aberto
   }, []);
 
   // Handler for opening the delete confirmation dialog
   const handleDeleteClick = useCallback((unit: Unit) => {
     setSelectedUnit(unit);
     setIsDeleteDialogOpen(true);
+    setIsDetailsDialogOpen(false); // Fechar diálogo de detalhes se estiver aberto
   }, []);
 
   // Handle form submission (create or update)
@@ -127,13 +146,9 @@ const Units = () => {
 
   // Handler for viewing unit details
   const handleViewDetails = useCallback((unit: Unit) => {
-    console.log("Ver detalhes da unidade:", unit);
-    // Implementar tela de detalhes da unidade futuramente
-    toast({
-      title: "Informação",
-      description: "Detalhes da unidade serão implementados em breve.",
-    });
-  }, [toast]);
+    setSelectedUnit(unit);
+    setIsDetailsDialogOpen(true);
+  }, []);
 
   // Handler for forcing a refresh
   const handleForceRefresh = useCallback(async () => {
@@ -234,7 +249,11 @@ const Units = () => {
             // Grid view
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
               {units.map((unit) => (
-                <Card key={unit.id}>
+                <Card 
+                  key={unit.id} 
+                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => handleViewDetails(unit)}
+                >
                   <CardHeader>
                     <CardTitle className="flex items-center justify-between">
                       <span>{unit.name}</span>
@@ -262,19 +281,24 @@ const Units = () => {
                       variant="ghost" 
                       size="icon"
                       className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      onClick={() => handleDeleteClick(unit)}
+                      onClick={(e) => {
+                        e.stopPropagation(); // Previne que o evento de clique propague para o card
+                        handleDeleteClick(unit);
+                      }}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditUnit(unit)}>
-                        <Pencil className="h-3.5 w-3.5 mr-1" />
-                        Editar
-                      </Button>
-                      <Button size="sm" onClick={() => handleViewDetails(unit)}>
-                        Detalhes
-                      </Button>
-                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation(); // Previne que o evento de clique propague para o card
+                        handleEditUnit(unit);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 mr-1" />
+                      Editar
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}
@@ -315,6 +339,102 @@ const Units = () => {
         onDelete={handleDeleteUnit}
         isLoading={isDeleting}
       />
+
+      {/* Unit Details Dialog */}
+      {selectedUnit && (
+        <Dialog open={isDetailsDialogOpen} onOpenChange={setIsDetailsDialogOpen}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center justify-between">
+                <span>{selectedUnit.name}</span>
+                <span className="text-sm bg-muted px-2 py-1 rounded">{selectedUnit.code}</span>
+              </DialogTitle>
+              <DialogDescription>
+                Detalhes da unidade e opções de gerenciamento
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="space-y-4 py-4">
+              <div className="flex items-start">
+                <Map className="h-4 w-4 mr-2 mt-0.5 text-muted-foreground" />
+                <span>{selectedUnit.address || 'Endereço não cadastrado'}</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center p-3 border rounded-md">
+                  <Car className="h-4 w-4 mr-2 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Veículos</p>
+                    <p className="font-semibold">{selectedUnit.vehicleCount}</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center p-3 border rounded-md">
+                  <Users className="h-4 w-4 mr-2 text-primary" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Usuários</p>
+                    <p className="font-semibold">{selectedUnit.usersCount}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {selectedUnit.createdAt && (
+                <div className="flex items-center border-t pt-4">
+                  <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm">Criada em: {format(new Date(selectedUnit.createdAt), 'dd/MM/yyyy')}</span>
+                </div>
+              )}
+              
+              {selectedUnit.updatedAt && selectedUnit.updatedAt !== selectedUnit.createdAt && (
+                <div className="flex items-center">
+                  <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm">Atualizada em: {format(new Date(selectedUnit.updatedAt), 'dd/MM/yyyy')}</span>
+                </div>
+              )}
+              
+              {selectedUnit.createdBy && (
+                <div className="flex items-center">
+                  <User className="h-4 w-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm">Criada por: {selectedUnit.createdBy}</span>
+                </div>
+              )}
+            </div>
+            
+            <DialogFooter>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="mr-auto"
+                onClick={() => setIsDetailsDialogOpen(false)}
+              >
+                Fechar
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive"
+                onClick={() => {
+                  setIsDetailsDialogOpen(false);
+                  handleDeleteClick(selectedUnit);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setIsDetailsDialogOpen(false);
+                  handleEditUnit(selectedUnit);
+                }}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </Layout>
   );
 };

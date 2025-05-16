@@ -17,7 +17,8 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Grid, List, Loader2 } from 'lucide-react';
 
 const Movements = () => {
   const isMobile = useIsMobile();
@@ -35,6 +36,7 @@ const Movements = () => {
   } = useMovements();
 
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'table');
 
   const handleMovementClick = (movement: Movement) => {
     setSelectedMovement(movement);
@@ -149,7 +151,31 @@ const Movements = () => {
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16">
-        <h1 className="text-3xl font-bold mb-6">Movimentações</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+          <h1 className="text-3xl font-bold">Movimentações</h1>
+          
+          {/* View Selector */}
+          {!isMobile && (
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="icon"
+                className="rounded-r-none"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'table' ? 'default' : 'ghost'}
+                size="icon"
+                className="rounded-l-none"
+                onClick={() => setViewMode('table')}
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
         
         <MovementsFilter 
           filters={filters} 
@@ -163,10 +189,10 @@ const Movements = () => {
           </div>
         ) : (
           <>
-            {isMobile ? (
-              <div className="grid grid-cols-1 gap-4 mb-6">
+            {(isMobile || viewMode === 'grid') ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {movements.length === 0 ? (
-                  <div className="text-center p-4 bg-background border rounded-md text-muted-foreground">
+                  <div className="text-center p-4 bg-background border rounded-md text-muted-foreground col-span-full">
                     Nenhuma movimentação encontrada
                   </div>
                 ) : (

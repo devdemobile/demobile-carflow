@@ -82,7 +82,7 @@ const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }
                     : '-'}
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={movement.status === 'yard' ? 'text-green-600' : 'text-amber-600'}>
+                  <span className={movement.status === 'yard' ? 'text-green-600 font-medium' : 'text-amber-600 font-medium'}>
                     {movement.status === 'yard' ? 'Completado' : 'Em Andamento'}
                   </span>
                 </TableCell>

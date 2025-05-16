@@ -9,10 +9,9 @@ import { Label } from '@/components/ui/label';
 import VehicleCard from '@/components/vehicles/VehicleCard';
 import MovementCard from '@/components/movements/MovementCard';
 import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
-import { getVehicleStats, getVehicleByPlate } from '@/services/mockData';
 import { Vehicle, Movement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Search } from 'lucide-react';
+import { Search, Car, PackageCheck, Warehouse, Calendar } from 'lucide-react';
 import { movementService } from '@/services/movements/movementService';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useQuery } from '@tanstack/react-query';
@@ -25,9 +24,51 @@ const Dashboard = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   
-  const stats = getVehicleStats(user?.unitId);
+  // Buscar estatísticas de veículos
+  const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 } } = useQuery({
+    queryKey: ['vehicle-stats'],
+    queryFn: async () => {
+      try {
+        const allVehicles = await vehicleService.getAllVehicles();
+        const totalVehicles = allVehicles.length;
+        
+        const vehiclesInYard = allVehicles.filter(v => v.location === 'yard').length;
+        const vehiclesOut = allVehicles.filter(v => v.location === 'out').length;
+        
+        return {
+          totalVehicles,
+          vehiclesInYard,
+          vehiclesOut
+        };
+      } catch (error) {
+        console.error('Erro ao buscar estatísticas de veículos:', error);
+        return {
+          totalVehicles: 0,
+          vehiclesInYard: 0,
+          vehiclesOut: 0
+        };
+      }
+    }
+  });
   
-  // Buscar movimentações recentes do banco de dados
+  // Buscar movimentações de hoje
+  const { data: todayMovements = 0 } = useQuery({
+    queryKey: ['today-movements-count'],
+    queryFn: async () => {
+      try {
+        const allMovements = await movementService.getAllMovements();
+        
+        // Filtra movimentações de hoje
+        const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        return allMovements.filter(m => m.departureDate === today).length;
+      } catch (error) {
+        console.error('Erro ao buscar movimentações de hoje:', error);
+        return 0;
+      }
+    }
+  });
+  
+  // Buscar movimentações recentes
   const { data: recentMovements = [], refetch: refetchMovements } = useQuery({
     queryKey: ['recent-movements'],
     queryFn: async () => {
@@ -53,16 +94,30 @@ const Dashboard = () => {
     queryKey: ['frequent-vehicles'],
     queryFn: async () => {
       try {
-        // Como não temos uma métrica real de frequência, vamos usar a quantidade de movimentações
-        // Primeiro, buscamos todos os veículos
         const vehicles = await vehicleService.getAllVehicles();
+        const allMovements = await movementService.getAllMovements();
         
-        // Em uma implementação real, buscaríamos as movimentações por veículo e ordenaríamos
-        // por quantidade. Aqui vamos simplesmente pegar os primeiros 4 veículos
+        // Contar quantas movimentações cada veículo tem
+        const vehicleMovementCount = new Map<string, number>();
         
-        // Buscar todos os veículos para mostrar como frequentes (temporário)
-        // Em uma implementação real, ordenaria pelos mais utilizados
-        return vehicles.slice(0, 4);
+        allMovements.forEach(movement => {
+          const vehicleId = movement.vehicleId;
+          if (vehicleId) {
+            vehicleMovementCount.set(
+              vehicleId,
+              (vehicleMovementCount.get(vehicleId) || 0) + 1
+            );
+          }
+        });
+        
+        // Adicionar contagem de movimentações aos veículos e ordenar
+        return vehicles
+          .map(vehicle => ({
+            ...vehicle,
+            movementCount: vehicleMovementCount.get(vehicle.id) || 0
+          }))
+          .sort((a, b) => (b.movementCount || 0) - (a.movementCount || 0))
+          .slice(0, 4); // Pegar os 4 mais frequentes
       } catch (error) {
         console.error('Erro ao buscar veículos frequentes:', error);
         return [];
@@ -70,6 +125,7 @@ const Dashboard = () => {
     }
   });
   
+  // Buscar veículo pelo número da placa
   const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -149,18 +205,34 @@ const Dashboard = () => {
         
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard title="Total de Veículos" value={stats.totalVehicles} />
+          <StatCard 
+            title="Total de Veículos" 
+            value={vehicleStats.totalVehicles} 
+            icon={<Car />}
+          />
           <StatCard 
             title="Veículos no Pátio" 
-            value={stats.vehiclesInYard} 
-            description={`${((stats.vehiclesInYard / stats.totalVehicles) * 100).toFixed(0)}% da frota`}
+            value={vehicleStats.vehiclesInYard} 
+            description={vehicleStats.totalVehicles > 0 ? 
+              `${((vehicleStats.vehiclesInYard / vehicleStats.totalVehicles) * 100).toFixed(0)}% da frota` : 
+              '0% da frota'
+            }
+            icon={<Warehouse />}
           />
           <StatCard 
             title="Veículos Fora" 
-            value={stats.vehiclesOut}
-            description={`${((stats.vehiclesOut / stats.totalVehicles) * 100).toFixed(0)}% da frota`}
+            value={vehicleStats.vehiclesOut}
+            description={vehicleStats.totalVehicles > 0 ? 
+              `${((vehicleStats.vehiclesOut / vehicleStats.totalVehicles) * 100).toFixed(0)}% da frota` : 
+              '0% da frota'
+            }
+            icon={<PackageCheck />}
           />
-          <StatCard title="Movimentações Hoje" value={stats.movementsToday} />
+          <StatCard 
+            title="Movimentações Hoje" 
+            value={todayMovements}
+            icon={<Calendar />}
+          />
         </div>
         
         {/* Frequent Vehicles */}

@@ -48,7 +48,11 @@ export const UnitsTable: React.FC<UnitsTableProps> = ({
         </TableHeader>
         <TableBody>
           {units.map((unit) => (
-            <TableRow key={unit.id}>
+            <TableRow 
+              key={unit.id}
+              className="cursor-pointer hover:bg-muted/60"
+              onClick={() => onViewDetails(unit)}
+            >
               <TableCell className="font-medium">{unit.name}</TableCell>
               <TableCell>{unit.code}</TableCell>
               <TableCell>{unit.address || 'Não informado'}</TableCell>
@@ -59,23 +63,22 @@ export const UnitsTable: React.FC<UnitsTableProps> = ({
                   variant="ghost" 
                   size="icon"
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                  onClick={() => onDelete(unit)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Previne que o evento de clique propague para a linha
+                    onDelete(unit);
+                  }}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => onEdit(unit)}
+                  onClick={(e) => {
+                    e.stopPropagation(); // Previne que o evento de clique propague para a linha
+                    onEdit(unit);
+                  }}
                 >
                   <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onViewDetails(unit)}
-                >
-                  Detalhes
                 </Button>
               </TableCell>
             </TableRow>
