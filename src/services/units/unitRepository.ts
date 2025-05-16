@@ -139,9 +139,10 @@ export class UnitRepository implements IUnitRepository {
       'Erro ao contar veículos da unidade'
     );
     
-    // Corrigindo o acesso ao count
+    // Corrigir o acesso ao count, garantindo o tipo numérico
     if (result && typeof result === 'object' && 'count' in result) {
-      return result.count || 0;
+      const count = result.count;
+      return typeof count === 'number' ? count : 0;
     }
     
     return 0;
@@ -159,9 +160,10 @@ export class UnitRepository implements IUnitRepository {
       'Erro ao contar usuários da unidade'
     );
     
-    // Corrigindo o acesso ao count
+    // Corrigir o acesso ao count, garantindo o tipo numérico
     if (result && typeof result === 'object' && 'count' in result) {
-      return result.count || 0;
+      const count = result.count;
+      return typeof count === 'number' ? count : 0;
     }
     
     return 0;
@@ -178,7 +180,9 @@ export class UnitRepository implements IUnitRepository {
 
     const result: Record<string, number> = {};
     counts.forEach((item: any) => {
-      result[item.unit_id] = Number(item.count);
+      if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
+        result[item.unit_id] = Number(item.count);
+      }
     });
     
     return result;
@@ -195,7 +199,9 @@ export class UnitRepository implements IUnitRepository {
 
     const result: Record<string, number> = {};
     counts.forEach((item: any) => {
-      result[item.unit_id] = Number(item.count);
+      if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
+        result[item.unit_id] = Number(item.count);
+      }
     });
     
     return result;
