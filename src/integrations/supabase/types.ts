@@ -39,6 +39,48 @@ export type Database = {
         }
         Relationships: []
       }
+      movement_logs: {
+        Row: {
+          action_details: string
+          action_type: string
+          created_at: string
+          id: string
+          movement_id: string
+          user_id: string
+        }
+        Insert: {
+          action_details: string
+          action_type: string
+          created_at?: string
+          id?: string
+          movement_id: string
+          user_id: string
+        }
+        Update: {
+          action_details?: string
+          action_type?: string
+          created_at?: string
+          id?: string
+          movement_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movement_logs_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movement_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movements: {
         Row: {
           arrival_date: string | null

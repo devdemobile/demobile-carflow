@@ -19,12 +19,12 @@ export class MovementLogService implements IMovementLogService {
     try {
       const { data, error } = await supabase
         .from('movement_logs')
-        .insert([{
+        .insert({
           movement_id: log.movementId,
           user_id: log.userId,
           action_type: log.actionType,
           action_details: log.actionDetails
-        }])
+        })
         .select()
         .single();
       
@@ -36,7 +36,7 @@ export class MovementLogService implements IMovementLogService {
         id: data.id,
         movementId: data.movement_id,
         userId: data.user_id,
-        userName: data.user_name,
+        userName: data.user_name || '',
         actionType: data.action_type as LogActionType,
         actionDetails: data.action_details,
         createdAt: data.created_at
@@ -74,7 +74,7 @@ export class MovementLogService implements IMovementLogService {
         id: item.id,
         movementId: item.movement_id,
         userId: item.user_id,
-        userName: item.system_users?.name,
+        userName: item.system_users?.name || '',
         actionType: item.action_type as LogActionType,
         actionDetails: item.action_details,
         createdAt: item.created_at
@@ -111,7 +111,7 @@ export class MovementLogService implements IMovementLogService {
         id: item.id,
         movementId: item.movement_id,
         userId: item.user_id,
-        userName: item.system_users?.name,
+        userName: item.system_users?.name || '',
         actionType: item.action_type as LogActionType,
         actionDetails: item.action_details,
         createdAt: item.created_at

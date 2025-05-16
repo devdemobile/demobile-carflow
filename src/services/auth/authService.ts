@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 export interface IAuthService {
   login(credentials: LoginCredentials): Promise<SystemUser | null>;
   validateUserStatus(user: SystemUser): boolean;
+  verifyPassword(username: string, password: string): Promise<boolean>;
 }
 
 /**
@@ -64,6 +65,21 @@ export class AuthService implements IAuthService {
    */
   validateUserStatus(user: SystemUser): boolean {
     return user.status === 'active';
+  }
+
+  /**
+   * Verifica a senha de um usuário
+   * @param username Nome de usuário
+   * @param password Senha a verificar
+   * @returns true se a senha for válida, false caso contrário
+   */
+  async verifyPassword(username: string, password: string): Promise<boolean> {
+    try {
+      const userId = await this.repository.login({ username, password });
+      return !!userId; // Retorna true se userId não for nulo/undefined
+    } catch (error) {
+      return false;
+    }
   }
 }
 
