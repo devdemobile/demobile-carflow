@@ -9,6 +9,7 @@ interface UserPermissions {
   canEditVehicles: boolean;
   canDeleteVehicles: boolean;
   canViewMovements: boolean;
+  canEditMovements: boolean;
   canCreateMovements: boolean;
   canViewUsers: boolean;
   canEditUsers: boolean;
@@ -39,6 +40,7 @@ export const useAuth = (): AuthHookReturn => {
     canDeleteVehicles: context.user.role === 'admin',
     canViewMovements: true,
     canCreateMovements: true,
+    canEditMovements: context.user.role === 'admin',
     canViewUsers: context.user.role === 'admin',
     canEditUsers: context.user.role === 'admin',
   } : null;

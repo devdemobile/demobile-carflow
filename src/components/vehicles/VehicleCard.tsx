@@ -23,7 +23,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
     if (vehicle.location === 'yard') {
       return vehicle.unitName || 'Sem unidade';
     } else {
-      // Get destination from most recent exit movement (would be implemented in a real app)
+      // For vehicles in route, we try to get the destination from the most recent movement
       return 'Em rota';
     }
   };

@@ -68,7 +68,7 @@ const Dashboard = () => {
   });
   
   // Fetch recent movements
-  const { data: recentMovements = [], refetch: refetchMovements } = useQuery({
+  const { data: recentMovements = [], refetch: refetchMovements, isLoading: isLoadingMovements } = useQuery({
     queryKey: ['recent-movements'],
     queryFn: async () => {
       try {
@@ -283,18 +283,32 @@ const Dashboard = () => {
         
         {/* Recent Movements */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Movimentações Recentes</h2>
-          {recentMovements.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {recentMovements.map((movement) => (
-                <MovementCard key={movement.id} movement={movement} />
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              Nenhuma movimentação registrada nas últimas 24 horas.
-            </p>
-          )}
+          <h2 className="text-xl font-semibold mb-4">Movimentações Recentes</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {isLoadingMovements ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="border rounded-lg shadow-sm p-4">
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  </div>
+                </div>
+              ))
+            ) : recentMovements.length === 0 ? (
+              <div className="border rounded-lg shadow-sm p-4 col-span-full bg-muted text-center">
+                Nenhuma movimentação registrada nos últimos dias.
+              </div>
+            ) : (
+              recentMovements.map((movement) => (
+                <MovementCard 
+                  key={movement.id} 
+                  movement={movement} 
+                  onClick={() => handleMovementClick(movement)}
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
       

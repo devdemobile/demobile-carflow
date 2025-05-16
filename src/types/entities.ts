@@ -81,7 +81,7 @@ export interface VehicleModel {
 export interface Movement {
   id: string;
   vehicleId: string;
-  plate?: string;
+  vehiclePlate?: string; // Adicionado para exibir a placa do veículo
   vehicleName?: string;
   driver: string;
   destination?: string;
@@ -89,9 +89,11 @@ export interface Movement {
   finalMileage?: number;
   mileageRun?: number;
   departureUnitId: string;
+  departureUnitName?: string; // Adicionado para exibir o nome da unidade de saída
   departureDate: string;
   departureTime: string;
   arrivalUnitId?: string;
+  arrivalUnitName?: string; // Adicionado para exibir o nome da unidade de chegada
   arrivalDate?: string;
   arrivalTime?: string;
   duration?: string;

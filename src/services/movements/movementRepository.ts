@@ -284,7 +284,7 @@ export class MovementRepository implements IMovementRepository {
     return {
       id: data.id,
       vehicleId: data.vehicle_id,
-      plate: data.vehicles?.plate,
+      vehiclePlate: data.vehicles?.plate, // Adicionada placa do veículo
       vehicleName: data.vehicles ? `${data.vehicles.make} ${data.vehicles.model}` : undefined,
       driver: data.driver,
       destination: data.destination,
@@ -292,9 +292,11 @@ export class MovementRepository implements IMovementRepository {
       finalMileage: data.final_mileage,
       mileageRun: data.mileage_run,
       departureUnitId: data.departure_unit_id,
+      departureUnitName: data.units?.name, // Adicionado nome da unidade de saída
       departureDate: data.departure_date,
       departureTime: data.departure_time,
       arrivalUnitId: data.arrival_unit_id,
+      arrivalUnitName: data.arrival_units?.name, // Adicionado nome da unidade de chegada
       arrivalDate: data.arrival_date,
       arrivalTime: data.arrival_time,
       duration: data.duration,
