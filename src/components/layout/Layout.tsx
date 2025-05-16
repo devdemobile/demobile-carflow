@@ -1,0 +1,27 @@
+
+import React from 'react';
+import Header from './Header';
+import MobileNavbar from './MobileNavbar';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface LayoutProps {
+  children: React.ReactNode;
+}
+
+const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const isMobile = useIsMobile();
+  const { user } = useAuth();
+  
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header isMobile={isMobile} />
+      <main className="flex-1">
+        {children}
+      </main>
+      {isMobile && user && <MobileNavbar />}
+    </div>
+  );
+};
+
+export default Layout;

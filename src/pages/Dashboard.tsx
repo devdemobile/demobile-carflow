@@ -1,0 +1,169 @@
+
+import React, { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import Layout from '@/components/layout/Layout';
+import StatCard from '@/components/dashboard/StatCard';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import VehicleCard from '@/components/vehicles/VehicleCard';
+import MovementCard from '@/components/movements/MovementCard';
+import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
+import { frequentVehicles, getRecentMovements, getVehicleByPlate, getVehicleStats, mockVehicles, addMovement, mockMovements } from '@/services/mockData';
+import { Vehicle, Movement } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { Search } from 'lucide-react';
+
+const Dashboard = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  
+  const [plateSearch, setPlateSearch] = useState('');
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  
+  const stats = getVehicleStats(user?.unitId);
+  const recentMovements = getRecentMovements();
+  
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!plateSearch.trim()) {
+      toast({
+        title: "Campo vazio",
+        description: "Por favor, digite uma placa para pesquisar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const vehicle = getVehicleByPlate(plateSearch);
+    
+    if (vehicle) {
+      setSelectedVehicle(vehicle);
+      setIsFormOpen(true);
+    } else {
+      toast({
+        title: "Veículo não encontrado",
+        description: "Não encontramos um veículo com essa placa.",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleVehicleClick = (vehicle: Vehicle) => {
+    setSelectedVehicle(vehicle);
+    setIsFormOpen(true);
+  };
+  
+  const handleMovementSubmit = (formData: any) => {
+    // In a real app, this would make an API call
+    const newMovement = addMovement(formData);
+    console.log("New movement registered:", newMovement);
+    
+    // Reset search after submission
+    setPlateSearch('');
+  };
+  
+  // Find the last movement for the selected vehicle
+  const getLastMovement = (): Movement | undefined => {
+    if (!selectedVehicle) return undefined;
+    
+    return mockMovements
+      .filter(m => m.vehicleId === selectedVehicle.id && m.type === 'exit')
+      .sort((a, b) => {
+        const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+        const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+        return dateB.getTime() - dateA.getTime();
+      })[0];
+  };
+
+  return (
+    <Layout>
+      <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
+        <h1 className="text-2xl font-bold">
+          Olá, {user?.name.split(' ')[0]}! <span className="text-muted-foreground font-normal">Bem-vindo ao CarFlow</span>
+        </h1>
+        
+        {/* Vehicle Search */}
+        <div className="bg-card border rounded-lg p-4">
+          <form onSubmit={handleSearchSubmit} className="space-y-3">
+            <Label htmlFor="plate-search">Registrar Movimentação</Label>
+            <div className="flex w-full items-center space-x-2">
+              <Input
+                id="plate-search"
+                placeholder="Digite a placa do veículo"
+                value={plateSearch}
+                onChange={(e) => setPlateSearch(e.target.value.toUpperCase())}
+                className="uppercase"
+              />
+              <Button type="submit" className="shrink-0">
+                <Search className="h-4 w-4 mr-2" />
+                Pesquisar
+              </Button>
+            </div>
+          </form>
+        </div>
+        
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard title="Total de Veículos" value={stats.totalVehicles} />
+          <StatCard 
+            title="Veículos no Pátio" 
+            value={stats.vehiclesInYard} 
+            description={`${((stats.vehiclesInYard / stats.totalVehicles) * 100).toFixed(0)}% da frota`}
+          />
+          <StatCard 
+            title="Veículos Fora" 
+            value={stats.vehiclesOut}
+            description={`${((stats.vehiclesOut / stats.totalVehicles) * 100).toFixed(0)}% da frota`}
+          />
+          <StatCard title="Movimentações Hoje" value={stats.movementsToday} />
+        </div>
+        
+        {/* Frequent Vehicles */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Veículos Frequentes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {frequentVehicles.slice(0, 4).map((vehicle) => (
+              <VehicleCard 
+                key={vehicle.id} 
+                vehicle={vehicle} 
+                onClick={() => handleVehicleClick(vehicle)}
+              />
+            ))}
+          </div>
+        </div>
+        
+        {/* Recent Movements */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Movimentações Recentes</h2>
+          {recentMovements.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {recentMovements.slice(0, 4).map((movement) => (
+                <MovementCard key={movement.id} movement={movement} />
+              ))}
+            </div>
+          ) : (
+            <p className="text-muted-foreground text-center py-8">
+              Nenhuma movimentação registrada nas últimas 24 horas.
+            </p>
+          )}
+        </div>
+      </div>
+      
+      {/* Vehicle Movement Form Dialog */}
+      {selectedVehicle && (
+        <VehicleMovementForm
+          isOpen={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          vehicle={selectedVehicle}
+          onSubmit={handleMovementSubmit}
+          lastMovement={getLastMovement()}
+        />
+      )}
+    </Layout>
+  );
+};
+
+export default Dashboard;
