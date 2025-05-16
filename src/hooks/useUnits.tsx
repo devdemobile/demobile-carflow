@@ -11,45 +11,64 @@ export const useUnits = () => {
   // Fetch units from Supabase with search filter
   const fetchUnits = async (): Promise<Unit[]> => {
     try {
-      let query = supabase
+      // Execute the query directly, without RLS policies that might cause recursive issues
+      const { data, error } = await supabase
         .from('units')
-        .select('*');
-      
-      // Apply search filter if provided
-      if (searchTerm) {
-        query = query.or(
-          `name.ilike.%${searchTerm}%,code.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`
-        );
-      }
-
-      // Execute the query
-      const { data, error } = await query.order('name', { ascending: true });
+        .select('id, name, code, address')
+        .order('name', { ascending: true });
       
       if (error) {
         console.error('Error fetching units:', error);
+        toast.error('Erro ao carregar unidades');
         return [];
       }
       
-      // For each unit, fetch the count of vehicles and users
-      const unitsWithCounts = await Promise.all((data || []).map(async unit => {
-        // Count vehicles for this unit
-        const { count: vehicleCount, error: vehicleError } = await supabase
-          .from('vehicles')
-          .select('*', { count: 'exact', head: true })
-          .eq('unit_id', unit.id);
+      // Filter by search term on the client side if needed
+      let filteredUnits = data || [];
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        filteredUnits = filteredUnits.filter(unit => 
+          unit.name.toLowerCase().includes(term) || 
+          unit.code.toLowerCase().includes(term) || 
+          (unit.address && unit.address.toLowerCase().includes(term))
+        );
+      }
+      
+      // For each unit, fetch the count of vehicles and users separately
+      const unitsWithCounts = await Promise.all(filteredUnits.map(async unit => {
+        let vehicleCount = 0;
+        let usersCount = 0;
         
-        if (vehicleError) {
-          console.error('Error counting vehicles:', vehicleError);
+        try {
+          // Count vehicles for this unit
+          const { count: vCount, error: vehicleError } = await supabase
+            .from('vehicles')
+            .select('*', { count: 'exact', head: true })
+            .eq('unit_id', unit.id);
+          
+          if (!vehicleError) {
+            vehicleCount = vCount || 0;
+          } else {
+            console.error('Error counting vehicles:', vehicleError);
+          }
+        } catch (e) {
+          console.error('Exception counting vehicles:', e);
         }
         
-        // Count users for this unit (using system_users table instead of profiles)
-        const { count: usersCount, error: usersError } = await supabase
-          .from('system_users')
-          .select('*', { count: 'exact', head: true })
-          .eq('unit_id', unit.id);
-        
-        if (usersError) {
-          console.error('Error counting users:', usersError);
+        try {
+          // Count users for this unit (using system_users table)
+          const { count: uCount, error: usersError } = await supabase
+            .from('system_users')
+            .select('*', { count: 'exact', head: true })
+            .eq('unit_id', unit.id);
+          
+          if (!usersError) {
+            usersCount = uCount || 0;
+          } else {
+            console.error('Error counting users:', usersError);
+          }
+        } catch (e) {
+          console.error('Exception counting users:', e);
         }
         
         return {
@@ -57,14 +76,15 @@ export const useUnits = () => {
           name: unit.name,
           code: unit.code,
           address: unit.address || '',
-          vehicleCount: vehicleCount || 0,
-          usersCount: usersCount || 0
+          vehicleCount: vehicleCount,
+          usersCount: usersCount
         };
       }));
 
       return unitsWithCounts;
     } catch (error) {
       console.error('Error in fetchUnits:', error);
+      toast.error('Erro ao carregar dados');
       return [];
     }
   };
@@ -176,7 +196,8 @@ export const useUnits = () => {
 
   const { data: units = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['units', searchTerm],
-    queryFn: fetchUnits
+    queryFn: fetchUnits,
+    staleTime: 5000 // Short stale time to allow for frequent refreshes
   });
 
   return {
