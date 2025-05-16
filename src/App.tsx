@@ -10,10 +10,23 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
+import Settings from "./pages/Settings";
+import Vehicles from "./pages/Vehicles";
+import Movements from "./pages/Movements";
+import Units from "./pages/Units";
+import Users from "./pages/Users";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60000, // 1 minute
+      refetchOnWindowFocus: false
+    }
+  }
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,6 +39,7 @@ const App = () => (
             <Routes>
               {/* Public routes */}
               <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
               
               {/* Protected routes */}
               <Route path="/" element={
@@ -34,8 +48,35 @@ const App = () => (
                 </ProtectedRoute>
               } />
               
-              {/* Redirect root to dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/vehicles" element={
+                <ProtectedRoute requiredPermission="canViewVehicles">
+                  <Vehicles />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/movements" element={
+                <ProtectedRoute>
+                  <Movements />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/units" element={
+                <ProtectedRoute requiredPermission="canViewUnits">
+                  <Units />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/users" element={
+                <ProtectedRoute requiredPermission="canViewUsers">
+                  <Users />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/settings" element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              } />
               
               {/* Catch all not found */}
               <Route path="*" element={<NotFound />} />
