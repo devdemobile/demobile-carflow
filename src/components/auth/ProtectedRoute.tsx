@@ -2,11 +2,10 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { SystemUser } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredPermission?: keyof Required<SystemUser>['permissions'];
+  requiredPermission?: string;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
@@ -31,7 +30,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   // Se uma permissão específica for necessária
-  if (requiredPermission && user) {
+  if (requiredPermission && userPermissions) {
     // Verificar as permissões do usuário através do userPermissions
     const hasPermission = userPermissions && 
       (userPermissions as any)[requiredPermission];

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -21,7 +21,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
-  const { user, logout, switchUnit } = useAuth();
+  const { user, logout, switchUnit, userPermissions } = useAuth();
   const { theme } = useTheme();
   
   const getInitials = (name: string) => {
@@ -72,7 +72,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
                 Movimentações
               </Link>
               
-              {user.permissions?.canViewVehicles && (
+              {userPermissions?.canViewVehicles && (
                 <Link
                   to="/vehicles"
                   className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
@@ -81,7 +81,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
                 </Link>
               )}
               
-              {user.permissions?.canViewUnits && (
+              {userPermissions?.canViewVehicles && (
                 <Link
                   to="/units"
                   className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
@@ -90,7 +90,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
                 </Link>
               )}
               
-              {user.permissions?.canViewUsers && (
+              {userPermissions?.canViewUsers && (
                 <Link
                   to="/users"
                   className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"

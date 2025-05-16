@@ -61,7 +61,7 @@ const App = () => (
               } />
               
               <Route path="/units" element={
-                <ProtectedRoute requiredPermission="canViewUnits">
+                <ProtectedRoute requiredPermission="canViewVehicles">
                   <Units />
                 </ProtectedRoute>
               } />
