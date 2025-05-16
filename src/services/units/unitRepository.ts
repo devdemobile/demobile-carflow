@@ -1,4 +1,3 @@
-
 /**
  * Repositório de acesso a dados de Unidades
  */
@@ -31,13 +30,26 @@ export class UnitRepository implements IUnitRepository {
    * Busca todas as unidades
    */
   async findAll(): Promise<Unit[]> {
-    return handleSupabaseRequest(
+    const data = await handleSupabaseRequest(
       async () => await supabase
         .from('units')
         .select('*')
         .order('name'),
       'Erro ao buscar unidades'
     ) || [];
+    
+    // Mapear os dados do banco para o formato da interface Unit
+    return data.map((unit: any) => ({
+      id: unit.id,
+      name: unit.name,
+      code: unit.code,
+      address: unit.address || '',
+      vehicleCount: 0,
+      usersCount: 0,
+      createdAt: unit.created_at,
+      updatedAt: unit.updated_at,
+      createdBy: unit.created_by
+    }));
   }
 
   /**
@@ -53,7 +65,19 @@ export class UnitRepository implements IUnitRepository {
       'Erro ao buscar unidade'
     );
     
-    return data as Unit | null;
+    if (!data) return null;
+    
+    return {
+      id: data.id,
+      name: data.name,
+      code: data.code,
+      address: data.address || '',
+      vehicleCount: 0,
+      usersCount: 0,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      createdBy: data.created_by
+    };
   }
 
   /**

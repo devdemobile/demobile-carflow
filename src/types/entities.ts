@@ -16,6 +16,9 @@ export interface Unit {
   address: string;
   vehicleCount?: number;
   usersCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  createdBy?: string;
 }
 
 export interface SystemUser {
