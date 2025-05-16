@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -418,7 +417,21 @@ const Users = () => {
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-          <h1 className="text-3xl font-bold">Usuários</h1>
+          <div className="flex items-center space-x-4">
+            <h1 className="text-3xl font-bold">Usuários</h1>
+            
+            <div className="flex items-center gap-2 ml-2">
+              <Switch 
+                id="show-inactive" 
+                checked={showInactiveUsers}
+                onCheckedChange={setShowInactiveUsers}
+                variant="success-danger"
+              />
+              <label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
+                {showInactiveUsers ? 'Inativos' : 'Ativos'}
+              </label>
+            </div>
+          </div>
           
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex items-center gap-2">
@@ -429,17 +442,6 @@ const Users = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Switch 
-                  id="show-inactive" 
-                  checked={showInactiveUsers}
-                  onCheckedChange={setShowInactiveUsers}
-                />
-                <label htmlFor="show-inactive" className="text-sm cursor-pointer">
-                  Mostrar inativos
-                </label>
               </div>
               
               <div className="flex border rounded-md">

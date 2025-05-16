@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -60,17 +59,19 @@ const Vehicles = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={() => setIsMakesDialogOpen(true)}
+                  aria-label="Gerenciar marcas"
                 >
-                  <Tag className="h-4 w-4 mr-1" />
-                  Marcas
+                  <Tag className="h-4 w-4" />
+                  {!isMobile && <span className="ml-1">Marcas</span>}
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={() => setIsModelsDialogOpen(true)}
+                  aria-label="Gerenciar modelos"
                 >
-                  <Cog className="h-4 w-4 mr-1" />
-                  Modelos
+                  <Cog className="h-4 w-4" />
+                  {!isMobile && <span className="ml-1">Modelos</span>}
                 </Button>
               </>
             )}
