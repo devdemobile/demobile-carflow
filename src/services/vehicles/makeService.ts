@@ -40,6 +40,16 @@ export class MakeService implements IMakeService {
       throw new Error('O nome da marca não pode ser vazio');
     }
     
+    // Verificar se já existe uma marca com o mesmo nome
+    const existingMakes = await this.repository.findAll();
+    const exists = existingMakes.some(make => 
+      make.name.toLowerCase() === name.toLowerCase()
+    );
+    
+    if (exists) {
+      throw new Error(`Já existe uma marca com o nome "${name}"`);
+    }
+    
     return this.repository.create(name);
   }
 
@@ -50,6 +60,16 @@ export class MakeService implements IMakeService {
     // Verificar se o nome está vazio
     if (!name.trim()) {
       throw new Error('O nome da marca não pode ser vazio');
+    }
+    
+    // Verificar se já existe uma marca com o mesmo nome (excluindo a atual)
+    const existingMakes = await this.repository.findAll();
+    const exists = existingMakes.some(make => 
+      make.name.toLowerCase() === name.toLowerCase() && make.id !== id
+    );
+    
+    if (exists) {
+      throw new Error(`Já existe uma marca com o nome "${name}"`);
     }
     
     return this.repository.update(id, name);

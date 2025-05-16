@@ -20,6 +20,8 @@ export interface VehicleDTO {
   photoUrl?: string;
   location?: 'yard' | 'out';
   unitId: string;
+  makeId?: string;
+  modelId?: string;
 }
 
 export interface MovementDTO {
