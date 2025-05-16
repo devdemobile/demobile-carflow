@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleDTO, VehicleLocation } from '@/types';
 import { handleSupabaseRequest } from '@/services/api/supabase';
@@ -276,9 +275,15 @@ export class VehicleRepository implements IVehicleRepository {
       'Erro ao verificar movimentações do veículo'
     );
     
+    // Corrigir o tipo e verificação do count
+    let count = 0;
+    if (movementsCount && typeof movementsCount === 'object' && 'count' in movementsCount) {
+      count = typeof movementsCount.count === 'number' ? movementsCount.count : 0;
+    }
+    
     // Se houver movimentações, não permitir a exclusão
-    if (movementsCount && typeof movementsCount === 'object' && 'count' in movementsCount && movementsCount.count > 1) {
-      throw new Error(`Não é possível excluir o veículo pois existem ${movementsCount.count} movimentações associadas.`);
+    if (count > 1) {
+      throw new Error(`Não é possível excluir o veículo pois existem ${count} movimentações associadas.`);
     }
     
     // Primeiro, exclui a movimentação inicial
