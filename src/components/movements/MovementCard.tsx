@@ -47,9 +47,6 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   const initialMileageFormatted = movement.initialMileage?.toLocaleString() || '0';
   const finalMileageFormatted = movement.finalMileage?.toLocaleString() || '—';
   
-  // Informações do veículo
-  const vehicleInfo = `${movement.vehicleName || ''}`; // Nome do veículo (se disponível)
-
   return (
     <Card 
       className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderColor(movement.status)}`}
@@ -60,7 +57,8 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
         <div className="flex justify-between items-start mb-3">
           <div className="flex flex-col">
             <span className="text-lg font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span>
-            <span className="text-sm text-muted-foreground">{vehicleInfo}</span>
+            {/* Informação completa do veículo incluindo a cor */}
+            <span className="text-sm text-muted-foreground">{movement.vehicleName || ''}</span>
           </div>
           <Badge variant={movement.status === 'yard' ? 'outline' : 'secondary'}>
             {getMovementStatusLabel(movement.status)}
