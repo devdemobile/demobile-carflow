@@ -1,3 +1,4 @@
+
 /**
  * Repositório de acesso a dados de Unidades
  */
@@ -76,7 +77,8 @@ export class UnitRepository implements IUnitRepository {
       usersCount: 0,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      createdBy: data.created_by || null // Garantir que não é undefined
+      // Usar acesso seguro para created_by, já que pode não existir no tipo retornado
+      createdBy: (data as any).created_by || null
     };
   }
 
@@ -104,7 +106,8 @@ export class UnitRepository implements IUnitRepository {
       usersCount: 0,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
-      createdBy: data.created_by || null // Garantir que não é undefined
+      // Usar acesso seguro para created_by, já que pode não existir no tipo retornado
+      createdBy: (data as any).created_by || null
     };
   }
 
