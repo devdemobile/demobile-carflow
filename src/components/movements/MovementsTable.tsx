@@ -9,9 +9,8 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Movement } from '@/types';
-import { format } from 'date-fns';
+import { format, isValid, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ArrowRight } from 'lucide-react';
 
 interface MovementsTableProps {
   movements: Movement[];
@@ -22,6 +21,26 @@ const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }
   if (!movements.length) {
     return <div className="text-center py-8 text-muted-foreground">Nenhuma movimentação encontrada</div>;
   }
+
+  // Função para formatar data de forma segura
+  const formatDate = (dateString?: string): string => {
+    if (!dateString) return '-';
+    
+    // Verificar se já está no formato dd/mm/yyyy
+    if (dateString.includes('/')) return dateString;
+    
+    try {
+      // Tentar converter formato ISO para dd/mm/yyyy
+      const dateParts = dateString.split('-');
+      if (dateParts.length === 3) {
+        return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+      }
+      return dateString;
+    } catch (error) {
+      console.error("Erro ao formatar data:", error);
+      return dateString;
+    }
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -52,11 +71,11 @@ const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }
                 <TableCell>{movement.driver}</TableCell>
                 <TableCell>{movement.destination || '-'}</TableCell>
                 <TableCell>
-                  {movement.departureDate.split('-').reverse().join('/')} {movement.departureTime}
+                  {formatDate(movement.departureDate)} {movement.departureTime}
                 </TableCell>
                 <TableCell>
                   {isComplete 
-                    ? `${movement.arrivalDate?.split('-').reverse().join('/')} ${movement.arrivalTime}` 
+                    ? `${formatDate(movement.arrivalDate)} ${movement.arrivalTime}` 
                     : '-'}
                 </TableCell>
                 <TableCell className="text-right">

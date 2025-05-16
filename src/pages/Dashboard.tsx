@@ -1,6 +1,5 @@
-
-import React, { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
 import StatCard from '@/components/dashboard/StatCard';
 import { Button } from '@/components/ui/button';
@@ -9,10 +8,12 @@ import { Label } from '@/components/ui/label';
 import VehicleCard from '@/components/vehicles/VehicleCard';
 import MovementCard from '@/components/movements/MovementCard';
 import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
-import { frequentVehicles, getRecentMovements, getVehicleByPlate, getVehicleStats, mockVehicles, addMovement, mockMovements } from '@/services/mockData';
+import { frequentVehicles, getVehicleStats, mockVehicles, getVehicleByPlate } from '@/services/mockData';
 import { Vehicle, Movement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Search } from 'lucide-react';
+import { movementService } from '@/services/movements/movementService';
+import { useQuery } from '@tanstack/react-query';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -23,7 +24,27 @@ const Dashboard = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   
   const stats = getVehicleStats(user?.unitId);
-  const recentMovements = getRecentMovements();
+  
+  // Buscar movimentações recentes do banco de dados
+  const { data: recentMovements = [], refetch: refetchMovements } = useQuery({
+    queryKey: ['recent-movements'],
+    queryFn: async () => {
+      try {
+        const allMovements = await movementService.getAllMovements();
+        // Ordenar por data de partida mais recente
+        return allMovements
+          .sort((a, b) => {
+            const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+            const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+            return dateB.getTime() - dateA.getTime();
+          })
+          .slice(0, 4); // Limitar aos 4 mais recentes
+      } catch (error) {
+        console.error('Erro ao buscar movimentações recentes:', error);
+        return [];
+      }
+    }
+  });
   
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,33 +77,41 @@ const Dashboard = () => {
     setIsFormOpen(true);
   };
   
-  const handleMovementSubmit = (formData: any) => {
-    // In a real app, this would make an API call
-    const newMovement = addMovement(formData);
-    console.log("New movement registered:", newMovement);
+  const handleMovementSubmit = (formData: Movement) => {
+    // Atualizar movimentações recentes após o registro
+    refetchMovements();
     
-    // Reset search after submission
+    // Limpar formulário após submissão
     setPlateSearch('');
+    setSelectedVehicle(null);
   };
   
-  // Find the last movement for the selected vehicle
-  const getLastMovement = (): Movement | undefined => {
+  // Encontrar a última movimentação para o veículo selecionado
+  const getLastMovement = async (): Promise<Movement | undefined> => {
     if (!selectedVehicle) return undefined;
     
-    return mockMovements
-      .filter(m => m.vehicleId === selectedVehicle.id && m.type === 'exit')
-      .sort((a, b) => {
-        const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-        const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
-        return dateB.getTime() - dateA.getTime();
-      })[0];
+    try {
+      const movements = await movementService.getMovementsByVehicle(selectedVehicle.id);
+      
+      // Retornar a movimentação de saída mais recente
+      return movements
+        .filter(m => m.type === 'exit')
+        .sort((a, b) => {
+          const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+          const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+          return dateB.getTime() - dateA.getTime();
+        })[0];
+    } catch (error) {
+      console.error('Erro ao buscar movimentações do veículo:', error);
+      return undefined;
+    }
   };
 
   return (
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
         <h1 className="text-2xl font-bold">
-          Olá, {user?.name.split(' ')[0]}! <span className="text-muted-foreground font-normal">Bem-vindo ao CarFlow</span>
+          Olá, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal">Bem-vindo ao CarFlow</span>
         </h1>
         
         {/* Vehicle Search */}
@@ -140,7 +169,7 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold mb-3">Movimentações Recentes</h2>
           {recentMovements.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {recentMovements.slice(0, 4).map((movement) => (
+              {recentMovements.map((movement) => (
                 <MovementCard key={movement.id} movement={movement} />
               ))}
             </div>
@@ -159,7 +188,7 @@ const Dashboard = () => {
           onClose={() => setIsFormOpen(false)}
           vehicle={selectedVehicle}
           onSubmit={handleMovementSubmit}
-          lastMovement={getLastMovement()}
+          lastMovement={undefined}
         />
       )}
     </Layout>
