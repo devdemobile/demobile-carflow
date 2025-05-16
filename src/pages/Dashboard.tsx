@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
@@ -8,11 +9,12 @@ import { Label } from '@/components/ui/label';
 import VehicleCard from '@/components/vehicles/VehicleCard';
 import MovementCard from '@/components/movements/MovementCard';
 import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
-import { frequentVehicles, getVehicleStats, mockVehicles, getVehicleByPlate } from '@/services/mockData';
+import { getVehicleStats, getVehicleByPlate } from '@/services/mockData';
 import { Vehicle, Movement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Search } from 'lucide-react';
 import { movementService } from '@/services/movements/movementService';
+import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useQuery } from '@tanstack/react-query';
 
 const Dashboard = () => {
@@ -46,7 +48,29 @@ const Dashboard = () => {
     }
   });
   
-  const handleSearchSubmit = (e: React.FormEvent) => {
+  // Buscar veículos mais frequentemente utilizados
+  const { data: frequentVehicles = [] } = useQuery({
+    queryKey: ['frequent-vehicles'],
+    queryFn: async () => {
+      try {
+        // Como não temos uma métrica real de frequência, vamos usar a quantidade de movimentações
+        // Primeiro, buscamos todos os veículos
+        const vehicles = await vehicleService.getAllVehicles();
+        
+        // Em uma implementação real, buscaríamos as movimentações por veículo e ordenaríamos
+        // por quantidade. Aqui vamos simplesmente pegar os primeiros 4 veículos
+        
+        // Buscar todos os veículos para mostrar como frequentes (temporário)
+        // Em uma implementação real, ordenaria pelos mais utilizados
+        return vehicles.slice(0, 4);
+      } catch (error) {
+        console.error('Erro ao buscar veículos frequentes:', error);
+        return [];
+      }
+    }
+  });
+  
+  const handleSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!plateSearch.trim()) {
@@ -58,15 +82,25 @@ const Dashboard = () => {
       return;
     }
     
-    const vehicle = getVehicleByPlate(plateSearch);
-    
-    if (vehicle) {
-      setSelectedVehicle(vehicle);
-      setIsFormOpen(true);
-    } else {
+    try {
+      // Buscar veículo pelo número da placa usando o serviço real
+      const vehicle = await vehicleService.getVehicleByPlate(plateSearch);
+      
+      if (vehicle) {
+        setSelectedVehicle(vehicle);
+        setIsFormOpen(true);
+      } else {
+        toast({
+          title: "Veículo não encontrado",
+          description: "Não encontramos um veículo com essa placa.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao buscar veículo:", error);
       toast({
-        title: "Veículo não encontrado",
-        description: "Não encontramos um veículo com essa placa.",
+        title: "Erro ao buscar veículo",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao buscar o veículo.",
         variant: "destructive",
       });
     }
@@ -84,27 +118,6 @@ const Dashboard = () => {
     // Limpar formulário após submissão
     setPlateSearch('');
     setSelectedVehicle(null);
-  };
-  
-  // Encontrar a última movimentação para o veículo selecionado
-  const getLastMovement = async (): Promise<Movement | undefined> => {
-    if (!selectedVehicle) return undefined;
-    
-    try {
-      const movements = await movementService.getMovementsByVehicle(selectedVehicle.id);
-      
-      // Retornar a movimentação de saída mais recente
-      return movements
-        .filter(m => m.type === 'exit')
-        .sort((a, b) => {
-          const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-          const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
-          return dateB.getTime() - dateA.getTime();
-        })[0];
-    } catch (error) {
-      console.error('Erro ao buscar movimentações do veículo:', error);
-      return undefined;
-    }
   };
 
   return (
@@ -154,13 +167,19 @@ const Dashboard = () => {
         <div>
           <h2 className="text-lg font-semibold mb-3">Veículos Frequentes</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {frequentVehicles.slice(0, 4).map((vehicle) => (
-              <VehicleCard 
-                key={vehicle.id} 
-                vehicle={vehicle} 
-                onClick={() => handleVehicleClick(vehicle)}
-              />
-            ))}
+            {frequentVehicles.length > 0 ? (
+              frequentVehicles.map((vehicle) => (
+                <VehicleCard 
+                  key={vehicle.id} 
+                  vehicle={vehicle} 
+                  onClick={() => handleVehicleClick(vehicle)}
+                />
+              ))
+            ) : (
+              <p className="text-muted-foreground text-center py-8 col-span-4">
+                Nenhum veículo cadastrado ainda.
+              </p>
+            )}
           </div>
         </div>
         

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Vehicle, VehicleDTO } from '@/types';
-import { Camera, X, Check } from 'lucide-react';
+import { Camera, X, Upload } from 'lucide-react';
 import { Combobox } from '@/components/ui/combobox';
 import { toast } from 'sonner';
 import CameraModal from './CameraModal';
@@ -113,6 +113,32 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   const handleOpenCamera = () => {
     setIsCameraOpen(true);
+  };
+  
+  // Nova função para lidar com o upload de fotos
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Verificar o tipo do arquivo
+      if (!file.type.match('image.*')) {
+        toast.error('Por favor, selecione apenas arquivos de imagem.');
+        return;
+      }
+      
+      // Verificar o tamanho do arquivo (limitar a 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('A imagem deve ter no máximo 5MB.');
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        if (typeof event.target?.result === 'string') {
+          setPhoto(event.target.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSave = async (data: VehicleDTO) => {
@@ -270,14 +296,32 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      className="w-full"
-                      onClick={handleOpenCamera}
-                    >
-                      <Camera className="mr-2 h-4 w-4" /> Capturar Foto
-                    </Button>
+                    <div className="flex flex-col sm:flex-row w-full gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full flex-1"
+                        onClick={handleOpenCamera}
+                      >
+                        <Camera className="mr-2 h-4 w-4" /> Capturar Foto
+                      </Button>
+                      <div className="relative w-full flex-1">
+                        <Input
+                          type="file"
+                          id="photoUpload"
+                          accept="image/*"
+                          className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                          onChange={handleFileUpload}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full"
+                        >
+                          <Upload className="mr-2 h-4 w-4" /> Anexar Foto
+                        </Button>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -87,6 +88,9 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
           type: 'exit' as const
         };
         
+        // Verificar se os dados estão corretos antes de enviar
+        console.log('Dados da movimentação (saída):', movementData);
+        
         const result = await movementService.createMovement(movementData, user.id);
         
         if (result) {
@@ -101,7 +105,52 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
         }
       } else {
         // Entering the yard - Finalize an existing movement
-        if (lastMovement && user.unitId) {
+        if (!lastMovement) {
+          // Buscar a última movimentação para o veículo
+          try {
+            const movements = await movementService.getMovementsByVehicle(vehicle.id);
+            const lastExitMovement = movements
+              .filter(m => m.type === 'exit' && m.status === 'out')
+              .sort((a, b) => {
+                const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+                const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+                return dateB.getTime() - dateA.getTime();
+              })[0];
+              
+            if (lastExitMovement && user.unitId) {
+              const result = await movementService.finalizeMovement(
+                lastExitMovement.id, 
+                {
+                  finalMileage,
+                  arrivalDate: new Date().toISOString().split('T')[0],
+                  arrivalTime: new Date().toTimeString().substring(0, 8),
+                  arrivalUnitId: user.unitId
+                }
+              );
+              
+              if (result) {
+                toast({
+                  title: 'Entrada registrada',
+                  description: `Veículo ${vehicle.plate} entrou com sucesso.`,
+                });
+                
+                // Notificar o componente pai
+                onSubmit(result);
+                onClose();
+              }
+            } else {
+              throw new Error("Não foi encontrada uma movimentação de saída para este veículo");
+            }
+          } catch (error) {
+            console.error("Erro ao buscar movimentações do veículo:", error);
+            toast({
+              title: 'Erro ao registrar entrada',
+              description: error instanceof Error ? error.message : 'Não foi possível encontrar uma movimentação de saída para este veículo',
+              variant: 'destructive'
+            });
+          }
+        } else if (user.unitId) {
+          // Se temos a última movimentação disponível
           const result = await movementService.finalizeMovement(
             lastMovement.id, 
             {

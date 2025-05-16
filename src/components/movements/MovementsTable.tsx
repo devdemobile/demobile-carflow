@@ -26,15 +26,18 @@ const MovementsTable: React.FC<MovementsTableProps> = ({ movements, onRowClick }
   const formatDate = (dateString?: string): string => {
     if (!dateString) return '-';
     
-    // Verificar se já está no formato dd/mm/yyyy
-    if (dateString.includes('/')) return dateString;
-    
     try {
-      // Tentar converter formato ISO para dd/mm/yyyy
-      const dateParts = dateString.split('-');
-      if (dateParts.length === 3) {
-        return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+      // Se a data estiver no formato ISO (YYYY-MM-DD)
+      if (dateString.includes('-') && dateString.split('-').length === 3) {
+        const [year, month, day] = dateString.split('-');
+        return `${day}/${month}/${year}`;
       }
+      
+      // Se já estiver no formato brasileiro (DD/MM/YYYY)
+      if (dateString.includes('/') && dateString.split('/').length === 3) {
+        return dateString;
+      }
+      
       return dateString;
     } catch (error) {
       console.error("Erro ao formatar data:", error);
