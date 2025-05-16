@@ -4,13 +4,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { Unit } from '@/types';
 
 /**
- * Fetch all units from Supabase com uma query simplificada
+ * Fetch all units from Supabase usando a tabela correta
  */
 export const fetchUnits = async (): Promise<Unit[]> => {
   try {
-    // Query básica para obter dados das unidades
+    // Query básica para obter dados das unidades da tabela correta
     const { data, error } = await supabase
-      .from('units')
+      .from('units')  // Garantindo que estamos buscando da tabela 'units'
       .select('*')
       .order('name');
     
@@ -21,8 +21,11 @@ export const fetchUnits = async (): Promise<Unit[]> => {
     }
     
     if (!data || data.length === 0) {
+      console.log('Nenhuma unidade encontrada');
       return [];
     }
+
+    console.log('Unidades encontradas:', data);
 
     // Transformar dados para corresponder ao nosso tipo Unit
     const units: Unit[] = await Promise.all(data.map(async (unit) => {
