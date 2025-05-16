@@ -52,8 +52,12 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
         </div>
 
         <Select 
-          value={filters.location || undefined}
-          onValueChange={(value: VehicleLocation | undefined) => onFilterChange('location', value || null)}
+          value={filters.location || ''}
+          onValueChange={(value) => {
+            // Convert 'all' to null for the filter
+            const locationValue = value === 'all' ? null : value as VehicleLocation | null;
+            onFilterChange('location', locationValue);
+          }}
         >
           <SelectTrigger className="w-full md:w-[180px]">
             <SelectValue placeholder="Localização" />

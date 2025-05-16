@@ -27,7 +27,7 @@ export const useVehicles = () => {
       );
     }
     
-    if (filters.location && filters.location !== 'all') {
+    if (filters.location) {
       query = query.eq('location', filters.location);
     }
 
@@ -39,7 +39,19 @@ export const useVehicles = () => {
       return [];
     }
     
-    return data || [];
+    // Map the response data to match our Vehicle type
+    return (data || []).map(item => ({
+      id: item.id,
+      plate: item.plate,
+      make: item.make,
+      model: item.model,
+      color: item.color,
+      year: item.year,
+      mileage: item.mileage,
+      photoUrl: item.photo_url,
+      location: item.location as VehicleLocation,
+      unitId: item.unit_id // Map unit_id to unitId
+    }));
   };
 
   // Calculate paginated data
