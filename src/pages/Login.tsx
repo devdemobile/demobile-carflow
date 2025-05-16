@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
@@ -15,15 +14,22 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { loginWithSystem, user } = useAuth();
+  const { user, loginWithSystem, error: authError } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
+  // Redirecionar se já estiver autenticado
   useEffect(() => {
     if (user) {
       navigate('/');
     }
   }, [user, navigate]);
+
+  // Exibir erro do contexto de autenticação
+  useEffect(() => {
+    if (authError) {
+      setError(authError);
+    }
+  }, [authError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,13 +47,9 @@ const Login = () => {
       const success = await loginWithSystem(username, password);
       
       if (success) {
-        toast({
-          title: "Login realizado",
-          description: "Bem-vindo de volta!",
-        });
         navigate('/');
       } else {
-        setError("Nome de usuário ou senha incorretos.");
+        setError("Credenciais inválidas. Verifique seu nome de usuário e senha.");
       }
     } catch (err) {
       console.error("Erro no login:", err);
@@ -81,7 +83,7 @@ const Login = () => {
               <Input 
                 id="username" 
                 type="text"
-                placeholder="usuario"
+                placeholder="admin"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
@@ -92,6 +94,7 @@ const Login = () => {
               <Input 
                 id="password" 
                 type="password" 
+                placeholder="admin123"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required

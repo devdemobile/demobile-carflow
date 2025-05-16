@@ -1,11 +1,12 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { SystemUser } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredPermission?: string;
+  requiredPermission?: keyof Required<SystemUser>['permissions'];
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
@@ -32,7 +33,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Se uma permissão específica for necessária
   if (requiredPermission && user) {
     const hasPermission = user.permissions && 
-      (user.permissions as any)[requiredPermission];
+      user.permissions[requiredPermission as keyof typeof user.permissions];
     const isAdmin = user.role === 'admin';
     
     if (!hasPermission && !isAdmin) {

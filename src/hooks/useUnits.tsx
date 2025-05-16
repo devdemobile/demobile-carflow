@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Unit } from '@/types';
-import { fetchUnits, createUnit, updateUnit, deleteUnit } from '@/services/unitService';
+import { Unit, UnitDTO } from '@/types';
+import { fetchUnits, createUnit, updateUnit, deleteUnit } from '@/services/units/unitService';
 import { useMediaQuery } from '@/hooks/use-mobile';
 
 /**
@@ -26,18 +26,13 @@ export const useUnits = () => {
     queryFn: async () => {
       console.log('Buscando unidades...');
       const units = await fetchUnits();
-      console.log('Unidades retornadas:', units && units.length);
+      console.log('Unidades retornadas:', units?.length);
       return units;
     },
-    refetchOnWindowFocus: false, // Evitar refetch automático ao focar a janela
-    retry: 2, // Tentar novamente 2 vezes em caso de erro
-    staleTime: 60000 // 1 minuto
+    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 60000
   });
-
-  // Log para debug
-  useEffect(() => {
-    console.log('Estado atual de allUnits:', allUnits);
-  }, [allUnits]);
 
   // Filtrar unidades pelo termo de busca
   const units = searchTerm 
@@ -50,7 +45,7 @@ export const useUnits = () => {
     : allUnits;
 
   // Adicionar uma nova unidade
-  const addUnit = async (unitData: { name: string; code: string; address?: string }): Promise<Unit | null> => {
+  const addUnit = async (unitData: UnitDTO): Promise<Unit | null> => {
     console.log('Adicionando nova unidade:', unitData);
     const result = await createUnit(unitData);
     if (result) {
@@ -60,7 +55,7 @@ export const useUnits = () => {
   };
 
   // Atualizar uma unidade existente
-  const handleUpdateUnit = async (id: string, unitData: { name: string; code: string; address?: string }): Promise<boolean> => {
+  const handleUpdateUnit = async (id: string, unitData: UnitDTO): Promise<boolean> => {
     console.log('Atualizando unidade:', id, unitData);
     const success = await updateUnit(id, unitData);
     if (success) {

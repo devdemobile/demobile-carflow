@@ -112,6 +112,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movements_departure_unit_id_fkey"
             columns: ["departure_unit_id"]
             isOneToOne: false
@@ -123,53 +130,6 @@ export type Database = {
             columns: ["vehicle_id"]
             isOneToOne: false
             referencedRelation: "vehicles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          email: string
-          id: string
-          name: string
-          role: Database["public"]["Enums"]["user_role"]
-          shift: Database["public"]["Enums"]["user_shift"]
-          status: Database["public"]["Enums"]["user_status"]
-          unit_id: string
-          updated_at: string
-          username: string
-        }
-        Insert: {
-          created_at?: string
-          email: string
-          id: string
-          name: string
-          role?: Database["public"]["Enums"]["user_role"]
-          shift?: Database["public"]["Enums"]["user_shift"]
-          status?: Database["public"]["Enums"]["user_status"]
-          unit_id: string
-          updated_at?: string
-          username: string
-        }
-        Update: {
-          created_at?: string
-          email?: string
-          id?: string
-          name?: string
-          role?: Database["public"]["Enums"]["user_role"]
-          shift?: Database["public"]["Enums"]["user_shift"]
-          status?: Database["public"]["Enums"]["user_status"]
-          unit_id?: string
-          updated_at?: string
-          username?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_unit_id_fkey"
-            columns: ["unit_id"]
-            isOneToOne: false
-            referencedRelation: "units"
             referencedColumns: ["id"]
           },
         ]
@@ -221,7 +181,7 @@ export type Database = {
           {
             foreignKeyName: "system_user_permissions_user_id_fkey"
             columns: ["user_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "system_users"
             referencedColumns: ["id"]
           },
@@ -306,92 +266,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
-      }
-      user_permissions: {
-        Row: {
-          can_edit_movements: boolean
-          can_edit_units: boolean
-          can_edit_users: boolean
-          can_edit_vehicles: boolean
-          can_view_movements: boolean
-          can_view_units: boolean
-          can_view_users: boolean
-          can_view_vehicles: boolean
-          created_at: string
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          can_edit_movements?: boolean
-          can_edit_units?: boolean
-          can_edit_users?: boolean
-          can_edit_vehicles?: boolean
-          can_view_movements?: boolean
-          can_view_units?: boolean
-          can_view_users?: boolean
-          can_view_vehicles?: boolean
-          created_at?: string
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          can_edit_movements?: boolean
-          can_edit_units?: boolean
-          can_edit_users?: boolean
-          can_edit_vehicles?: boolean
-          can_view_movements?: boolean
-          can_view_units?: boolean
-          can_view_users?: boolean
-          can_view_vehicles?: boolean
-          created_at?: string
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      vehicle_makes: {
-        Row: {
-          id: string
-          name: string
-        }
-        Insert: {
-          id?: string
-          name: string
-        }
-        Update: {
-          id?: string
-          name?: string
-        }
-        Relationships: []
-      }
-      vehicle_models: {
-        Row: {
-          id: string
-          make_id: string
-          name: string
-        }
-        Insert: {
-          id?: string
-          make_id: string
-          name: string
-        }
-        Update: {
-          id?: string
-          make_id?: string
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vehicle_models_make_id_fkey"
-            columns: ["make_id"]
-            isOneToOne: false
-            referencedRelation: "vehicle_makes"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       vehicles: {
         Row: {
