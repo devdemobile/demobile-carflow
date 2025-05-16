@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Unit } from '@/types';
@@ -39,31 +40,37 @@ export const fetchUnits = async (): Promise<Unit[]> => {
     // Agora carregamos as contagens em uma única operação por tipo
     try {
       // Obter contagem de veículos por unidade usando a função RPC
+      type VehicleCountResult = { unit_id: string; count: number }[];
       const { data: vehicleCounts, error: vehicleError } = await supabase
-        .rpc('count_vehicles_by_unit');
+        .from('vehicles')
+        .select('unit_id, count(*)', { count: 'exact' })
+        .groupBy('unit_id');
       
       if (vehicleError) {
         console.error('Erro ao contar veículos:', vehicleError);
       } else if (vehicleCounts) {
-        vehicleCounts.forEach((item: { unit_id: string; count: string | number }) => {
+        vehicleCounts.forEach((item: any) => {
           const unit = units.find(u => u.id === item.unit_id);
           if (unit) {
-            unit.vehicleCount = typeof item.count === 'string' ? parseInt(item.count) : Number(item.count);
+            unit.vehicleCount = parseInt(item.count);
           }
         });
       }
       
       // Obter contagem de usuários por unidade usando a função RPC
+      type UserCountResult = { unit_id: string; count: number }[];
       const { data: userCounts, error: userError } = await supabase
-        .rpc('count_users_by_unit');
+        .from('system_users')
+        .select('unit_id, count(*)', { count: 'exact' })
+        .groupBy('unit_id');
       
       if (userError) {
         console.error('Erro ao contar usuários:', userError);
       } else if (userCounts) {
-        userCounts.forEach((item: { unit_id: string; count: string | number }) => {
+        userCounts.forEach((item: any) => {
           const unit = units.find(u => u.id === item.unit_id);
           if (unit) {
-            unit.usersCount = typeof item.count === 'string' ? parseInt(item.count) : Number(item.count);
+            unit.usersCount = parseInt(item.count);
           }
         });
       }
