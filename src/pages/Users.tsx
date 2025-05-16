@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -41,7 +40,7 @@ import {
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { UserRole, UserShift, UserStatus } from '@/types/entities';
+import { UserRole, UserShift, UserStatus, SystemUser } from '@/types/entities';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, UserRound, Filter, Grid, List, Key, ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -51,18 +50,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent } from '@/components/ui/card';
 import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
 import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
-
-interface SystemUser {
-  id: string;
-  name: string;
-  username: string;
-  role: UserRole;
-  shift: UserShift;
-  status: UserStatus;
-  unit_id: string;
-  units: { name: string };
-  email?: string;
-}
 
 interface Unit {
   id: string;
