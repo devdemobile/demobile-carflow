@@ -18,6 +18,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { movementService } from '@/services/movements/movementService';
 
 interface VehicleMovementFormProps {
   isOpen?: boolean;
@@ -31,6 +32,7 @@ interface MovementFormData {
   driver: string;
   destination: string;
   initialMileage: number;
+  finalMileage?: number;
   notes?: string;
 }
 
@@ -46,15 +48,22 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   const [plate, setPlate] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
+  const [loadingLastMovement, setLoadingLastMovement] = useState(false);
+  const [lastDriverName, setLastDriverName] = useState('');
   
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<MovementFormData>();
+  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<MovementFormData>();
   const [mileageInput, setMileageInput] = useState('');
+  const [finalMileageInput, setFinalMileageInput] = useState('');
   
   // Determinar se é entrada ou saída baseado na localização atual do veículo
   const isExit = vehicle?.location === 'yard';
   const movementType = isExit ? 'exit' : 'entry';
   const formTitle = isExit ? 'Registrar Saída' : 'Registrar Entrada';
   const buttonText = isExit ? 'Registrar Saída' : 'Registrar Entrada';
+  
+  // Para acessar os valores do formulário
+  const watchInitialMileage = watch('initialMileage');
+  const watchFinalMileage = watch('finalMileage');
   
   // Obter a data e hora atual formatadas para exibição
   const currentDate = new Date().toLocaleDateString('pt-BR');
@@ -63,20 +72,59 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     minute: '2-digit' 
   });
   
+  // Carregar o último movimento para preencher o motorista automaticamente
+  useEffect(() => {
+    if (vehicle && !isExit) {
+      setLoadingLastMovement(true);
+      
+      // Buscar a última movimentação de saída para este veículo
+      movementService.getMovementsByVehicle(vehicle.id)
+        .then(movements => {
+          const lastExitMovement = movements
+            .filter(m => m.type === 'exit' && m.status === 'out')
+            .sort((a, b) => {
+              const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+              const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+              return dateB.getTime() - dateA.getTime();
+            })[0];
+          
+          if (lastExitMovement && lastExitMovement.driver) {
+            setLastDriverName(lastExitMovement.driver);
+            setValue('driver', lastExitMovement.driver);
+          }
+        })
+        .catch(err => {
+          console.error('Erro ao buscar último movimento:', err);
+        })
+        .finally(() => {
+          setLoadingLastMovement(false);
+        });
+    }
+  }, [vehicle, isExit, setValue]);
+  
   // Set initial values when vehicle changes
   useEffect(() => {
     if (vehicle) {
       const today = new Date().toISOString().split('T')[0];
       const currentTime = new Date().toTimeString().split(' ')[0].substring(0, 5);
       
-      setValue('driver', '');
-      setValue('destination', '');
-      setValue('initialMileage', vehicle.mileage || 0);
+      if (isExit) {
+        // Para saída, limpar o motorista e destino
+        setValue('driver', '');
+        setValue('destination', '');
+        setValue('initialMileage', vehicle.mileage || 0);
+      } else {
+        // Para entrada, não precisa definir destino
+        setValue('finalMileage', undefined);
+      }
+      
       setValue('notes', '');
       
+      // Atualizar entradas de quilometragem
       setMileageInput(formatMileage(vehicle.mileage || 0));
+      setFinalMileageInput('');
     }
-  }, [vehicle, setValue]);
+  }, [vehicle, setValue, isExit]);
 
   const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlate(e.target.value.toUpperCase());
@@ -97,6 +145,22 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     
     // Atualiza o valor exibido com formatação
     setMileageInput(formatMileage(mileage));
+  };
+  
+  const handleFinalMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    
+    // Remove todos os caracteres não numéricos
+    const numericValue = value.replace(/\D/g, '');
+    
+    // Converte para número
+    const mileage = numericValue ? parseInt(numericValue, 10) : 0;
+    
+    // Atualiza o valor no formulário
+    setValue('finalMileage', mileage);
+    
+    // Atualiza o valor exibido com formatação
+    setFinalMileageInput(formatMileage(mileage));
   };
 
   const handleSearchSubmit = async (e: React.FormEvent) => {
@@ -124,6 +188,28 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   const handleDialogFormSubmit = (data: MovementFormData) => {
     if (!vehicle || !onSubmit) return;
     
+    // Validações específicas para entrada e saída
+    if (isExit) {
+      // Para saída: KM inicial deve ser >= KM atual do veículo
+      if (data.initialMileage < (vehicle.mileage || 0)) {
+        toast.error(`Quilometragem inicial não pode ser menor que a atual (${formatMileage(vehicle.mileage || 0)} km)`);
+        return;
+      }
+      
+      // Destino é obrigatório para saída
+      if (!data.destination) {
+        toast.error('Destino é obrigatório para registrar saída');
+        return;
+      }
+    } else {
+      // Para entrada: KM final deve ser >= KM inicial da última saída
+      const lastMileage = vehicle.mileage || 0;
+      if ((data.finalMileage || 0) < lastMileage) {
+        toast.error(`Quilometragem final não pode ser menor que a inicial (${formatMileage(lastMileage)} km)`);
+        return;
+      }
+    }
+    
     // Pega a data e hora atuais
     const today = new Date().toISOString().split('T')[0];
     const now = new Date().toTimeString().split(' ')[0].substring(0, 5);
@@ -136,7 +222,8 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
       vehicleName: `${vehicle.make} ${vehicle.model}`,
       driver: data.driver,
       destination: isExit ? data.destination : undefined, // Somente incluir destino se for saída
-      initialMileage: data.initialMileage,
+      initialMileage: isExit ? data.initialMileage : vehicle.mileage || 0,
+      finalMileage: !isExit ? data.finalMileage : undefined,
       departureDate: today,
       departureTime: now,
       notes: data.notes,
@@ -191,29 +278,69 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
                     {...register('driver', { required: 'Motorista é obrigatório' })}
                   />
                   {errors.driver && <p className="text-xs text-destructive mt-1">{errors.driver.message}</p>}
+                  {!isExit && lastDriverName && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Este é o motorista que realizou a saída
+                    </p>
+                  )}
                 </div>
                 
                 {isExit && (
                   <div>
-                    <Label htmlFor="destination" className="text-sm">Destino</Label>
+                    <Label htmlFor="destination" className="text-sm">Destino*</Label>
                     <Input
                       id="destination"
                       placeholder="Local de destino"
-                      {...register('destination')}
+                      {...register('destination', { required: 'Destino é obrigatório para saída' })}
                     />
+                    {errors.destination && <p className="text-xs text-destructive mt-1">{errors.destination.message}</p>}
                   </div>
                 )}
                 
-                <div>
-                  <Label htmlFor="initialMileage" className="text-sm">Quilometragem atual*</Label>
-                  <Input
-                    id="initialMileage"
-                    placeholder="0 km"
-                    value={mileageInput}
-                    onChange={handleMileageChange}
-                  />
-                  {errors.initialMileage && <p className="text-xs text-destructive mt-1">{errors.initialMileage.message}</p>}
-                </div>
+                {isExit ? (
+                  <div>
+                    <Label htmlFor="initialMileage" className="text-sm">Quilometragem inicial*</Label>
+                    <Input
+                      id="initialMileage"
+                      placeholder="0 km"
+                      value={mileageInput}
+                      onChange={handleMileageChange}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      KM atual: {formatMileage(vehicle.mileage || 0)} km
+                    </p>
+                    {errors.initialMileage && <p className="text-xs text-destructive mt-1">{errors.initialMileage.message}</p>}
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <Label htmlFor="initialMileage" className="text-sm">Quilometragem inicial</Label>
+                      <Input
+                        id="initialMileage"
+                        value={formatMileage(vehicle.mileage || 0)}
+                        disabled
+                        className="bg-muted"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="finalMileage" className="text-sm">Quilometragem final*</Label>
+                      <Input
+                        id="finalMileage"
+                        placeholder="0 km"
+                        value={finalMileageInput}
+                        onChange={handleFinalMileageChange}
+                        {...register('finalMileage', { 
+                          required: 'Quilometragem final é obrigatória',
+                          min: {
+                            value: vehicle.mileage || 0,
+                            message: `Deve ser maior ou igual a ${formatMileage(vehicle.mileage || 0)} km`
+                          }
+                        })}
+                      />
+                      {errors.finalMileage && <p className="text-xs text-destructive mt-1">{errors.finalMileage.message}</p>}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             
