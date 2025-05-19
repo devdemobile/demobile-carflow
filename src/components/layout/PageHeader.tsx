@@ -6,7 +6,7 @@ import { Search, X } from 'lucide-react';
 import ViewToggle from '@/components/ui/view-toggle';
 
 interface PageHeaderProps {
-  title: string;
+  title?: string;
   searchPlaceholder?: string;
   searchValue: string;
   onSearchChange: (value: string) => void;
@@ -33,12 +33,14 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
   return (
     <div className="space-y-4 mb-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">{title}</h1>
-        <div className="flex items-center gap-2">
-          {actions}
+      {title && (
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-bold">{title}</h1>
+          <div className="flex items-center gap-2">
+            {actions}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">

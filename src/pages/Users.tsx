@@ -525,10 +525,10 @@ const Users = () => {
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
         <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-4">
-            <h1 className="text-3xl font-bold">Usuários</h1>
-            
-            <div className="flex items-center gap-2 ml-2">
+          <h1 className="text-3xl font-bold">Usuários</h1>
+          
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Switch 
                 id="show-inactive" 
                 checked={showInactiveUsers}
@@ -539,14 +539,14 @@ const Users = () => {
                 {showInactiveUsers ? 'Ativos' : 'Inativos'}
               </label>
             </div>
+            
+            {user?.role === 'admin' && (
+              <Button onClick={handleNewUser}>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Usuário
+              </Button>
+            )}
           </div>
-          
-          {user?.role === 'admin' && (
-            <Button onClick={handleNewUser}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Usuário
-            </Button>
-          )}
         </div>
         
         <UsersFilter

@@ -26,7 +26,6 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
 }) => {
   return (
     <PageHeader
-      title="Usuários"
       searchPlaceholder="Buscar por nome, email..."
       searchValue={searchTerm}
       onSearchChange={onSearchChange}

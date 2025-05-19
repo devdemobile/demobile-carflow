@@ -23,7 +23,6 @@ const UnitsFilter: React.FC<UnitsFilterProps> = ({
 }) => {
   return (
     <PageHeader
-      title="Unidades"
       searchPlaceholder="Buscar unidade..."
       searchValue={searchTerm}
       onSearchChange={setSearchTerm}
