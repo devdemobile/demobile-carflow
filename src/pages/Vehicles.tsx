@@ -68,8 +68,8 @@ const Vehicles = () => {
         {!isMobile && <span className="ml-1">Modelos</span>}
       </Button>
       <Button onClick={openAddVehicle}>
-        <Plus className="h-4 w-4 mr-2" />
-        Novo Veículo
+        <Plus className="h-4 w-4" />
+        {!isMobile && <span className="ml-2">Novo Veículo</span>}
       </Button>
     </>
   ) : null;
@@ -84,6 +84,7 @@ const Vehicles = () => {
           onFilterChange={handleFilterChange}
           onReset={resetFilters}
           actions={headerActions}
+          showViewToggle={!isMobile}
         />
         
         {viewMode === 'table' ? (

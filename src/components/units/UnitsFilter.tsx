@@ -11,6 +11,7 @@ interface UnitsFilterProps {
   actions?: React.ReactNode;
   isLoading?: boolean;
   showTitle?: boolean;
+  showViewToggle?: boolean;
 }
 
 const UnitsFilter: React.FC<UnitsFilterProps> = ({
@@ -21,7 +22,8 @@ const UnitsFilter: React.FC<UnitsFilterProps> = ({
   onReset,
   actions,
   isLoading,
-  showTitle = false
+  showTitle = false,
+  showViewToggle = true
 }) => {
   return (
     <PageHeader
@@ -32,6 +34,7 @@ const UnitsFilter: React.FC<UnitsFilterProps> = ({
       viewMode={viewMode}
       setViewMode={setViewMode}
       actions={actions}
+      showViewToggle={showViewToggle}
     />
   );
 };

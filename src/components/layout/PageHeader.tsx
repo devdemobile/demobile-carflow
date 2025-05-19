@@ -15,6 +15,7 @@ interface PageHeaderProps {
   setViewMode: (mode: 'grid' | 'table') => void;
   children?: ReactNode;
   actions?: ReactNode;
+  showViewToggle?: boolean;
 }
 
 /**
@@ -29,7 +30,8 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   viewMode,
   setViewMode,
   children,
-  actions
+  actions,
+  showViewToggle = true
 }) => {
   return (
     <div className="space-y-4 mb-6">
@@ -51,26 +53,27 @@ const PageHeader: React.FC<PageHeaderProps> = ({
             value={searchValue}
             onChange={(e) => onSearchChange(e.target.value)}
           />
+          <Button 
+            variant="ghost" 
+            onClick={onResetFilters}
+            size="icon"
+            className="shrink-0 absolute right-1 top-1/2 -translate-y-1/2"
+            aria-label="Limpar filtros"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
         
         {children}
         
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={onResetFilters}
-            size="icon"
-            className="shrink-0"
-            aria-label="Limpar filtros"
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          
-          <ViewToggle
-            viewMode={viewMode}
-            onViewChange={setViewMode}
-            className="ml-2"
-          />
+          {showViewToggle && (
+            <ViewToggle
+              viewMode={viewMode}
+              onViewChange={setViewMode}
+              className="ml-2"
+            />
+          )}
         </div>
       </div>
     </div>

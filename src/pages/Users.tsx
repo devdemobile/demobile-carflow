@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -24,6 +25,7 @@ import UserCard from '@/components/users/UserCard';
 import UserForm, { UserFormValues } from '@/components/users/UserForm';
 import useUsers from '@/hooks/useUsers';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/hooks/use-mobile';
 
 const Users = () => {
   const { user } = useAuth();
@@ -40,6 +42,7 @@ const Users = () => {
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null);
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   
   // Abrir o modal para editar usuário
   const handleEditUser = (user: SystemUser) => {
@@ -241,7 +244,7 @@ const Users = () => {
                 </Button>
                 <Button onClick={() => handleNewUser()}>
                   <Plus className="h-4 w-4 md:mr-2" />
-                  <span className="hidden md:inline">Novo Usuário</span>
+                  {!isMobile && <span>Novo Usuário</span>}
                 </Button>
               </>
             )}
@@ -259,6 +262,7 @@ const Users = () => {
             setSearchTerm('');
             setRoleFilter(null);
           }}
+          showViewToggle={!isMobile}
         />
         
         {loading ? (

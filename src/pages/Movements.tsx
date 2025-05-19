@@ -1,291 +1,116 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useMovements } from '@/hooks/useMovements';
-import MovementsTable from '@/components/movements/MovementsTable';
-import MovementsFilter from '@/components/movements/MovementsFilter';
-import MovementCard from '@/components/movements/MovementCard';
 import { Movement } from '@/types';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import MovementsTable from '@/components/movements/MovementsTable';
+import MovementCard from '@/components/movements/MovementCard';
+import MovementsFilter from '@/components/movements/MovementsFilter';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
-import { movementService } from '@/services/movements/movementService';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { authService } from '@/services/auth/authService';
-import { movementLogService } from '@/services/movements/movementLogService';
+import { toast } from 'sonner';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { useMediaQuery } from '@/hooks/use-mobile';
 
 const Movements = () => {
-  const isMobile = useIsMobile();
-  const { user } = useAuth();
-  const {
-    movements,
-    isLoading,
-    error,
-    page,
-    setPage,
-    totalPages,
-    filters,
-    handleFilterChange,
-    resetFilters,
-    refetch
-  } = useMovements();
-
+  const { movements, isLoading, refetch } = useMovements();
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
-
+  const { userPermissions } = useAuth();
+  const navigate = useNavigate();
+  const isMobile = useMediaQuery('(max-width: 768px)');
+  
+  // Redirecionar se o usuário não tem permissão
+  if (userPermissions && !userPermissions.canViewMovements) {
+    toast.error('Você não tem permissão para visualizar movimentações');
+    return <Navigate to="/" />;
+  }
+  
+  // Filtrar movimentações
+  const filteredMovements = movements.filter(movement => {
+    const matchesSearch = 
+      (movement.vehiclePlate || movement.plate || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (movement.driver || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter ? movement.status === statusFilter : true;
+    
+    return matchesSearch && matchesStatus;
+  });
+  
   const handleMovementClick = (movement: Movement) => {
     setSelectedMovement(movement);
     setIsEditDialogOpen(true);
   };
-
-  const handleUpdateMovement = async (updatedMovement: Movement) => {
-    try {
-      // This is a simple update without backend validation
-      // For real implementation, you would call an API to update the movement
-      const result = await movementService.updateMovement(updatedMovement.id, updatedMovement);
-      
-      if (result) {
-        // Log the edit action
-        if (user) {
-          await movementLogService.createLog({
-            movementId: updatedMovement.id,
-            userId: user.id,
-            actionType: 'edit',
-            actionDetails: JSON.stringify({
-              before: selectedMovement,
-              after: updatedMovement
-            })
-          });
-        }
-        
-        refetch();
-      }
-    } catch (error: any) {
-      toast.error(`Erro ao atualizar movimentação: ${error.message}`);
-      throw error;
-    }
-  };
   
-  const handleDeleteMovement = async (movement: Movement, password: string) => {
-    try {
-      // First verify the password
-      if (!user) throw new Error('Usuário não autenticado');
-      
-      const isValid = await authService.verifyPassword(user.username, password);
-      
-      if (!isValid) {
-        throw new Error('Senha incorreta');
-      }
-      
-      // Delete the movement
-      const result = await movementService.deleteMovement(movement.id);
-      
-      if (result) {
-        // Log the delete action
-        await movementLogService.createLog({
-          movementId: movement.id,
-          userId: user.id,
-          actionType: 'delete',
-          actionDetails: JSON.stringify(movement)
-        });
-        
-        refetch();
-      }
-    } catch (error: any) {
-      toast.error(`Erro ao excluir movimentação: ${error.message}`);
-      throw error;
-    }
-  };
-
-  const renderPaginationItems = () => {
-    const items = [];
-    const maxVisiblePages = 5;
-
-    if (totalPages <= maxVisiblePages) {
-      // Show all pages if total is less than max visible
-      for (let i = 1; i <= totalPages; i++) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink 
-              isActive={page === i}
-              onClick={() => setPage(i)}
-            >
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
-    } else {
-      // Show first page
-      items.push(
-        <PaginationItem key={1}>
-          <PaginationLink 
-            isActive={page === 1}
-            onClick={() => setPage(1)}
-          >
-            1
-          </PaginationLink>
-        </PaginationItem>
-      );
-      
-      // Calculate the start and end page numbers
-      let startPage = Math.max(2, page - 1);
-      let endPage = Math.min(totalPages - 1, page + 1);
-      
-      if (page <= 3) {
-        endPage = Math.min(totalPages - 1, 4);
-      } else if (page >= totalPages - 2) {
-        startPage = Math.max(2, totalPages - 3);
-      }
-      
-      // Add ellipsis if needed
-      if (startPage > 2) {
-        items.push(
-          <PaginationItem key="ellipsis-start">
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-      
-      // Add page numbers in the middle
-      for (let i = startPage; i <= endPage; i++) {
-        items.push(
-          <PaginationItem key={i}>
-            <PaginationLink 
-              isActive={page === i}
-              onClick={() => setPage(i)}
-            >
-              {i}
-            </PaginationLink>
-          </PaginationItem>
-        );
-      }
-      
-      // Add ellipsis if needed
-      if (endPage < totalPages - 1) {
-        items.push(
-          <PaginationItem key="ellipsis-end">
-            <PaginationEllipsis />
-          </PaginationItem>
-        );
-      }
-      
-      // Show last page
-      items.push(
-        <PaginationItem key={totalPages}>
-          <PaginationLink 
-            isActive={page === totalPages}
-            onClick={() => setPage(totalPages)}
-          >
-            {totalPages}
-          </PaginationLink>
-        </PaginationItem>
-      );
-    }
-
-    return items;
-  };
-
-  if (error) {
-    return (
-      <Layout>
-        <div className="container mx-auto py-6">
-          <div className="bg-destructive/10 text-destructive p-4 rounded-md">
-            Erro ao carregar movimentações. Tente novamente mais tarde.
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
-      <div className="container mx-auto py-6 pb-16">
-        <MovementsFilter 
-          filters={filters} 
-          onFilterChange={handleFilterChange} 
-          onReset={resetFilters}
+      <div className="container mx-auto py-6 pb-16 md:pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Movimentações</h1>
+          {userPermissions?.canCreateMovements && (
+            <Button onClick={() => navigate('/dashboard')}>
+              <Plus className="h-4 w-4 md:mr-2" />
+              {!isMobile && <span>Nova Movimentação</span>}
+            </Button>
+          )}
+        </div>
+        
+        <MovementsFilter
           viewMode={viewMode}
           setViewMode={setViewMode}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          onReset={() => {
+            setSearchTerm('');
+            setStatusFilter(null);
+          }}
+          showViewToggle={!isMobile}
         />
         
-        {isLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
+            {isLoading ? (
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="h-48 bg-muted rounded-lg animate-pulse" />
+              ))
+            ) : filteredMovements.length > 0 ? (
+              filteredMovements.map((movement) => (
+                <MovementCard
+                  key={movement.id}
+                  movement={movement}
+                  onClick={handleMovementClick}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8">
+                <p className="text-muted-foreground">Nenhuma movimentação encontrada</p>
+              </div>
+            )}
           </div>
         ) : (
-          <>
-            {(isMobile || viewMode === 'grid') ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                {movements.length === 0 ? (
-                  <div className="text-center p-4 bg-background border rounded-md text-muted-foreground col-span-full">
-                    Nenhuma movimentação encontrada
-                  </div>
-                ) : (
-                  movements.map((movement) => (
-                    <MovementCard 
-                      key={movement.id} 
-                      movement={movement} 
-                      onClick={() => handleMovementClick(movement)}
-                    />
-                  ))
-                )}
-              </div>
-            ) : (
-              <MovementsTable 
-                movements={movements} 
-                onRowClick={handleMovementClick}
-                showUnits={true}
-              />
-            )}
-            
-            {totalPages > 1 && (
-              <Pagination className="mt-6">
-                <PaginationContent>
-                  <PaginationItem>
-                    <PaginationPrevious 
-                      onClick={() => setPage(Math.max(1, page - 1))}
-                      aria-disabled={page === 1}
-                      className={page === 1 ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                  
-                  {renderPaginationItems()}
-                  
-                  <PaginationItem>
-                    <PaginationNext 
-                      onClick={() => setPage(Math.min(totalPages, page + 1))}
-                      aria-disabled={page === totalPages}
-                      className={page === totalPages ? "pointer-events-none opacity-50" : ""}
-                    />
-                  </PaginationItem>
-                </PaginationContent>
-              </Pagination>
-            )}
-          </>
+          <MovementsTable
+            movements={filteredMovements}
+            isLoading={isLoading}
+            onMovementClick={handleMovementClick}
+            refetch={refetch}
+          />
         )}
+        
+        {/* Dialog para edição de movimentação */}
+        <MovementEditDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          movement={selectedMovement}
+          onSaved={refetch}
+        />
       </div>
-      
-      {/* Movement Edit Dialog */}
-      <MovementEditDialog 
-        isOpen={isEditDialogOpen}
-        onClose={() => setIsEditDialogOpen(false)}
-        movement={selectedMovement}
-        onUpdate={handleUpdateMovement}
-        onDelete={handleDeleteMovement}
-        showUnits={true}
-      />
     </Layout>
   );
 };

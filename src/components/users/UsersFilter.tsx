@@ -15,6 +15,7 @@ interface UsersFilterProps {
   showInactiveUsers?: boolean;
   onStatusChange?: (value: boolean) => void;
   actions?: React.ReactNode;
+  showViewToggle?: boolean;
 }
 
 const UsersFilter: React.FC<UsersFilterProps> = ({
@@ -27,7 +28,8 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
   onReset,
   showInactiveUsers,
   onStatusChange,
-  actions
+  actions,
+  showViewToggle = true
 }) => {
   return (
     <PageHeader
@@ -37,6 +39,7 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
       onResetFilters={onReset}
       viewMode={viewMode}
       setViewMode={setViewMode}
+      showViewToggle={showViewToggle}
       actions={
         <div className="flex items-center gap-2">
           {onStatusChange && (

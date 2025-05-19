@@ -4,49 +4,54 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import PageHeader from '@/components/layout/PageHeader';
 
 interface MovementsFilterProps {
-  filters: {
-    search: string;
-    status: string | null;
-  };
   viewMode: 'grid' | 'table';
   setViewMode: (mode: 'grid' | 'table') => void;
-  onFilterChange: (name: string, value: string | null) => void;
+  searchTerm: string;
+  onSearchChange: (value: string) => void;
+  statusFilter: string | null;
+  onStatusFilterChange: (value: string | null) => void;
   onReset: () => void;
   actions?: React.ReactNode;
+  showViewToggle?: boolean;
 }
 
-const MovementsFilter: React.FC<MovementsFilterProps> = ({ 
-  filters, 
-  onFilterChange, 
-  onReset,
+const MovementsFilter: React.FC<MovementsFilterProps> = ({
   viewMode,
   setViewMode,
-  actions
+  searchTerm,
+  onSearchChange,
+  statusFilter,
+  onStatusFilterChange,
+  onReset,
+  actions,
+  showViewToggle = true
 }) => {
   return (
     <PageHeader
-      title="Movimentações"
-      searchPlaceholder="Buscar por placa, motorista, unidade..."
-      searchValue={filters.search}
-      onSearchChange={(value) => onFilterChange('search', value)}
+      searchPlaceholder="Buscar por veículo, motorista..."
+      searchValue={searchTerm}
+      onSearchChange={onSearchChange}
       onResetFilters={onReset}
       viewMode={viewMode}
       setViewMode={setViewMode}
       actions={actions}
+      showViewToggle={showViewToggle}
     >
-      <Select
-        value={filters.status || "all"}
-        onValueChange={(value) => onFilterChange('status', value === "all" ? null : value)}
-      >
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Status" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="yard">No Pátio</SelectItem>
-          <SelectItem value="out">Em Rota</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex gap-2 items-center">
+        <Select
+          value={statusFilter || "all"}
+          onValueChange={(value) => onStatusFilterChange(value === "all" ? null : value)}
+        >
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="out">Em Rota</SelectItem>
+            <SelectItem value="yard">No Pátio</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </PageHeader>
   );
 };

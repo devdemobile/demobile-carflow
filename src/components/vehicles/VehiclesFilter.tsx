@@ -11,6 +11,7 @@ interface VehiclesFilterProps {
   onFilterChange: (name: string, value: string) => void;
   onReset: () => void;
   actions?: React.ReactNode;
+  showViewToggle?: boolean;
 }
 
 const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
@@ -19,7 +20,8 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
   filters,
   onFilterChange,
   onReset,
-  actions
+  actions,
+  showViewToggle = true
 }) => {
   return (
     <PageHeader
@@ -31,6 +33,7 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
       viewMode={viewMode}
       setViewMode={setViewMode}
       actions={actions}
+      showViewToggle={showViewToggle}
     >
       <div className="grid grid-cols-2 gap-3">
         <Select 
