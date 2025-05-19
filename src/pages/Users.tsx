@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -250,7 +249,6 @@ const Users = () => {
           }}
           showInactiveUsers={showInactiveUsers}
           onStatusChange={setShowInactiveUsers}
-          actions={null}
         />
         
         {loading ? (

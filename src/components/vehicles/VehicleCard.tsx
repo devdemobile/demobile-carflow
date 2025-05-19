@@ -30,11 +30,25 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
   // Vehicle name with make, model, and color in a single line
   const vehicleFullName = `${vehicle.make} ${vehicle.model} ${vehicle.color}`;
 
+  // Placeholder image if no photo is available
+  const placeholderImage = "/placeholder.svg";
+  
   return (
     <Card 
       className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderClass(vehicle.location)}`}
       onClick={() => onClick(vehicle)}
     >
+      <div className="aspect-video w-full overflow-hidden bg-muted">
+        <img
+          src={vehicle.photoUrl || placeholderImage}
+          alt={vehicle.plate}
+          className="h-full w-full object-cover"
+          onError={(e) => {
+            e.currentTarget.src = placeholderImage;
+          }}
+        />
+      </div>
+      
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
