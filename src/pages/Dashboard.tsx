@@ -212,7 +212,7 @@ const Dashboard = () => {
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
         <h1 className="text-2xl font-bold">
-          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal">Controle a entrada e saída de veículos.</span>
+          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal text-sm">Controle a entrada e saída de veículos.</span>
         </h1>
         
         {/* Vehicle Search */}
@@ -229,7 +229,7 @@ const Dashboard = () => {
               />
               <Button type="submit" className="shrink-0">
                 <Search className="h-4 w-4 mr-2" />
-                Registrar
+                Pesquisar
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Digite a placa do veículo</p>
