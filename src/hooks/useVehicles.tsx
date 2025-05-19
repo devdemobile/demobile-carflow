@@ -1,13 +1,11 @@
-
 import { useState } from 'react';
 import { Vehicle, VehicleLocation } from '@/types';
-import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query';
+import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { toast } from 'sonner';
 import { useVehicleMakes } from './useVehicleMakes';
 import { useVehicleModels } from './useVehicleModels';
 import { useUnits } from './useUnits';
-import { movementService } from '@/services/movements/movementService';
 
 // Export the interface so it can be imported elsewhere
 export interface VehicleFilters {
@@ -55,49 +53,16 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
       try {
         let filteredVehicles: Vehicle[] = [];
         
-        // Primeiro buscamos todos os veículos
+        // Buscar todos os veículos (o serviço agora inclui destinos para veículos em rota)
         filteredVehicles = await vehicleService.getAllVehicles();
-        
-        // Para veículos em rota, buscar os respectivos destinos das movimentações ativas
-        const promises = filteredVehicles.map(async (vehicle) => {
-          if (vehicle.location === 'out') {
-            try {
-              // Buscar movimentações do veículo
-              const movements = await movementService.getMovementsByVehicle(vehicle.id);
-              
-              // Encontrar a movimentação de saída mais recente (status 'out')
-              const activeMovement = movements
-                .filter(m => m.status === 'out' && m.type === 'exit')
-                .sort((a, b) => {
-                  const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-                  const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
-                  return dateB.getTime() - dateA.getTime();
-                })[0];
-              
-              // Se encontrar uma movimentação ativa, atualizar o destino do veículo
-              if (activeMovement && activeMovement.destination) {
-                vehicle.destination = activeMovement.destination;
-                console.log(`Destino do veículo ${vehicle.plate} definido como: ${activeMovement.destination}`);
-              }
-            } catch (error) {
-              console.error('Erro ao buscar destino do veículo:', error);
-            }
-          }
-          return vehicle;
-        });
-        
-        // Esperar todas as consultas terminarem
-        const updatedVehicles = await Promise.all(promises);
         
         // Aplicamos os filtros sequencialmente
         
         // Filtrar por status
         if (filters.status && filters.status !== 'all') {
-          filteredVehicles = updatedVehicles.filter(v => 
+          filteredVehicles = filteredVehicles.filter(v => 
             v.location === filters.status
           );
-        } else {
-          filteredVehicles = updatedVehicles;
         }
         
         // Filtrar por marca
