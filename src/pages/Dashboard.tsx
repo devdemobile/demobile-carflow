@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
@@ -16,6 +17,7 @@ import { movementService } from '@/services/movements/movementService';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -29,7 +31,7 @@ const Dashboard = () => {
   const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
   
   // Fetch vehicle stats
-  const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 } } = useQuery({
+  const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 }, isLoading: isLoadingStats } = useQuery({
     queryKey: ['vehicle-stats'],
     queryFn: async () => {
       try {
@@ -249,12 +251,54 @@ const Dashboard = () => {
     }
   };
 
+  // Create mini stats for the header
+  const headerStats = !isMobile ? [
+    {
+      title: "Total",
+      value: vehicleStats.totalVehicles,
+      icon: <Car className="h-3 w-3" />
+    },
+    {
+      title: "No Pátio",
+      value: vehicleStats.vehiclesInYard,
+      icon: <Warehouse className="h-3 w-3" />
+    },
+    {
+      title: "Em Rota",
+      value: vehicleStats.vehiclesOut,
+      icon: <PackageCheck className="h-3 w-3" />
+    },
+    {
+      title: "Hoje",
+      value: todayMovements,
+      icon: <Calendar className="h-3 w-3" />
+    }
+  ] : [];
+
   return (
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
-        <h1 className="text-xl font-bold">
-          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}!
-        </h1>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+          <h1 className="text-xl font-bold">
+            Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}!
+          </h1>
+          
+          {!isMobile && (
+            <div className="flex gap-2 items-center">
+              {headerStats.map((stat, index) => (
+                <div key={index} className="bg-card border rounded-md px-3 py-1.5 flex items-center gap-2 text-sm">
+                  <div className="text-muted-foreground">
+                    {stat.icon}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs text-muted-foreground">{stat.title}</span>
+                    <span className="font-medium">{stat.value}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         
         {/* Vehicle Search */}
         <div className="bg-card border rounded-lg p-4">
@@ -275,38 +319,6 @@ const Dashboard = () => {
             </div>
             <p className="text-xs text-muted-foreground mt-1">Digite a placa do veículo</p>
           </form>
-        </div>
-        
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard 
-            title="Total de Veículos" 
-            value={vehicleStats.totalVehicles} 
-            icon={<Car className="h-4 w-4" />}
-          />
-          <StatCard 
-            title="Veículos no Pátio" 
-            value={vehicleStats.vehiclesInYard} 
-            description={vehicleStats.totalVehicles > 0 ? 
-              `${((vehicleStats.vehiclesInYard / vehicleStats.totalVehicles) * 100).toFixed(0)}% da frota` : 
-              '0% da frota'
-            }
-            icon={<Warehouse className="h-4 w-4" />}
-          />
-          <StatCard 
-            title="Veículos Fora" 
-            value={vehicleStats.vehiclesOut}
-            description={vehicleStats.totalVehicles > 0 ? 
-              `${((vehicleStats.vehiclesOut / vehicleStats.totalVehicles) * 100).toFixed(0)}% da frota` : 
-              '0% da frota'
-            }
-            icon={<PackageCheck className="h-4 w-4" />}
-          />
-          <StatCard 
-            title="Movimentações Hoje" 
-            value={todayMovements}
-            icon={<Calendar className="h-4 w-4" />}
-          />
         </div>
         
         {/* Frequent Vehicles */}
