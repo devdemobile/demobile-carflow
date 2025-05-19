@@ -17,14 +17,24 @@ interface UnitsTableProps {
   onEdit: (unit: Unit) => void;
   onDelete: (unit: Unit) => void;
   onViewDetails: (unit: Unit) => void;
+  isLoading?: boolean;
 }
 
 export const UnitsTable: React.FC<UnitsTableProps> = ({ 
   units, 
   onEdit, 
   onDelete, 
-  onViewDetails 
+  onViewDetails,
+  isLoading = false
 }) => {
+  if (isLoading) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
+
   if (units.length === 0) {
     return (
       <div className="text-center py-8">

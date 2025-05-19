@@ -6,17 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import UnitsFilter from '@/components/units/UnitsFilter';
 import UnitDialog from '@/components/units/UnitDialog';
-import UnitsTable from '@/components/units/UnitsTable';
+import { UnitsTable } from '@/components/units/UnitsTable';
 import UnitCard from '@/components/units/UnitCard';
-import { UnitData } from '@/services/units/unitService';
 import { useMediaQuery } from '@/hooks/use-mobile';
+import { Unit } from '@/types';
 
 const Units = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [isUnitDialogOpen, setIsUnitDialogOpen] = useState(false);
-  const [editingUnit, setEditingUnit] = useState<UnitData | null>(null);
-  const { units, loading, refetch } = useUnits();
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null);
+  const { units, isLoading, refetch } = useUnits();
   const isMobile = useMediaQuery('(max-width: 768px)');
 
   const handleAddUnit = () => {
@@ -24,7 +24,7 @@ const Units = () => {
     setIsUnitDialogOpen(true);
   };
 
-  const handleEditUnit = (unit: UnitData) => {
+  const handleEditUnit = (unit: Unit) => {
     setEditingUnit(unit);
     setIsUnitDialogOpen(true);
   };
@@ -51,16 +51,17 @@ const Units = () => {
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           onReset={() => setSearchTerm('')}
-          isLoading={loading}
+          isLoading={isLoading}
           showViewToggle={!isMobile}
         />
 
         {viewMode === 'table' ? (
           <UnitsTable
             units={filteredUnits}
-            isLoading={loading}
+            isLoading={isLoading}
             onEdit={handleEditUnit}
-            onRefresh={refetch}
+            onDelete={() => {}}
+            onViewDetails={() => {}}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
@@ -79,7 +80,8 @@ const Units = () => {
           isOpen={isUnitDialogOpen}
           onClose={() => setIsUnitDialogOpen(false)}
           unit={editingUnit}
-          onUnitSaved={refetch}
+          onSubmit={() => refetch()}
+          isLoading={isLoading}
         />
       </div>
     </Layout>

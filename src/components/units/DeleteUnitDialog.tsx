@@ -14,15 +14,15 @@ import {
 interface DeleteUnitDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onDelete: () => void;
-  isLoading: boolean;
+  onConfirm: () => void;
+  unitName: string;
 }
 
-const DeleteUnitDialog: React.FC<DeleteUnitDialogProps> = ({
+export const DeleteUnitDialog: React.FC<DeleteUnitDialogProps> = ({
   isOpen,
   onClose,
-  onDelete,
-  isLoading,
+  onConfirm,
+  unitName,
 }) => {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
@@ -30,22 +30,21 @@ const DeleteUnitDialog: React.FC<DeleteUnitDialogProps> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir unidade</AlertDialogTitle>
           <AlertDialogDescription>
-            Tem certeza que deseja excluir esta unidade? Esta ação não poderá ser desfeita.
+            Tem certeza que deseja excluir a unidade <strong>{unitName}</strong>?
+            <br />
+            Esta ação não pode ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isLoading}>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onDelete}
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            disabled={isLoading}
           >
-            {isLoading ? 'Excluindo...' : 'Excluir'}
+            Excluir
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
   );
 };
-
-export default DeleteUnitDialog;

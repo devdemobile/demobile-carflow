@@ -15,7 +15,7 @@ interface UnitDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (values: { name: string; code: string; address?: string }) => void;
-  unit?: Unit;
+  unit?: Unit | null;
   isLoading: boolean;
 }
 
