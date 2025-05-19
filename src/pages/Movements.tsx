@@ -42,7 +42,7 @@ const Movements = () => {
 
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
 
   const handleMovementClick = (movement: Movement) => {
     setSelectedMovement(movement);

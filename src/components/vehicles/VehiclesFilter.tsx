@@ -12,11 +12,9 @@ import { Button } from '@/components/ui/button';
 import { 
   Filter as FilterIcon,
   Search as SearchIcon,
-  Grid as GridIcon,
-  List as ListIcon
 } from 'lucide-react';
 import { VehicleLocation } from '@/types';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import ViewToggle from '@/components/ui/view-toggle';
 
 interface VehiclesFilterProps {
   viewMode: 'grid' | 'table';
@@ -79,14 +77,7 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Veículos</h2>
-        <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'table')}>
-          <ToggleGroupItem value="grid" aria-label="Ver em grade">
-            <GridIcon className="h-4 w-4" />
-          </ToggleGroupItem>
-          <ToggleGroupItem value="table" aria-label="Ver em tabela">
-            <ListIcon className="h-4 w-4" />
-          </ToggleGroupItem>
-        </ToggleGroup>
+        <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
       </div>
     </div>
   );

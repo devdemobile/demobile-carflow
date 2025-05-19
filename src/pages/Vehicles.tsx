@@ -38,7 +38,7 @@ const Vehicles = () => {
     closeAddVehicle
   } = useVehicles();
   
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>(isMobile ? 'grid' : 'grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
   // Redirecionar se o usuário não tem permissão
   if (userPermissions && !userPermissions.canViewVehicles) {

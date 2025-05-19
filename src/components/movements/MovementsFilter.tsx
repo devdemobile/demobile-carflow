@@ -9,9 +9,8 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { Filter, Search, Grid, List } from 'lucide-react';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Filter, Search } from 'lucide-react';
+import ViewToggle from '@/components/ui/view-toggle';
 
 interface MovementsFilterProps {
   filters: {
@@ -31,8 +30,6 @@ const MovementsFilter: React.FC<MovementsFilterProps> = ({
   viewMode,
   setViewMode 
 }) => {
-  const isMobile = useIsMobile();
-
   return (
     <div className="flex flex-col gap-4 mb-6">
       <div className="flex flex-col sm:flex-row gap-3">
@@ -72,16 +69,7 @@ const MovementsFilter: React.FC<MovementsFilterProps> = ({
       
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Movimentações</h2>
-        {!isMobile && (
-          <ToggleGroup type="single" value={viewMode} onValueChange={(value) => value && setViewMode(value as 'grid' | 'table')}>
-            <ToggleGroupItem value="grid" aria-label="Ver em grade">
-              <Grid className="h-4 w-4" />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="table" aria-label="Ver em tabela">
-              <List className="h-4 w-4" />
-            </ToggleGroupItem>
-          </ToggleGroup>
-        )}
+        <ViewToggle viewMode={viewMode} onViewChange={setViewMode} />
       </div>
     </div>
   );
