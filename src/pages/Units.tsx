@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -179,23 +180,24 @@ const Units = () => {
     );
   }
 
-  const headerActions = (
-    <Button onClick={handleCreateUnit}>
-      <Plus className="h-4 w-4 mr-2" />
-      Nova Unidade
-    </Button>
-  );
-
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Unidades</h1>
+          
+          <Button onClick={handleCreateUnit}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Unidade
+          </Button>
+        </div>
+        
         <UnitsFilter
           viewMode={viewMode}
           setViewMode={setViewMode}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
           onReset={() => setSearchTerm('')}
-          actions={headerActions}
           isLoading={isLoading}
         />
 

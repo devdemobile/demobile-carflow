@@ -10,6 +10,7 @@ interface UnitsFilterProps {
   onReset: () => void;
   actions?: React.ReactNode;
   isLoading?: boolean;
+  showTitle?: boolean;
 }
 
 const UnitsFilter: React.FC<UnitsFilterProps> = ({
@@ -19,7 +20,8 @@ const UnitsFilter: React.FC<UnitsFilterProps> = ({
   setSearchTerm,
   onReset,
   actions,
-  isLoading
+  isLoading,
+  showTitle = false
 }) => {
   return (
     <PageHeader
