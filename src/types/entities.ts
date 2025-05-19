@@ -1,4 +1,3 @@
-
 /**
  * Tipos de entidades principais do sistema
  */
@@ -63,6 +62,7 @@ export interface Vehicle {
   unitName?: string;
   makeId?: string;
   modelId?: string;
+  destination?: string; // Added destination property to Vehicle interface
 }
 
 export interface VehicleMake {
