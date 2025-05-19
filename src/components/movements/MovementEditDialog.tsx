@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -141,6 +142,15 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
     }
   };
 
+  const getTypeVariant = (type: string) => {
+    switch (type) {
+      case 'exit': return 'warning'; // Laranja para Saída
+      case 'entry': return 'success'; // Verde para Entrada
+      case 'initial': return 'outline';
+      default: return 'default';
+    }
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={(open) => {
@@ -153,10 +163,9 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between">
               <span>Detalhes da Movimentação</span>
-              <div className="flex items-center gap-2">
-                <Badge>{getMovementTypeLabel(movement.type)}</Badge>
-                <Badge variant="outline">{getMovementStatusLabel(movement.status)}</Badge>
-              </div>
+              <Badge variant={getTypeVariant(movement.type)}>
+                {getMovementTypeLabel(movement.type)}
+              </Badge>
             </DialogTitle>
           </DialogHeader>
 
@@ -167,7 +176,21 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <h3 className="font-medium">Veículo</h3>
-                    <p className="text-sm">{movement.vehiclePlate || movement.vehicleId}</p>
+                    <p className="text-sm flex items-center gap-2">
+                      {movement.photoUrl && (
+                        <div className="w-8 h-8 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                          <img 
+                            src={movement.photoUrl} 
+                            alt={`Veículo ${movement.vehiclePlate || movement.vehicleId}`} 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/placeholder.svg';
+                            }}
+                          />
+                        </div>
+                      )}
+                      {movement.vehiclePlate || movement.vehicleId}
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -177,7 +200,7 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
 
                   {showUnits && (
                     <div className="space-y-2">
-                      <h3 className="font-medium">Unidade de Origem</h3>
+                      <h3 className="font-medium">Origem</h3>
                       <p className="text-sm">{movement.departureUnitName || "—"}</p>
                     </div>
                   )}
@@ -235,14 +258,7 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
                 </div>
 
                 {userPermissions?.canEditMovements && (
-                  <div className="flex justify-end space-x-2 pt-4 border-t">
-                    <Button
-                      variant="outline"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Editar
-                    </Button>
+                  <div className="flex justify-between space-x-2 pt-4 border-t">
                     <Button
                       variant="destructive"
                       onClick={() => setIsDeleteAlertOpen(true)}
@@ -250,6 +266,23 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
                       <Trash2 className="h-4 w-4 mr-2" />
                       Excluir
                     </Button>
+                    
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsEditing(true)}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Editar
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        onClick={onClose}
+                      >
+                        Fechar
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
