@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Key, ShieldCheck, Trash2 } from 'lucide-react';
+import { Key, ShieldCheck, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserCardProps {
@@ -46,13 +46,19 @@ const UserCard: React.FC<UserCardProps> = ({
     );
   };
   
+  const handleCardClick = () => {
+    onEdit(user);
+  };
+  
   return (
     <Card 
       className={cn(
         user.status === 'active' 
           ? 'border-l-4 border-l-green-500' 
-          : 'border-l-4 border-l-red-500 opacity-60'
+          : 'border-l-4 border-l-red-500 opacity-60',
+        'cursor-pointer hover:shadow-md transition-shadow'
       )}
+      onClick={handleCardClick}
     >
       <CardContent className="p-4">
         <div className="flex items-center gap-4 mb-3">
@@ -81,16 +87,10 @@ const UserCard: React.FC<UserCardProps> = ({
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => onEdit(user)}
-                title="Editar usuário"
-              >
-                <Pencil className="h-4 w-4" />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => onChangePassword(user)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Evita que o clique propague para o card
+                  onChangePassword(user);
+                }}
                 title="Alterar senha"
               >
                 <Key className="h-4 w-4" />
@@ -99,7 +99,10 @@ const UserCard: React.FC<UserCardProps> = ({
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => onEditPermissions(user)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Evita que o clique propague para o card
+                  onEditPermissions(user);
+                }}
                 title="Editar permissões"
               >
                 <ShieldCheck className="h-4 w-4" />
@@ -107,7 +110,11 @@ const UserCard: React.FC<UserCardProps> = ({
 
               <Switch 
                 checked={user.status === 'active'} 
-                onCheckedChange={() => onToggleStatus(user.id, user.status)}
+                onCheckedChange={(checked) => {
+                  // Evita que o clique propague para o card
+                  onToggleStatus(user.id, user.status);
+                }}
+                onClick={(e) => e.stopPropagation()}
                 variant="success-danger"
                 title={user.status === 'active' ? "Desativar usuário" : "Ativar usuário"}
               />
@@ -117,7 +124,10 @@ const UserCard: React.FC<UserCardProps> = ({
               <Button 
                 variant="ghost" 
                 size="icon"
-                onClick={() => onDelete(user.id)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Evita que o clique propague para o card
+                  onDelete(user.id);
+                }}
                 title="Excluir usuário"
               >
                 <Trash2 className="h-4 w-4 text-red-500" />
