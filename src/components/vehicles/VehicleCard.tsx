@@ -95,7 +95,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = f
           <span>
             {vehicle.location === 'yard' 
               ? `Unidade: ${vehicle.unitName || 'Principal'}` 
-              : 'Em rota'}
+              : `Destino: ${vehicle.destination || 'Não informado'}`}
           </span>
         </div>
       </CardContent>
