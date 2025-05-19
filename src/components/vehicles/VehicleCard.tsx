@@ -1,9 +1,10 @@
 
 import React from 'react';
 import { Vehicle } from '@/types';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Car } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -21,9 +22,9 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
 
   const getBorderClass = (location: string) => {
     switch (location) {
-      case 'yard': return 'border-green-500';
-      case 'out': return 'border-amber-500';
-      default: return 'border-gray-300';
+      case 'yard': return 'border-l-4 border-l-green-500';
+      case 'out': return 'border-l-4 border-l-amber-500';
+      default: return 'border-l-4 border-l-gray-300';
     }
   };
 
@@ -35,7 +36,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
   
   return (
     <Card 
-      className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderClass(vehicle.location)}`}
+      className={`cursor-pointer hover:shadow-md transition-shadow ${getBorderClass(vehicle.location)}`}
       onClick={() => onClick(vehicle)}
     >
       <div className="aspect-video w-full overflow-hidden bg-muted">

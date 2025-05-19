@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { formatDateForDisplay, formatTimeForDisplay } from '@/lib/utils';
 import { ArrowRight, MapPin, Car, Clock, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MovementCardProps {
   movement: Movement;
@@ -30,11 +31,11 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   };
 
   // Determina a cor da borda baseada no status
-  const getBorderColor = (status: string) => {
+  const getBorderClass = (status: string) => {
     switch (status) {
-      case 'yard': return 'border-green-500'; 
-      case 'out': return 'border-amber-500';
-      default: return 'border-gray-300';
+      case 'yard': return 'border-l-4 border-l-green-500'; 
+      case 'out': return 'border-l-4 border-l-amber-500';
+      default: return 'border-l-4 border-l-gray-300';
     }
   };
 
@@ -49,7 +50,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   
   return (
     <Card 
-      className={`cursor-pointer hover:shadow-md transition-shadow border-l-4 ${getBorderColor(movement.status)}`}
+      className={`cursor-pointer hover:shadow-md transition-shadow ${getBorderClass(movement.status)}`}
       onClick={() => onClick(movement)}
     >
       <CardContent className="pt-6">
