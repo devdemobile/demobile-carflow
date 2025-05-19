@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Movement } from '@/types';
-import { formatDate, formatTime } from '@/lib/utils';
+import { formatDateForDisplay, formatTimeForDisplay } from '@/lib/utils';
 import { useToast } from "@/components/ui/use-toast"
 import { useForm } from 'react-hook-form';
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -172,8 +173,8 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()} className={className}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className={cn("sm:max-w-[425px]", className)}>
         <DialogHeader>
           <DialogTitle>Editar Movimentação</DialogTitle>
           <DialogDescription>
@@ -320,7 +321,7 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
         </form>
         <DialogFooter>
           <div className="dialog-buttons">
-            <Button type="submit" disabled={isLoading || isDeleting}>
+            <Button type="submit" disabled={isLoading || isDeleting} onClick={form.handleSubmit(onSubmit)}>
               Salvar Alterações
             </Button>
             <Button type="button" variant="outline" onClick={onClose}>
