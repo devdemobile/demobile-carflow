@@ -12,8 +12,9 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
 import { movementService } from '@/services/movements/movementService';
+import { cn } from '@/lib/utils';
 
 interface VehicleMovementFormProps {
   isOpen: boolean;
@@ -216,7 +217,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     }
   };
 
-  // Prepara as opções de unidades para os selects
+  // Preparar as opções de unidades para os selects
   const unitOptions = units.map(unit => ({
     value: unit.id,
     label: unit.name
@@ -224,200 +225,186 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
 
   // Título do form baseado no tipo de movimentação
   const formTitle = movementType === 'exit' ? 'Registrar Saída' : 'Registrar Entrada';
-
+  
   // Título do botão baseado no tipo de movimentação
   const buttonTitle = movementType === 'exit' ? 'Registrar Saída' : 'Registrar Entrada';
 
+  // Data atual formatada para exibição
+  const today = new Date();
+  const formattedDate = `${today.toLocaleDateString('pt-BR')} às ${today.getHours().toString().padStart(2, '0')}:${today.getMinutes().toString().padStart(2, '0')}`;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>{formTitle} - {vehicle.plate}</DialogTitle>
+      <DialogContent 
+        className={cn(
+          "sm:max-w-[500px] p-0 overflow-hidden border-2",
+          movementType === 'exit' ? "border-orange-500" : "border-emerald-500"
+        )}
+      >
+        <DialogHeader className={cn(
+          "p-6",
+          movementType === 'exit' ? "text-orange-500" : "text-emerald-500"
+        )}>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl font-bold">{formTitle}</DialogTitle>
+            <Button variant="ghost" className="h-8 w-8 p-0" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1">
+            Preencha os campos abaixo para registrar a {movementType === 'exit' ? 'saída' : 'entrada'} do veículo.
+            <br/>
+            {formattedDate}
+          </p>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
-            {/* Detalhes do Veículo */}
-            <div className="bg-muted p-3 rounded-md text-sm space-y-1">
-              <div><strong>Veículo:</strong> {vehicle.make} {vehicle.model} {vehicle.color}</div>
-              <div><strong>Placa:</strong> {vehicle.plate}</div>
-              <div><strong>Unidade:</strong> {vehicle.unitName || 'Principal'}</div>
-            </div>
-            
-            {/* Alerta para validação de quilometragem */}
-            {movementType === 'entry' && errors.finalMileage && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  {errors.finalMileage.message}
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {movementType === 'exit' && watchedInitialMileage < (vehicle.mileage || 0) && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  Quilometragem inicial não pode ser menor que a atual do veículo ({vehicle.mileage} km)
-                </AlertDescription>
-              </Alert>
-            )}
-            
-            {/* Motorista */}
-            <FormField
-              control={form.control}
-              name="driver"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Motorista*</FormLabel>
-                  <FormControl>
-                    <Input required {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {/* Destino (apenas para saídas) */}
-            {movementType === 'exit' && (
-              <FormField
-                control={form.control}
-                name="destination"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Destino*</FormLabel>
-                    <FormControl>
-                      <Input required {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            
-            {/* Unidades */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {movementType === 'exit' && (
-                <FormField
-                  control={form.control}
-                  name="departureUnitId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unidade de Saída</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a unidade" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {unitOptions.map(option => (
-                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-              
-              {movementType === 'entry' && (
-                <FormField
-                  control={form.control}
-                  name="arrivalUnitId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unidade de Chegada</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a unidade" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {unitOptions.map(option => (
-                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </div>
-            
-            {/* Quilometragem */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* KM Inicial */}
-              <div className="space-y-2">
-                <Label htmlFor="initialMileage">
-                  {movementType === 'exit' ? 'KM Inicial*' : 'KM Inicial (Saída)'}
-                </Label>
-                <Input
-                  id="initialMileage" 
-                  type="text" 
-                  placeholder="0 km"
-                  value={initialMileageInput}
-                  onChange={handleInitialMileageChange}
-                  disabled={movementType === 'entry'}
-                  required={movementType === 'exit'}
-                  {...(movementType === 'exit' ? register('initialMileage', { 
-                    required: 'Quilometragem inicial é obrigatória',
-                    min: {
-                      value: vehicle.mileage || 0,
-                      message: `Deve ser maior ou igual a ${vehicle.mileage} km`
-                    }
-                  }) : {})}
-                />
-                {errors.initialMileage && (
-                  <p className="text-red-500 text-xs mt-1">{errors.initialMileage.message}</p>
-                )}
+        <div className="px-6">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-5">
+              {/* Detalhes do Veículo */}
+              <div className="space-y-1">
+                <h3 className="font-medium">Veículo</h3>
+                <p className="text-base">{vehicle.plate} - {vehicle.make} {vehicle.model}</p>
               </div>
               
-              {/* KM Final (apenas para entrada) */}
-              {movementType === 'entry' && (
-                <div className="space-y-2">
-                  <Label htmlFor="finalMileage">KM Final*</Label>
-                  <Input
-                    id="finalMileage"
-                    type="text"
-                    placeholder="0 km"
-                    value={finalMileageInput}
-                    onChange={handleFinalMileageChange}
-                    required
-                    {...register('finalMileage', { 
-                      required: 'Quilometragem final é obrigatória',
-                      min: {
-                        value: activeMovement?.initialMileage || vehicle.mileage || 0,
-                        message: `Deve ser maior ou igual a ${activeMovement?.initialMileage || vehicle.mileage} km`
-                      }
-                    })}
-                  />
-                  {errors.finalMileage && (
-                    <p className="text-red-500 text-xs mt-1">{errors.finalMileage.message}</p>
+              {/* Motorista */}
+              <div className="space-y-1">
+                <FormField
+                  control={form.control}
+                  name="driver"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex items-center">
+                        Motorista
+                        <span className="text-red-500 ml-0.5">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder="Nome do motorista"
+                          className="bg-navy-800 border-navy-600 text-white" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      {movementType === 'entry' && (
+                        <p className="text-xs text-muted-foreground">
+                          Este é o motorista que realizou a saída
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
                   )}
+                />
+              </div>
+              
+              {/* Destino (apenas para saídas) */}
+              {movementType === 'exit' && (
+                <div className="space-y-1">
+                  <FormField
+                    control={form.control}
+                    name="destination"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center">
+                          Destino
+                          <span className="text-red-500 ml-0.5">*</span>
+                        </FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Local de destino" 
+                            className="bg-navy-800 border-navy-600 text-white"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
               )}
-            </div>
-          
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {buttonTitle}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+
+              {/* Quilometragem */}
+              <div className="space-y-4">
+                {/* KM Inicial */}
+                <div className="space-y-1">
+                  <Label className="flex items-center">
+                    Quilometragem inicial
+                    {movementType === 'exit' && <span className="text-red-500 ml-0.5">*</span>}
+                  </Label>
+                  <Input
+                    type="text" 
+                    placeholder="0 km"
+                    value={initialMileageInput}
+                    onChange={handleInitialMileageChange}
+                    disabled={movementType === 'entry'}
+                    className="bg-navy-800 border-navy-600 text-white"
+                    required={movementType === 'exit'}
+                  />
+                  {movementType === 'exit' && watchedInitialMileage < (vehicle.mileage || 0) && (
+                    <p className="text-red-500 text-xs">
+                      Quilometragem inicial não pode ser menor que a atual do veículo ({vehicle.mileage} km)
+                    </p>
+                  )}
+                  {movementType === 'exit' && (
+                    <p className="text-xs text-muted-foreground">
+                      KM atual: {vehicle.mileage} km
+                    </p>
+                  )}
+                </div>
+                
+                {/* KM Final (apenas para entrada) */}
+                {movementType === 'entry' && (
+                  <div className="space-y-1">
+                    <Label className="flex items-center">
+                      Quilometragem final
+                      <span className="text-red-500 ml-0.5">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="0 km"
+                      value={finalMileageInput}
+                      onChange={handleFinalMileageChange}
+                      required
+                      className="bg-navy-800 border-navy-600 text-white"
+                      {...register('finalMileage', { 
+                        required: 'Quilometragem final é obrigatória',
+                        min: {
+                          value: activeMovement?.initialMileage || vehicle.mileage || 0,
+                          message: `Deve ser maior ou igual a ${activeMovement?.initialMileage || vehicle.mileage} km`
+                        }
+                      })}
+                    />
+                    {errors.finalMileage && (
+                      <p className="text-red-500 text-xs">{errors.finalMileage.message}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            
+              <DialogFooter className="pt-2 pb-6">
+                <Button 
+                  type="button" 
+                  variant="outline"
+                  className="border-gray-600 bg-transparent text-white hover:bg-gray-800 hover:text-white"
+                  onClick={onClose}
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting}
+                  className={cn(
+                    "text-white",
+                    movementType === 'exit' 
+                      ? "bg-orange-500 hover:bg-orange-600" 
+                      : "bg-emerald-500 hover:bg-emerald-600"
+                  )}
+                >
+                  {buttonTitle}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
