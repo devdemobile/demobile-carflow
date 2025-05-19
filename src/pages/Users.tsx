@@ -423,7 +423,13 @@ const Users = () => {
     
     const matchesRole = roleFilter ? user.role === roleFilter : true;
     
-    return matchesSearch && matchesRole && (showInactiveUsers || user.status === 'active');
+    // Aqui está a correção: mostrar usuários ativos quando showInactiveUsers é false,
+    // e mostrar usuários inativos quando showInactiveUsers é true
+    const matchesStatus = showInactiveUsers 
+      ? user.status === 'inactive'  // Mostrar apenas inativos quando showInactiveUsers é true
+      : user.status === 'active';   // Mostrar apenas ativos quando showInactiveUsers é false
+    
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   const getRoleBadge = (role: string) => {
@@ -536,7 +542,7 @@ const Users = () => {
                 variant="success-danger"
               />
               <label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
-                {showInactiveUsers ? 'Ativos' : 'Inativos'}
+                {showInactiveUsers ? 'Inativos' : 'Ativos'}
               </label>
             </div>
             
