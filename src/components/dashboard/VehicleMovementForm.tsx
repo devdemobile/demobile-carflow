@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -329,6 +328,9 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
                         placeholder="0 km"
                         value={finalMileageInput}
                         onChange={handleFinalMileageChange}
+                      />
+                      <input 
+                        type="hidden" 
                         {...register('finalMileage', { 
                           required: 'Quilometragem final é obrigatória',
                           min: {
