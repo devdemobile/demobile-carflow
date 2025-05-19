@@ -52,26 +52,12 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     queryKey: ['vehicles', filters],
     queryFn: async () => {
       try {
-        // Lógica de filtragem
         let filteredVehicles: Vehicle[] = [];
         
-        // Aplicar filtro de busca
-        if (filters.search) {
-          return await vehicleService.searchVehicles(filters.search);
-        }
-        
-        // Aplicar filtro de localização
-        if (filters.location) {
-          return await vehicleService.getVehiclesByLocation(filters.location);
-        }
-
-        // Aplicar filtro de unidade
-        if (filters.unitId && filters.unitId !== 'all') {
-          return await vehicleService.getVehiclesByUnit(filters.unitId);
-        }
-        
-        // Obter todos os veículos e aplicar filtros de client side
+        // Primeiro buscamos todos os veículos
         filteredVehicles = await vehicleService.getAllVehicles();
+        
+        // Aplicamos os filtros sequencialmente
         
         // Filtrar por status
         if (filters.status && filters.status !== 'all') {
@@ -94,11 +80,28 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
           );
         }
         
+        // Filtrar por unidade
+        if (filters.unitId && filters.unitId !== 'all') {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.unitId === filters.unitId
+          );
+        }
+        
         // Filtrar por placa
         if (filters.plate) {
           const normalizedPlate = filters.plate.toLowerCase().trim();
           filteredVehicles = filteredVehicles.filter(v => 
             v.plate.toLowerCase().includes(normalizedPlate)
+          );
+        }
+
+        // Filtrar por busca geral (aplicado ao final)
+        if (filters.search) {
+          const normalizedSearch = filters.search.toLowerCase().trim();
+          filteredVehicles = filteredVehicles.filter(v =>
+            v.plate.toLowerCase().includes(normalizedSearch) ||
+            v.make.toLowerCase().includes(normalizedSearch) ||
+            v.model.toLowerCase().includes(normalizedSearch)
           );
         }
         

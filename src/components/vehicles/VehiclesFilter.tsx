@@ -45,22 +45,17 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
     ],
     make: [
       { value: 'all', label: 'Todas as marcas' },
-      ...availableMakes
+      ...(availableMakes || [])
     ],
     model: [
       { value: 'all', label: 'Todos os modelos' },
-      ...availableModels
+      ...(availableModels || [])
     ],
     unitId: [
       { value: 'all', label: 'Todas as unidades' },
-      ...availableUnits
+      ...(availableUnits || [])
     ]
   };
-
-  // Quando o tipo de filtro muda, resetamos o valor para 'all'
-  useEffect(() => {
-    onFilterChange(selectedFilterKey, 'all');
-  }, [selectedFilterKey, onFilterChange]);
 
   // Handler para mudar o tipo de filtro
   const handleFilterKeyChange = (value: string) => {

@@ -38,7 +38,7 @@ const Vehicles = () => {
     closeAddVehicle,
     viewMode,
     setViewMode,
-    // Novos dados para os filtros
+    // Dados para os filtros
     makeOptions,
     modelOptions,
     unitOptions
