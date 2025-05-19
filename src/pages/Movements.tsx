@@ -6,7 +6,7 @@ import { Movement } from '@/types';
 import MovementsTable from '@/components/movements/MovementsTable';
 import MovementCard from '@/components/movements/MovementCard';
 import MovementsFilter from '@/components/movements/MovementsFilter';
-import MovementEditDialog from '@/components/movements/MovementEditDialog';
+import EnhancedMovementEditDialog from '@/components/movements/EnhancedMovementEditDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
@@ -112,7 +112,7 @@ const Movements = () => {
         )}
         
         {/* Dialog para edição de movimentação */}
-        <MovementEditDialog
+        <EnhancedMovementEditDialog
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           movement={selectedMovement}

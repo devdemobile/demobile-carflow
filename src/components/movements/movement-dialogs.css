@@ -10,3 +10,8 @@
     padding-bottom: 5rem;
   }
 }
+
+/* Espaçamento entre botões no diálogo da movimentação */
+.movement-edit-dialog .dialog-footer button + button {
+  margin-left: 0.75rem;
+}

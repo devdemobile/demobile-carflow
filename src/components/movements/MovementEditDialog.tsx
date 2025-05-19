@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Movement } from '@/types';
+import { Movement, VehicleLocation } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -23,15 +24,14 @@ interface MovementEditDialogProps {
   onUpdate: (movement: Movement) => Promise<void>;
   onDelete: (movement: Movement, password: string) => Promise<void>;
   onSaved: () => void;
+  className?: string; // Adicionada a propriedade className
 }
 
 const formSchema = z.object({
-  status: z.string().min(2, {
-    message: 'Status deve ter pelo menos 2 caracteres.',
-  }),
+  status: z.enum(['yard', 'out']).or(z.string()), // Garantir que seja compatível com VehicleLocation
 });
 
-const MovementEditDialog: React.FC<MovementEditDialogProps> = ({ isOpen, onClose, movement, onUpdate, onDelete, onSaved }) => {
+const MovementEditDialog: React.FC<MovementEditDialogProps> = ({ isOpen, onClose, movement, onUpdate, onDelete, onSaved, className }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [departureDate, setDepartureDate] = useState<Date | undefined>(undefined);
@@ -40,14 +40,14 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({ isOpen, onClose
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      status: movement?.status || '',
+      status: movement?.status || 'yard',
     },
   });
   
   useEffect(() => {
     if (movement) {
       form.reset({
-        status: movement.status || '',
+        status: movement.status || 'yard',
       });
       setDepartureDate(movement.departureDate ? new Date(movement.departureDate) : undefined);
       setArrivalDate(movement.arrivalDate ? new Date(movement.arrivalDate) : undefined);
@@ -58,8 +58,15 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({ isOpen, onClose
     if (!movement) return;
     setIsSubmitting(true);
     try {
-      // Assuming onUpdate accepts the entire movement object with partial updates
-      await onUpdate({ ...movement, ...values, departureDate: departureDate?.toISOString(), arrivalDate: arrivalDate?.toISOString() });
+      // Garantindo que status seja do tipo VehicleLocation
+      const status = values.status as VehicleLocation;
+      
+      await onUpdate({ 
+        ...movement, 
+        status, 
+        departureDate: departureDate?.toISOString() || movement.departureDate,
+        arrivalDate: arrivalDate?.toISOString() || movement.arrivalDate 
+      });
       toast.success('Movimentação atualizada com sucesso!');
       onClose();
       onSaved();
@@ -95,7 +102,7 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({ isOpen, onClose
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className={cn("sm:max-w-[425px]", className)}>
         <DialogHeader>
           <DialogTitle>Editar Movimentação</DialogTitle>
         </DialogHeader>
@@ -105,7 +112,10 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({ isOpen, onClose
               <Label htmlFor="status" className="text-right">
                 Status
               </Label>
-              <Select onValueChange={form.setValue} defaultValue={form.getValues().status}>
+              <Select 
+                value={form.getValues().status}
+                onValueChange={(value) => form.setValue('status', value, { shouldValidate: true })}
+              >
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
