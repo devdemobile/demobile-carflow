@@ -29,6 +29,14 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = f
     }
   };
 
+  const getBadgeVariant = (location: string) => {
+    switch (location) {
+      case 'yard': return 'success';
+      case 'out': return 'warning';
+      default: return 'outline';
+    }
+  };
+
   // Vehicle name with make, model, and color in a single line
   const vehicleFullName = `${vehicle.make} ${vehicle.model} ${vehicle.color}`;
 
@@ -41,7 +49,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = f
       onClick={() => onClick(vehicle)}
     >
       <div className={cn(
-        "overflow-hidden bg-muted",
+        "overflow-hidden bg-muted relative", // Adicionado relative para posicionar a badge
         compact ? "aspect-[16/9]" : "aspect-video" // Diminuindo a altura da imagem quando compacto
       )}>
         <img
@@ -52,6 +60,12 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = f
             e.currentTarget.src = placeholderImage;
           }}
         />
+        <Badge 
+          variant={getBadgeVariant(vehicle.location)}
+          className="absolute top-2 right-2 text-xs"
+        >
+          {getLocationLabel(vehicle.location)}
+        </Badge>
       </div>
       
       <CardHeader className={cn("pb-2", compact && "p-3 pt-2")}>
@@ -64,9 +78,6 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = f
               {vehicleFullName}
             </CardDescription>
           </div>
-          <Badge variant={vehicle.location === 'yard' ? 'outline' : 'secondary'}>
-            {getLocationLabel(vehicle.location)}
-          </Badge>
         </div>
       </CardHeader>
 
@@ -82,7 +93,9 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = f
         <div className="flex items-center gap-2">
           <MapPin className="h-3 w-3 text-muted-foreground" />
           <span>
-            {vehicle.location === 'yard' ? 'No Pátio' : 'Em Rota'}
+            {vehicle.location === 'yard' 
+              ? `Unidade: ${vehicle.unitName || 'Principal'}` 
+              : 'Em rota'}
           </span>
         </div>
       </CardContent>

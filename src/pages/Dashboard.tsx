@@ -354,7 +354,7 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold mb-2">Veículos Frequentes</h2>
           
           {!showAllVehicles && !isMobile && frequentVehicles.length > 4 ? (
-            <Carousel className="w-full mx-[20px]">
+            <Carousel className="w-full mx-[14px]">
               <CarouselContent className="-ml-4">
                 {frequentVehicles.slice(0, 8).map((vehicle) => (
                   <CarouselItem key={vehicle.id} className="pl-4 md:basis-1/3 lg:basis-1/4">
@@ -423,7 +423,7 @@ const Dashboard = () => {
               Nenhuma movimentação registrada nos últimos dias.
             </div>
           ) : !showAllMovements && !isMobile && recentMovements.length > 4 ? (
-            <Carousel className="w-full mx-[20px]">
+            <Carousel className="w-full mx-[14px]">
               <CarouselContent className="-ml-4">
                 {recentMovements.slice(0, 8).map((movement) => (
                   <CarouselItem key={movement.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
