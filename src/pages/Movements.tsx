@@ -46,6 +46,21 @@ const Movements = () => {
     setSelectedMovement(movement);
     setIsEditDialogOpen(true);
   };
+
+  // Stub methods for the MovementEditDialog
+  const handleUpdate = async (updatedMovement: Movement) => {
+    // Implement the actual update logic here
+    console.log("Updating movement:", updatedMovement);
+    await Promise.resolve(); // Placeholder for actual API call
+    await refetch();
+  };
+  
+  const handleDelete = async (movement: Movement, password: string) => {
+    // Implement the actual delete logic here
+    console.log("Deleting movement:", movement.id, "with password:", password);
+    await Promise.resolve(); // Placeholder for actual API call
+    await refetch();
+  };
   
   return (
     <Layout>
@@ -98,8 +113,7 @@ const Movements = () => {
           <MovementsTable
             movements={filteredMovements}
             isLoading={isLoading}
-            onMovementClick={handleMovementClick}
-            refetch={refetch}
+            onRowClick={handleMovementClick}
           />
         )}
         
@@ -108,6 +122,8 @@ const Movements = () => {
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           movement={selectedMovement}
+          onUpdate={handleUpdate}
+          onDelete={handleDelete}
           onSaved={refetch}
         />
       </div>

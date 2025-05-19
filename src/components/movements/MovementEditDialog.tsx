@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Dialog,
@@ -34,6 +33,7 @@ interface MovementEditDialogProps {
   movement: Movement | null;
   onUpdate: (updatedMovement: Movement) => Promise<void>;
   onDelete: (movement: Movement, password: string) => Promise<void>;
+  onSaved?: (result: any) => void; // Add this for backward compatibility
   showUnits?: boolean;
 }
 
@@ -43,6 +43,7 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
   movement,
   onUpdate,
   onDelete,
+  onSaved, // Accept the new prop
   showUnits = false
 }) => {
   const { userPermissions } = useAuth();
@@ -89,6 +90,7 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
     try {
       await onDelete(movement, password);
       toast.success("Movimentação excluída com sucesso");
+      if (onSaved) onSaved(null); // Call onSaved if provided
       onClose();
     } catch (error: any) {
       toast.error(`Erro ao excluir: ${error.message}`);
@@ -111,6 +113,7 @@ const MovementEditDialog: React.FC<MovementEditDialogProps> = ({
 
       await onUpdate(updatedMovement);
       toast.success("Movimentação atualizada com sucesso");
+      if (onSaved) onSaved(updatedMovement); // Call onSaved if provided
       setIsEditing(false);
     } catch (error: any) {
       toast.error(`Erro ao atualizar: ${error.message}`);

@@ -18,14 +18,19 @@ interface MovementsTableProps {
   isLoading?: boolean;
   onRowClick: (movement: Movement) => void;
   showUnits?: boolean;
+  onMovementClick?: (movement: Movement) => void; // Add this prop for backward compatibility
 }
 
 const MovementsTable: React.FC<MovementsTableProps> = ({ 
   movements, 
   isLoading = false,
   onRowClick,
+  onMovementClick, // Accept the new prop
   showUnits = false
 }) => {
+  // Use onMovementClick if provided, otherwise fall back to onRowClick
+  const handleRowClick = onMovementClick || onRowClick;
+  
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -71,7 +76,7 @@ const MovementsTable: React.FC<MovementsTableProps> = ({
             <TableRow 
               key={movement.id}
               className="cursor-pointer hover:bg-muted/50"
-              onClick={() => onRowClick(movement)}
+              onClick={() => handleRowClick(movement)}
             >
               <TableCell className="font-medium">{movement.vehiclePlate || movement.vehicleId}</TableCell>
               
