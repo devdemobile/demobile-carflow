@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils';
 interface VehicleCardProps {
   vehicle: Vehicle;
   onClick: (vehicle: Vehicle) => void;
+  compact?: boolean; // Adicionando propriedade para card compacto
 }
 
-const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
+const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = false }) => {
   const getLocationLabel = (location: string) => {
     switch (location) {
       case 'yard': return 'No Pátio';
@@ -39,7 +40,10 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
       className={`cursor-pointer hover:shadow-md transition-shadow ${getBorderClass(vehicle.location)}`}
       onClick={() => onClick(vehicle)}
     >
-      <div className="aspect-video w-full overflow-hidden bg-muted">
+      <div className={cn(
+        "overflow-hidden bg-muted",
+        compact ? "aspect-[16/9]" : "aspect-video" // Diminuindo a altura da imagem quando compacto
+      )}>
         <img
           src={vehicle.photoUrl || placeholderImage}
           alt={vehicle.plate}
@@ -50,10 +54,12 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
         />
       </div>
       
-      <CardHeader className="pb-2">
+      <CardHeader className={cn("pb-2", compact && "p-3 pt-2")}>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-xl font-bold">{vehicle.plate}</CardTitle>
+            <CardTitle className={cn("font-bold", compact ? "text-base" : "text-xl")}>
+              {vehicle.plate}
+            </CardTitle>
             <CardDescription className="font-medium">
               {vehicleFullName}
             </CardDescription>
@@ -64,13 +70,15 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
         </div>
       </CardHeader>
 
-      <CardContent className="grid gap-1 text-sm">
-        <div className="flex items-center gap-2">
-          <Car className="h-3 w-3 text-muted-foreground" />
-          <span>
-            {vehicleFullName}
-          </span>
-        </div>
+      <CardContent className={cn("grid gap-1 text-sm", compact && "p-3 pt-0")}>
+        {!compact && (
+          <div className="flex items-center gap-2">
+            <Car className="h-3 w-3 text-muted-foreground" />
+            <span>
+              {vehicleFullName}
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <MapPin className="h-3 w-3 text-muted-foreground" />
           <span>

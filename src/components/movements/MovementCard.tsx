@@ -65,12 +65,12 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
       className={`cursor-pointer hover:shadow-md transition-shadow ${getBorderClass(movement.status)}`}
       onClick={() => onClick(movement)}
     >
-      <CardContent className="pt-6">
-        {/* Cabeçalho: Placa e Status - Ajustado para ficarem na mesma linha */}
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex gap-3 items-center">
-            {/* Miniatura do veículo */}
-            <div className="w-14 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
+      <CardContent className="pt-4"> {/* Reduzido o padding top */}
+        {/* Cabeçalho: Placa e Status - Layout mais compacto */}
+        <div className="flex justify-between items-center mb-2"> {/* Menor margem */}
+          <div className="flex gap-2 items-center"> {/* Gap menor */}
+            {/* Miniatura do veículo - Tamanho reduzido */}
+            <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0"> {/* Tamanho reduzido */}
               <img 
                 src={vehicleImageUrl} 
                 alt={`Veículo ${movement.vehiclePlate || movement.plate || movement.vehicleId}`} 
@@ -82,42 +82,42 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span>
+                <span className="text-base font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span> {/* Tamanho de fonte menor */}
                 <Badge variant={getStatusVariant(movement.status)} className="ml-1">
                   {getMovementStatusLabel(movement.status)}
                 </Badge>
               </div>
               {/* Informação completa do veículo incluindo a cor */}
-              <span className="text-sm text-muted-foreground">{movement.vehicleName || ''}</span>
+              <span className="text-xs text-muted-foreground">{movement.vehicleName || ''}</span> {/* Texto menor */}
             </div>
           </div>
         </div>
         
         {/* Motorista */}
-        <div className="flex items-center gap-2 mb-4">
-          <User className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm">Motorista: <span className="font-medium">{movement.driver}</span></span>
+        <div className="flex items-center gap-2 mb-3"> {/* Menor margem */}
+          <User className="h-3 w-3 text-muted-foreground" /> {/* Ícone menor */}
+          <span className="text-xs">Motorista: <span className="font-medium">{movement.driver}</span></span> {/* Texto menor */}
         </div>
         
         {/* Origem e Destino */}
-        <div className="flex items-center justify-between gap-2 mb-4">
+        <div className="flex items-center justify-between gap-2 mb-3"> {/* Menor margem */}
           <div className="flex flex-col">
             <span className="text-xs font-semibold text-muted-foreground">Origem</span>
-            <span className="text-sm">{movement.departureUnitName || "—"}</span>
+            <span className="text-xs">{movement.departureUnitName || "—"}</span> {/* Texto menor */}
           </div>
           
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          <ArrowRight className="h-3 w-3 text-muted-foreground" /> {/* Ícone menor */}
           
           <div className="flex flex-col">
             <span className="text-xs font-semibold text-muted-foreground">Destino</span>
-            <span className="text-sm">{movement.arrivalUnitName || movement.destination || "—"}</span>
+            <span className="text-xs">{movement.arrivalUnitName || movement.destination || "—"}</span> {/* Texto menor */}
           </div>
         </div>
         
         {/* Detalhes de Saída e Chegada */}
-        <div className="grid grid-cols-2 gap-4 mb-3">
+        <div className="grid grid-cols-2 gap-2 mb-2"> {/* Gap e margem menores */}
           {/* Detalhes de Saída */}
-          <div className="bg-muted/40 p-2 rounded-md">
+          <div className="bg-muted/40 p-1.5 rounded-md"> {/* Padding menor */}
             <p className="text-xs font-semibold text-muted-foreground mb-1">Saída</p>
             {movement.departureDate && (
               <>
@@ -131,7 +131,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
           </div>
           
           {/* Detalhes de Chegada */}
-          <div className="bg-muted/40 p-2 rounded-md">
+          <div className="bg-muted/40 p-1.5 rounded-md"> {/* Padding menor */}
             <p className="text-xs font-semibold text-muted-foreground mb-1">Chegada</p>
             {movement.arrivalDate ? (
               <>
@@ -149,7 +149,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
         
         {/* Rodapé: Duração e Distância */}
         {(movement.duration || mileageRun > 0) && (
-          <div className="border-t pt-2 text-xs">
+          <div className="border-t pt-1.5 text-xs"> {/* Padding menor */}
             <div className="flex items-center gap-1">
               <Clock className="h-3 w-3 text-muted-foreground" />
               <span>

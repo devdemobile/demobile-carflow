@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
@@ -262,7 +261,7 @@ const Dashboard = () => {
     ? Math.round((vehicleStats.vehiclesOut / vehicleStats.totalVehicles) * 100) 
     : 0;
 
-  // Create header stats with percentages
+  // Create header stats with percentages and tamanho fixo para as DIVs
   const headerStats = !isMobile ? [
     {
       title: "Total de Veículos",
@@ -295,7 +294,7 @@ const Dashboard = () => {
           {!isMobile && (
             <div className="flex gap-3 items-center">
               {headerStats.map((stat, index) => (
-                <div key={index} className="bg-card border rounded-md px-4 py-2 flex flex-col min-w-28">
+                <div key={index} className="bg-card border rounded-md px-4 py-2 flex flex-col w-[130px] h-[80px]">
                   <span className="text-xs text-muted-foreground mb-0.5">{stat.title}</span>
                   <span className="font-medium text-base">{stat.value}</span>
                   {stat.description && (
@@ -328,30 +327,31 @@ const Dashboard = () => {
           </form>
         </div>
         
-        {/* Frequent Vehicles */}
+        {/* Frequent Vehicles - Reduzido tamanho dos cards */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Veículos Frequentes</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <h2 className="text-lg font-semibold mb-2">Veículos Frequentes</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {frequentVehicles.length > 0 ? (
               frequentVehicles.map((vehicle) => (
                 <VehicleCard 
                   key={vehicle.id} 
                   vehicle={vehicle} 
                   onClick={() => handleVehicleClick(vehicle)}
+                  compact={true} // Adicionando prop para versão compacta
                 />
               ))
             ) : (
-              <p className="text-muted-foreground text-center py-8 col-span-4">
+              <p className="text-muted-foreground text-center py-6 col-span-4">
                 Nenhum veículo cadastrado ainda.
               </p>
             )}
           </div>
         </div>
         
-        {/* Recent Movements */}
+        {/* Recent Movements - Ajustado grid para melhor visualização */}
         <div>
-          <h2 className="text-xl font-semibold mb-4">Movimentações Recentes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <h2 className="text-lg font-semibold mb-2">Movimentações Recentes</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {isLoadingMovements ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="border rounded-lg shadow-sm p-4">
