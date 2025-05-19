@@ -12,6 +12,8 @@ interface UsersFilterProps {
   onRoleFilterChange: (value: string | null) => void;
   onReset: () => void;
   actions?: React.ReactNode;
+  showInactiveUsers?: boolean;
+  onStatusChange?: (value: boolean) => void;
 }
 
 const UsersFilter: React.FC<UsersFilterProps> = ({
@@ -22,7 +24,9 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
   roleFilter,
   onRoleFilterChange,
   onReset,
-  actions
+  actions,
+  showInactiveUsers,
+  onStatusChange
 }) => {
   return (
     <PageHeader
