@@ -23,6 +23,7 @@ import { useVehicleMakes } from '@/hooks/useVehicleMakes';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { VehicleMake } from '@/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MakesDialogProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const MakesDialog: React.FC<MakesDialogProps> = ({ isOpen, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredMakes, setFilteredMakes] = useState<VehicleMake[]>([]);
   const { userPermissions } = useAuth();
+  const isMobile = useIsMobile();
   
   const {
     makes,
