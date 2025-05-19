@@ -1,0 +1,12 @@
+
+/* Estilização para os botões no MovementEditDialog */
+.dialog-footer .flex {
+  gap: 0.75rem !important;
+}
+
+/* Espaçamento adicional para o bottom mobile */
+@media (max-width: 768px) {
+  .movements-container {
+    padding-bottom: 5rem;
+  }
+}

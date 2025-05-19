@@ -12,6 +12,9 @@ import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { useMediaQuery } from '@/hooks/use-mobile';
 
+// Importar o CSS personalizado
+import '@/components/movements/movement-dialogs.css';
+
 const Movements = () => {
   const { movements, isLoading, refetch } = useMovements();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
@@ -61,7 +64,7 @@ const Movements = () => {
   
   return (
     <Layout>
-      <div className="container mx-auto py-6 pb-16 md:pb-6">
+      <div className={`container mx-auto py-6 ${isMobile ? 'pb-24 movements-container' : 'pb-6'}`}>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Movimentações</h1>
         </div>
