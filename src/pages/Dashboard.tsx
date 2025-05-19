@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
@@ -196,13 +197,11 @@ const Dashboard = () => {
     }
   };
   
-  // Modify this function to match the expected signature (only expecting movement parameter)
+  // Fix the function to match the expected signature for onDelete
   const handleMovementDelete = async (movement: Movement): Promise<void> => {
     try {
-      // Since we can't pass the password directly in the function signature,
-      // we'll use a default admin password or handle it differently
-      const adminPassword = "admin"; // This should be handled more securely in a real app
-      await movementService.deleteMovement(movement.id, adminPassword);
+      // Fix: The deleteMovement method expects only one parameter (the movement id)
+      await movementService.deleteMovement(movement.id);
       refetchMovements();
       toast({
         title: "Movimentação excluída",
