@@ -229,7 +229,7 @@ const Dashboard = () => {
               />
               <Button type="submit" className="shrink-0">
                 <Search className="h-4 w-4 mr-2" />
-                Pesquisar
+                Registrar
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Digite a placa do veículo</p>
