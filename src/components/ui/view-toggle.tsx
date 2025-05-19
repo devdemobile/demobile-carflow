@@ -26,7 +26,7 @@ const ViewToggle: React.FC<ViewToggleProps> = ({
       type="single" 
       value={viewMode} 
       onValueChange={(value) => value && onViewChange(value as 'grid' | 'table')}
-      className={`hidden md:flex ${className}`}
+      className={`${className}`}
     >
       <ToggleGroupItem value="grid" aria-label="Ver em grade">
         <Grid2X2 className="h-4 w-4" />

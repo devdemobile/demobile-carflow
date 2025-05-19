@@ -23,7 +23,6 @@ import { movementService } from '@/services/movements/movementService';
 import { useAuth } from '@/hooks/useAuth';
 import { authService } from '@/services/auth/authService';
 import { movementLogService } from '@/services/movements/movementLogService';
-import ViewToggle from '@/components/ui/view-toggle';
 
 const Movements = () => {
   const isMobile = useIsMobile();
@@ -202,7 +201,6 @@ const Movements = () => {
     return (
       <Layout>
         <div className="container mx-auto py-6">
-          <h1 className="text-3xl font-bold mb-6">Movimentações</h1>
           <div className="bg-destructive/10 text-destructive p-4 rounded-md">
             Erro ao carregar movimentações. Tente novamente mais tarde.
           </div>
@@ -214,20 +212,6 @@ const Movements = () => {
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16">
-        <h1 className="text-3xl font-bold mb-6">Movimentações</h1>
-        
-        <div className="flex items-center justify-between mb-6">
-          {/* Filter components go here */}
-          <div className="flex-1">
-            {/* Existing filter components */}
-          </div>
-          
-          <ViewToggle 
-            viewMode={viewMode} 
-            onViewChange={setViewMode}
-          />
-        </div>
-        
         <MovementsFilter 
           filters={filters} 
           onFilterChange={handleFilterChange} 

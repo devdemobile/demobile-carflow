@@ -1,12 +1,8 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Filter, X } from 'lucide-react';
 import { VehicleFilters } from '@/hooks/useVehicles';
-import ViewToggle from '@/components/ui/view-toggle';
+import PageHeader from '@/components/layout/PageHeader';
 
 interface VehiclesFilterProps {
   viewMode: 'grid' | 'table';
@@ -14,6 +10,7 @@ interface VehiclesFilterProps {
   filters: VehicleFilters;
   onFilterChange: (name: string, value: string) => void;
   onReset: () => void;
+  actions?: React.ReactNode;
 }
 
 const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
@@ -21,77 +18,52 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
   setViewMode,
   filters,
   onFilterChange,
-  onReset
+  onReset,
+  actions
 }) => {
   return (
-    <Card className="p-4 mb-6">
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <Input
-              placeholder="Buscar por placa..."
-              value={filters.plate || ''}
-              onChange={(e) => onFilterChange('plate', e.target.value)}
-              className="w-full"
-            />
-          </div>
-          
-          <div>
-            <Select 
-              value={filters.make || ''} 
-              onValueChange={(value) => onFilterChange('make', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Marca" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as marcas</SelectItem>
-                <SelectItem value="volkswagen">Volkswagen</SelectItem>
-                <SelectItem value="toyota">Toyota</SelectItem>
-                <SelectItem value="honda">Honda</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Select 
-              value={filters.status || ''} 
-              onValueChange={(value) => onFilterChange('status', value)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os status</SelectItem>
-                <SelectItem value="available">Disponível</SelectItem>
-                <SelectItem value="in_use">Em uso</SelectItem>
-                <SelectItem value="maintenance">Em manutenção</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+    <PageHeader
+      title="Veículos"
+      searchPlaceholder="Buscar por placa..."
+      searchValue={filters.plate || ''}
+      onSearchChange={(value) => onFilterChange('plate', value)}
+      onResetFilters={onReset}
+      viewMode={viewMode}
+      setViewMode={setViewMode}
+      actions={actions}
+    >
+      <div className="grid grid-cols-2 gap-3">
+        <Select 
+          value={filters.make || 'all'} 
+          onValueChange={(value) => onFilterChange('make', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Marca" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as marcas</SelectItem>
+            <SelectItem value="volkswagen">Volkswagen</SelectItem>
+            <SelectItem value="toyota">Toyota</SelectItem>
+            <SelectItem value="honda">Honda</SelectItem>
+          </SelectContent>
+        </Select>
         
-        <div className="flex items-center justify-end gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={onReset}
-          >
-            <X className="h-4 w-4 mr-1" />
-            Limpar
-          </Button>
-          <Button size="sm">
-            <Filter className="h-4 w-4 mr-1" />
-            Filtrar
-          </Button>
-          
-          <ViewToggle 
-            viewMode={viewMode} 
-            onViewChange={setViewMode}
-          />
-        </div>
+        <Select 
+          value={filters.status || 'all'} 
+          onValueChange={(value) => onFilterChange('status', value)}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os status</SelectItem>
+            <SelectItem value="available">Disponível</SelectItem>
+            <SelectItem value="in_use">Em uso</SelectItem>
+            <SelectItem value="maintenance">Em manutenção</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-    </Card>
+    </PageHeader>
   );
 };
 
