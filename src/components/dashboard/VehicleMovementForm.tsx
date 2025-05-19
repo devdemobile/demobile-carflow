@@ -218,10 +218,10 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     const movement: Movement = {
       id: Math.random().toString(),
       vehicleId: vehicle.id,
-      vehiclePlate: vehicle.plate, // Usar vehiclePlate em vez de plate
+      vehiclePlate: vehicle.plate,
       vehicleName: `${vehicle.make} ${vehicle.model}`,
       driver: data.driver,
-      destination: isExit ? data.destination : undefined, // Somente incluir destino se for saída
+      destination: isExit ? data.destination : undefined,
       initialMileage: isExit ? data.initialMileage : vehicle.mileage || 0,
       finalMileage: !isExit ? data.finalMileage : undefined,
       departureDate: today,

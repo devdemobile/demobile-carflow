@@ -59,7 +59,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         filteredVehicles = await vehicleService.getAllVehicles();
         
         // Para veículos em rota, buscar os respectivos destinos das movimentações ativas
-        for (let vehicle of filteredVehicles) {
+        const promises = filteredVehicles.map(async (vehicle) => {
           if (vehicle.location === 'out') {
             try {
               // Buscar movimentações do veículo
@@ -82,7 +82,11 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
               console.error('Erro ao buscar destino do veículo:', error);
             }
           }
-        }
+          return vehicle;
+        });
+        
+        // Esperar todas as consultas terminarem
+        await Promise.all(promises);
         
         // Aplicamos os filtros sequencialmente
         
