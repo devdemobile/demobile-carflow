@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Vehicle } from '@/types';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Car, PackageCheck } from 'lucide-react';
+import { MapPin, Car } from 'lucide-react';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -52,7 +53,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick }) => {
         <div className="flex items-center gap-2">
           <Car className="h-3 w-3 text-muted-foreground" />
           <span>
-            {vehicle.type}
+            {vehicleFullName}
           </span>
         </div>
         <div className="flex items-center gap-2">
