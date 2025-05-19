@@ -354,10 +354,15 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold mb-2">Veículos Frequentes</h2>
           
           {!showAllVehicles && !isMobile && frequentVehicles.length > 4 ? (
-            <Carousel className="w-full mx-[10px]">
-              <CarouselContent className="-ml-4">
+            <Carousel className="w-full mx-auto" opts={{ 
+              align: 'start', 
+              containScroll: 'trimSnaps',
+              dragFree: false,
+              slidesToScroll: 1
+            }}>
+              <CarouselContent>
                 {frequentVehicles.slice(0, 8).map((vehicle) => (
-                  <CarouselItem key={vehicle.id} className="pl-4 md:basis-1/4 lg:basis-1/5">
+                  <CarouselItem key={vehicle.id} className="md:basis-1/4 px-1">
                     <VehicleCard 
                       vehicle={vehicle} 
                       onClick={() => handleVehicleClick(vehicle)}
@@ -366,11 +371,11 @@ const Dashboard = () => {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="!absolute" />
-              <CarouselNext className="!absolute" />
+              <CarouselPrevious className="!-left-4" />
+              <CarouselNext className="!-right-4" />
             </Carousel>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
               {displayFrequentVehicles.length > 0 ? (
                 displayFrequentVehicles.map((vehicle) => (
                   <VehicleCard 
@@ -423,10 +428,15 @@ const Dashboard = () => {
               Nenhuma movimentação registrada nos últimos dias.
             </div>
           ) : !showAllMovements && !isMobile && recentMovements.length > 4 ? (
-            <Carousel className="w-full mx-[10px]">
-              <CarouselContent className="-ml-4">
+            <Carousel className="w-full mx-auto" opts={{ 
+              align: 'start', 
+              containScroll: 'trimSnaps',
+              dragFree: false,
+              slidesToScroll: 1
+            }}>
+              <CarouselContent>
                 {recentMovements.slice(0, 8).map((movement) => (
-                  <CarouselItem key={movement.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                  <CarouselItem key={movement.id} className="md:basis-1/2 lg:basis-1/3 px-1">
                     <MovementCard 
                       movement={movement} 
                       onClick={handleMovementClick}
@@ -434,8 +444,8 @@ const Dashboard = () => {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="!absolute" />
-              <CarouselNext className="!absolute" />
+              <CarouselPrevious className="!-left-4" />
+              <CarouselNext className="!-right-4" />
             </Carousel>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
