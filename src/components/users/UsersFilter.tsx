@@ -11,6 +11,8 @@ interface UsersFilterProps {
   roleFilter: string | null;
   onRoleFilterChange: (value: string | null) => void;
   onReset: () => void;
+  showInactiveUsers?: boolean;
+  onStatusChange?: (value: boolean) => void;
   actions?: React.ReactNode;
 }
 
@@ -44,9 +46,7 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
         <SelectContent>
           <SelectItem value="all">Todos</SelectItem>
           <SelectItem value="admin">Administrador</SelectItem>
-          <SelectItem value="manager">Gerente</SelectItem>
           <SelectItem value="operator">Operador</SelectItem>
-          <SelectItem value="viewer">Visualizador</SelectItem>
         </SelectContent>
       </Select>
     </PageHeader>
