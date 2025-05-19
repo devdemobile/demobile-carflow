@@ -212,7 +212,7 @@ const Dashboard = () => {
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
         <h1 className="text-2xl font-bold">
-          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal text-sm">Controle a entrada e saída de veículos.</span>
+          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal text-base">Controle a entrada e saída de veículos.</span>
         </h1>
         
         {/* Vehicle Search */}
