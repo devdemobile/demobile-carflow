@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
@@ -68,12 +67,14 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [isAddModelOpen, setIsAddModelOpen] = useState(false);
   const [makeSearchTerm, setMakeSearchTerm] = useState('');
   const [modelSearchTerm, setModelSearchTerm] = useState('');
+  const [filteredMakes, setFilteredMakes] = useState<ComboboxOption[]>([]);
+  const [filteredModels, setFilteredModels] = useState<ComboboxOption[]>([]);
   
   const { units } = useUnits();
-  const { makes, createMake, isCreating: isCreatingMake } = useVehicleMakes();
+  const { makes, createMake, isCreating: isCreatingMake, findMakesByText } = useVehicleMakes();
   
   const watchMakeId = watch('makeId');
-  const { models, createModel, isCreating: isCreatingModel } = useVehicleModels(watchMakeId);
+  const { models, createModel, isCreating: isCreatingModel, findModelsByText } = useVehicleModels(watchMakeId);
   
   // Carrega os dados do veículo quando estiver editando
   useEffect(() => {
@@ -130,6 +131,15 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
       }
     }
   }, [watchModelId, models, setValue]);
+
+  // Inicializa as opções de marca e modelo
+  useEffect(() => {
+    setFilteredMakes(makes.map(make => ({ label: make.name, value: make.id })));
+  }, [makes]);
+  
+  useEffect(() => {
+    setFilteredModels(models.map(model => ({ label: model.name, value: model.id })));
+  }, [models]);
 
   const handleCapturePhoto = (photoDataUrl: string) => {
     setPhoto(photoDataUrl);
@@ -242,10 +252,26 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
 
   const handleMakeSearch = (value: string) => {
     setMakeSearchTerm(value);
+    
+    if (value.trim() === '') {
+      setFilteredMakes(makes.map(make => ({ label: make.name, value: make.id })));
+      return;
+    }
+    
+    const foundMakes = findMakesByText(value);
+    setFilteredMakes(foundMakes.map(make => ({ label: make.name, value: make.id })));
   };
 
   const handleModelSearch = (value: string) => {
     setModelSearchTerm(value);
+    
+    if (value.trim() === '') {
+      setFilteredModels(models.map(model => ({ label: model.name, value: model.id })));
+      return;
+    }
+    
+    const foundModels = findModelsByText(value);
+    setFilteredModels(foundModels.map(model => ({ label: model.name, value: model.id })));
   };
 
   return (
@@ -293,7 +319,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <div className="flex-1">
                     <Combobox
                       id="makeId"
-                      options={makes.map(make => ({ label: make.name, value: make.id }))}
+                      options={filteredMakes}
                       {...register('makeId', { required: 'Marca é obrigatória' })}
                       value={watch('makeId') || ''}
                       onSelect={(value) => setValue('makeId', value)}
@@ -302,7 +328,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       allowCustomValue={false}
                     />
                   </div>
-                  {makeSearchTerm && !makes.some(make => make.name.toLowerCase() === makeSearchTerm.toLowerCase()) && (
+                  {makeSearchTerm && !filteredMakes.some(make => make.label.toLowerCase() === makeSearchTerm.toLowerCase()) && (
                     <Button
                       type="button"
                       size="icon"
@@ -323,7 +349,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                   <div className="flex-1">
                     <Combobox
                       id="modelId"
-                      options={models.map(model => ({ label: model.name, value: model.id }))}
+                      options={filteredModels}
                       {...register('modelId', { required: 'Modelo é obrigatório' })}
                       value={watch('modelId') || ''}
                       onSelect={(value) => setValue('modelId', value)}
@@ -333,7 +359,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
                       allowCustomValue={false}
                     />
                   </div>
-                  {watchMakeId && modelSearchTerm && !models.some(model => model.name.toLowerCase() === modelSearchTerm.toLowerCase()) && (
+                  {watchMakeId && modelSearchTerm && !filteredModels.some(model => model.label.toLowerCase() === modelSearchTerm.toLowerCase()) && (
                     <Button
                       type="button"
                       size="icon"

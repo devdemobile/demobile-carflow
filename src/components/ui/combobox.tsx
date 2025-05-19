@@ -58,6 +58,7 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
     const handleSelect = React.useCallback((selectedValue: string) => {
       onSelect(selectedValue);
       setOpen(false);
+      setSearchValue(""); // Limpar o campo de busca após selecionar
     }, [onSelect]);
 
     // Função para lidar com mudanças no input
@@ -76,6 +77,16 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
       const selectedOption = options.find(option => option.value === value);
       return selectedOption ? selectedOption.label : value;
     }, [options, value]);
+
+    // Filtramos as opções aqui para melhorar a busca
+    const filteredOptions = React.useMemo(() => {
+      if (!searchValue.trim()) return options;
+      
+      const normalizedSearch = searchValue.trim().toLowerCase();
+      return options.filter(option => 
+        option.label.toLowerCase().includes(normalizedSearch)
+      );
+    }, [options, searchValue]);
 
     return (
       <div className={cn("relative", className)}>
@@ -103,7 +114,7 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-            <Command>
+            <Command shouldFilter={false}> {/* Desativamos o filtro interno para controlar manualmente */}
               <CommandInput 
                 placeholder={placeholder}
                 value={searchValue}
@@ -112,11 +123,11 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
               <CommandList>
                 <CommandEmpty>{emptyMessage}</CommandEmpty>
                 <CommandGroup>
-                  {options.map((option) => (
+                  {filteredOptions.map((option) => (
                     <CommandItem
                       key={option.value}
                       value={option.value}
-                      onSelect={handleSelect}
+                      onSelect={() => handleSelect(option.value)}
                     >
                       <Check
                         className={cn(
@@ -127,7 +138,7 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
                       {option.label}
                     </CommandItem>
                   ))}
-                  {allowCustomValue && searchValue && !options.some(o => o.value.toLowerCase() === searchValue.toLowerCase()) && (
+                  {allowCustomValue && searchValue && !filteredOptions.some(o => o.label.toLowerCase() === searchValue.toLowerCase()) && (
                     <CommandItem onSelect={() => handleSelect(searchValue)}>
                       Adicionar "{searchValue}"
                     </CommandItem>

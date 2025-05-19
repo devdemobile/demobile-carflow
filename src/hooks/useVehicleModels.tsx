@@ -77,6 +77,16 @@ export function useVehicleModels(makeId?: string) {
     }
   });
 
+  // Função para buscar modelo por texto
+  const findModelsByText = (searchText: string): VehicleModel[] => {
+    if (!searchText) return models;
+    
+    const normalizedSearch = searchText.trim().toLowerCase();
+    return models.filter(model => 
+      model.name.toLowerCase().includes(normalizedSearch)
+    );
+  };
+
   // Funções auxiliares
   const openAddModel = () => setIsAddModelOpen(true);
   const closeAddModel = () => setIsAddModelOpen(false);
@@ -141,6 +151,7 @@ export function useVehicleModels(makeId?: string) {
     deleteModel: deleteMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isDeleting: deleteMutation.isPending
+    isDeleting: deleteMutation.isPending,
+    findModelsByText
   };
 }

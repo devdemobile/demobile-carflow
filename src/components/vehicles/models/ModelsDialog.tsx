@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -25,6 +25,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
+import { VehicleModel } from '@/types';
 
 interface ModelsDialogProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ interface ModelsDialogProps {
 const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMakeId, setSelectedMakeId] = useState<string | null>(null);
+  const [filteredModels, setFilteredModels] = useState<VehicleModel[]>([]);
   const { userPermissions } = useAuth();
   
   const { makes } = useVehicleMakes();
@@ -56,14 +58,19 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
     deleteModel,
     isCreating,
     isUpdating,
-    isDeleting
+    isDeleting,
+    findModelsByText
   } = useVehicleModels(selectedMakeId || undefined);
 
-  // Filtra os modelos pelo termo de pesquisa
-  const filteredModels = models.filter(model => 
-    model.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (model.makeName && model.makeName.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Atualizar modelos filtrados quando o termo de busca ou a marca selecionada mudar
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredModels(models);
+    } else {
+      const filtered = findModelsByText(searchTerm);
+      setFilteredModels(filtered);
+    }
+  }, [searchTerm, models, findModelsByText]);
 
   const handleCreateModel = (data: { name: string; makeId: string }) => {
     createModel(data);

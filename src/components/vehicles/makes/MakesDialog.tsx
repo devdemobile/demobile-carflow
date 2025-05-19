@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -22,6 +22,7 @@ import { DeleteMakeDialog } from './DeleteMakeDialog';
 import { useVehicleMakes } from '@/hooks/useVehicleMakes';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
+import { VehicleMake } from '@/types';
 
 interface MakesDialogProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ interface MakesDialogProps {
 
 const MakesDialog: React.FC<MakesDialogProps> = ({ isOpen, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [filteredMakes, setFilteredMakes] = useState<VehicleMake[]>([]);
   const { userPermissions } = useAuth();
   
   const {
@@ -50,13 +52,18 @@ const MakesDialog: React.FC<MakesDialogProps> = ({ isOpen, onClose }) => {
     deleteMake,
     isCreating,
     isUpdating,
-    isDeleting
+    isDeleting,
+    findMakesByText
   } = useVehicleMakes();
 
-  // Filtra as marcas pelo termo de pesquisa
-  const filteredMakes = makes.filter(make => 
-    make.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Atualizar marcas filtradas quando o termo de busca mudar
+  useEffect(() => {
+    if (searchTerm.trim() === '') {
+      setFilteredMakes(makes);
+    } else {
+      setFilteredMakes(findMakesByText(searchTerm));
+    }
+  }, [searchTerm, makes, findMakesByText]);
 
   const handleCreateMake = (name: string) => {
     createMake(name);

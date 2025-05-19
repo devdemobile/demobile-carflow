@@ -66,6 +66,16 @@ export function useVehicleMakes() {
     }
   });
 
+  // Função para buscar marca por texto
+  const findMakesByText = (searchText: string): VehicleMake[] => {
+    if (!searchText) return makes;
+    
+    const normalizedSearch = searchText.trim().toLowerCase();
+    return makes.filter(make => 
+      make.name.toLowerCase().includes(normalizedSearch)
+    );
+  };
+
   // Funções auxiliares
   const openAddMake = () => setIsAddMakeOpen(true);
   const closeAddMake = () => setIsAddMakeOpen(false);
@@ -127,6 +137,7 @@ export function useVehicleMakes() {
     deleteMake: deleteMutation.mutate,
     isCreating: createMutation.isPending,
     isUpdating: updateMutation.isPending,
-    isDeleting: deleteMutation.isPending
+    isDeleting: deleteMutation.isPending,
+    findMakesByText
   };
 }
