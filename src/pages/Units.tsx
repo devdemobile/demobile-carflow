@@ -48,9 +48,10 @@ const Units = () => {
     }
   };
 
-  const handleDelete = async (unitId: string) => {
+  // Modified to accept a Unit object instead of just the ID
+  const handleDelete = async (unit: Unit) => {
     try {
-      const success = await deleteUnit(unitId);
+      const success = await deleteUnit(unit.id);
       if (success) {
         toast.success('Unidade excluída com sucesso');
         refetch();

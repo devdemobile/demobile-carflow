@@ -69,18 +69,18 @@ const UnitDialog: React.FC<UnitDialogProps> = ({
             </div>
             <div className="flex gap-2">
               <Button 
-                variant="outline" 
-                onClick={handleClose}
-                type="button"
-              >
-                Fechar
-              </Button>
-              <Button 
                 type="submit"
                 form="unit-form"
                 disabled={isLoading}
               >
                 {isLoading ? 'Salvando...' : 'Salvar Alterações'}
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={handleClose}
+                type="button"
+              >
+                Fechar
               </Button>
             </div>
           </DialogFooter>
