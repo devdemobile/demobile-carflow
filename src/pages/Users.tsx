@@ -51,6 +51,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
 import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
 import ViewToggle from '@/components/ui/view-toggle';
+import { cn } from '@/lib/utils';
 
 interface Unit {
   id: string;
