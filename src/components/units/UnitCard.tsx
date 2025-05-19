@@ -4,35 +4,22 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardContent,
-  CardFooter
+  CardContent
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Building, MapPin } from 'lucide-react';
+import { Building, MapPin } from 'lucide-react';
 import { Unit } from '@/types';
-import { DeleteUnitDialog } from './DeleteUnitDialog';
-import { useState } from 'react';
-import { deleteUnit } from '@/services/units/unitService';
 
 interface UnitCardProps {
   unit: Unit;
-  onEdit: () => void;
-  onDeleted: () => void;
+  onClick: () => void;
 }
 
-const UnitCard: React.FC<UnitCardProps> = ({ unit, onEdit, onDeleted }) => {
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  
-  const handleDelete = async () => {
-    const success = await deleteUnit(unit.id);
-    if (success) {
-      onDeleted();
-    }
-    setIsDeleteDialogOpen(false);
-  };
-
+const UnitCard: React.FC<UnitCardProps> = ({ unit, onClick }) => {
   return (
-    <Card className="border-l-4 hover:border-l-4 border-l-primary border-t-0 border-r-0 border-b-0 hover:shadow-md transition-shadow">
+    <Card 
+      className="border-l-4 hover:border-l-4 border-l-primary border-t-0 border-r-0 border-b-0 hover:shadow-md transition-shadow cursor-pointer"
+      onClick={onClick}
+    >
       <CardHeader className="pb-2">
         <CardTitle className="flex justify-between items-center">
           <span>{unit.name}</span>
@@ -57,30 +44,6 @@ const UnitCard: React.FC<UnitCardProps> = ({ unit, onEdit, onDeleted }) => {
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2 pt-0">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-          onClick={() => setIsDeleteDialogOpen(true)}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onEdit}
-        >
-          <Pencil className="h-4 w-4" />
-        </Button>
-      </CardFooter>
-
-      <DeleteUnitDialog 
-        isOpen={isDeleteDialogOpen}
-        onClose={() => setIsDeleteDialogOpen(false)}
-        onConfirm={handleDelete}
-        unitName={unit.name}
-      />
     </Card>
   );
 };

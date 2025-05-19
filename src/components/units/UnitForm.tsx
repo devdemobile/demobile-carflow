@@ -13,7 +13,6 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Unit } from '@/types';
 
 const unitSchema = z.object({
@@ -46,7 +45,7 @@ const UnitForm: React.FC<UnitFormProps> = ({ unit, onSubmit, isLoading }) => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" id="unit-form">
         <FormField
           control={form.control}
           name="name"
@@ -88,12 +87,6 @@ const UnitForm: React.FC<UnitFormProps> = ({ unit, onSubmit, isLoading }) => {
             </FormItem>
           )}
         />
-        
-        <div className="flex justify-end">
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? 'Salvando...' : 'Salvar'}
-          </Button>
-        </div>
       </form>
     </Form>
   );
