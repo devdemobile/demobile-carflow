@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Vehicle, VehicleLocation } from '@/types';
-import { useQuery, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { toast } from 'sonner';
 import { useVehicleMakes } from './useVehicleMakes';
