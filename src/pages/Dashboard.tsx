@@ -14,10 +14,12 @@ import { Search, Car, PackageCheck, Warehouse, Calendar } from 'lucide-react';
 import { movementService } from '@/services/movements/movementService';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useQuery } from '@tanstack/react-query';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [plateSearch, setPlateSearch] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -212,7 +214,7 @@ const Dashboard = () => {
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
         <h1 className="text-xl font-bold">
-          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}! <span className="text-muted-foreground font-normal text-lg">Controle a entrada e saída de veículos.</span>
+          Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}!
         </h1>
         
         {/* Vehicle Search */}
@@ -227,9 +229,9 @@ const Dashboard = () => {
                 onChange={(e) => setPlateSearch(e.target.value.toUpperCase())}
                 className="uppercase"
               />
-              <Button type="submit" className="shrink-0">
-                <Search className="h-4 w-4 mr-2" />
-                Registrar
+              <Button type="submit" className="shrink-0" size={isMobile ? "icon" : "default"}>
+                <Search className="h-4 w-4" />
+                {!isMobile && "Registrar"}
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">Digite a placa do veículo</p>
@@ -241,7 +243,7 @@ const Dashboard = () => {
           <StatCard 
             title="Total de Veículos" 
             value={vehicleStats.totalVehicles} 
-            icon={<Car />}
+            icon={<Car className="h-4 w-4" />}
           />
           <StatCard 
             title="Veículos no Pátio" 
@@ -250,7 +252,7 @@ const Dashboard = () => {
               `${((vehicleStats.vehiclesInYard / vehicleStats.totalVehicles) * 100).toFixed(0)}% da frota` : 
               '0% da frota'
             }
-            icon={<Warehouse />}
+            icon={<Warehouse className="h-4 w-4" />}
           />
           <StatCard 
             title="Veículos Fora" 
@@ -259,12 +261,12 @@ const Dashboard = () => {
               `${((vehicleStats.vehiclesOut / vehicleStats.totalVehicles) * 100).toFixed(0)}% da frota` : 
               '0% da frota'
             }
-            icon={<PackageCheck />}
+            icon={<PackageCheck className="h-4 w-4" />}
           />
           <StatCard 
             title="Movimentações Hoje" 
             value={todayMovements}
-            icon={<Calendar />}
+            icon={<Calendar className="h-4 w-4" />}
           />
         </div>
         

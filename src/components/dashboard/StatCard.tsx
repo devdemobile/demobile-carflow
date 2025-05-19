@@ -2,6 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface StatCardProps {
   title: string;
@@ -20,13 +22,23 @@ const StatCard: React.FC<StatCardProps> = ({
   loading = false,
   className = ""
 }) => {
+  const isMobile = useIsMobile();
+  
   return (
     <Card className={className}>
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <CardHeader className={cn("flex flex-row items-center justify-between pb-2", 
+        isMobile && "p-3 pb-1"
+      )}>
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon && <div className="w-4 h-4 text-muted-foreground">{icon}</div>}
+        {icon && (
+          <div className={cn("w-4 h-4 text-muted-foreground flex items-center justify-center", 
+            isMobile && "ml-2"
+          )}>
+            {icon}
+          </div>
+        )}
       </CardHeader>
-      <CardContent>
+      <CardContent className={isMobile ? "p-3 pt-1" : undefined}>
         {loading ? (
           <>
             <Skeleton className="h-8 w-24 mb-1" />
