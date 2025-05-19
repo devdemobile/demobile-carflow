@@ -5,8 +5,12 @@ import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query'
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { toast } from 'sonner';
 
-interface VehicleFilters {
+// Export the interface so it can be imported elsewhere
+export interface VehicleFilters {
   search: string;
+  plate?: string;
+  make?: string;
+  status?: string;
   location: VehicleLocation | null;
   unitId: string | null;
 }
@@ -15,6 +19,9 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState<VehicleFilters>({
     search: initialFilters?.search || '',
+    plate: initialFilters?.plate || '',
+    make: initialFilters?.make || '',
+    status: initialFilters?.status || '',
     location: initialFilters?.location || null,
     unitId: initialFilters?.unitId || null,
   });
@@ -83,6 +90,9 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
   const resetFilters = () => {
     setFilters({
       search: '',
+      plate: '',
+      make: '',
+      status: '',
       location: null,
       unitId: null,
     });

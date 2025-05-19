@@ -45,8 +45,7 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
                 <SelectValue placeholder="Marca" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas as marcas</SelectItem>
-                {/* Normally you'd map through available makes here */}
+                <SelectItem value="all">Todas as marcas</SelectItem>
                 <SelectItem value="volkswagen">Volkswagen</SelectItem>
                 <SelectItem value="toyota">Toyota</SelectItem>
                 <SelectItem value="honda">Honda</SelectItem>
@@ -63,7 +62,7 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos os status</SelectItem>
+                <SelectItem value="all">Todos os status</SelectItem>
                 <SelectItem value="available">Disponível</SelectItem>
                 <SelectItem value="in_use">Em uso</SelectItem>
                 <SelectItem value="maintenance">Em manutenção</SelectItem>
