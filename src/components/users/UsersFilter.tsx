@@ -2,6 +2,7 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/layout/PageHeader';
+import { Button } from '@/components/ui/button';
 
 interface UsersFilterProps {
   viewMode: 'grid' | 'table';
@@ -39,14 +40,14 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
       actions={
         <div className="flex items-center gap-2">
           {onStatusChange && (
-            <button
+            <Button
               onClick={() => onStatusChange(!showInactiveUsers)}
-              className={`px-4 py-2 rounded-md text-white transition-colors ${
+              className={`px-4 py-2 transition-colors ${
                 !showInactiveUsers ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-              }`}
+              } text-white`}
             >
               {!showInactiveUsers ? 'Ativos' : 'Inativos'}
-            </button>
+            </Button>
           )}
           {actions}
         </div>

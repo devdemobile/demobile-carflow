@@ -228,12 +228,24 @@ const Users = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Usuários</h1>
           
-          {user?.role === 'admin' && (
-            <Button onClick={handleNewUser}>
-              <Plus className="h-4 w-4 md:mr-2" />
-              <span className="hidden md:inline">Novo Usuário</span>
-            </Button>
-          )}
+          <div className="flex gap-2 items-center">
+            {user?.role === 'admin' && (
+              <>
+                <Button
+                  onClick={() => setShowInactiveUsers(!showInactiveUsers)}
+                  className={`transition-colors ${
+                    !showInactiveUsers ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+                  } text-white`}
+                >
+                  {!showInactiveUsers ? 'Ativos' : 'Inativos'}
+                </Button>
+                <Button onClick={() => handleNewUser()}>
+                  <Plus className="h-4 w-4 md:mr-2" />
+                  <span className="hidden md:inline">Novo Usuário</span>
+                </Button>
+              </>
+            )}
+          </div>
         </div>
         
         <UsersFilter
@@ -247,8 +259,6 @@ const Users = () => {
             setSearchTerm('');
             setRoleFilter(null);
           }}
-          showInactiveUsers={showInactiveUsers}
-          onStatusChange={setShowInactiveUsers}
         />
         
         {loading ? (

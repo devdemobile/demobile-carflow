@@ -70,14 +70,14 @@ const UserCard: React.FC<UserCardProps> = ({
           {getRoleBadge(user.role)}
         </div>
         
-        <div className="text-sm mb-2">
+        <div className="text-sm mb-2 min-h-[40px]">
           <p className="text-muted-foreground">Unidade: {user.unitName || user.units?.name || "—"}</p>
-          {user.email && <p className="text-muted-foreground">Email: {user.email}</p>}
+          <p className="text-muted-foreground">Email: {user.email || "—"}</p>
         </div>
         
         {isAdmin && (
           <div className="flex items-center justify-between mt-4 pt-3 border-t">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center space-x-1">
               <Button 
                 variant="ghost" 
                 size="icon"
