@@ -61,7 +61,7 @@ const Movements = () => {
   
   return (
     <Layout>
-      <div className="container mx-auto py-6 pb-16 md:pb-6">
+      <div className="container mx-auto py-6 pb-24 md:pb-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Movimentações</h1>
         </div>
