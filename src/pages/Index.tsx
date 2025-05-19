@@ -2,6 +2,7 @@
 import React from 'react';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent } from '@/components/ui/card';
+import { Car, List, MapPin } from 'lucide-react';
 
 const Index = () => {
   return (
