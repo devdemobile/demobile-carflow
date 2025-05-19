@@ -26,6 +26,7 @@ import { Combobox } from '@/components/ui/combobox';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { VehicleModel } from '@/types';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ModelsDialogProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
   const [selectedMakeId, setSelectedMakeId] = useState<string | null>(null);
   const [filteredModels, setFilteredModels] = useState<VehicleModel[]>([]);
   const { userPermissions } = useAuth();
+  const isMobile = useIsMobile();
   
   const { makes } = useVehicleMakes();
   
@@ -101,8 +103,8 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
           <DialogTitle className="text-2xl">Gerenciar Modelos</DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col sm:flex-row items-center gap-4 justify-between my-4">
-          <div className="grid gap-2 w-full sm:w-auto">
+        <div className="grid gap-4 my-4">
+          <div className="grid gap-2">
             <Label htmlFor="makeFilter">Filtrar por marca</Label>
             <Combobox
               options={[
@@ -115,22 +117,24 @@ const ModelsDialog: React.FC<ModelsDialogProps> = ({ isOpen, onClose }) => {
             />
           </div>
           
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              className="pl-8"
-              placeholder="Buscar modelos..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                className="pl-8"
+                placeholder="Buscar modelos..." 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            {userPermissions?.canEditVehicles && (
+              <Button onClick={handleOpenAddModel} className="flex-shrink-0">
+                <Plus className="h-4 w-4" />
+                {!isMobile && <span className="ml-2">Novo Modelo</span>}
+              </Button>
+            )}
           </div>
-          
-          {userPermissions?.canEditVehicles && (
-            <Button onClick={handleOpenAddModel}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Modelo
-            </Button>
-          )}
         </div>
         
         <ScrollArea className="flex-1 border rounded-md">
