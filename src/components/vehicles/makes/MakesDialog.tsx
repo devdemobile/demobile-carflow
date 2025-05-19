@@ -100,7 +100,7 @@ const MakesDialog: React.FC<MakesDialogProps> = ({ isOpen, onClose }) => {
           {userPermissions?.canEditVehicles && (
             <Button onClick={openAddMake}>
               <Plus className="h-4 w-4 mr-2" />
-              Nova Marca
+              {!isMobile && <span className="ml-2">Nova Marca</span>}
             </Button>
           )}
         </div>
