@@ -1,11 +1,13 @@
+
 import { useState } from 'react';
 import { Vehicle, VehicleLocation } from '@/types';
-import { useQuery, useQueryClient, UseQueryResult } from '@tanstack/react-query';
+import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { toast } from 'sonner';
 import { useVehicleMakes } from './useVehicleMakes';
 import { useVehicleModels } from './useVehicleModels';
 import { useUnits } from './useUnits';
+import { movementService } from '@/services/movements/movementService';
 
 // Export the interface so it can be imported elsewhere
 export interface VehicleFilters {
@@ -53,8 +55,38 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
       try {
         let filteredVehicles: Vehicle[] = [];
         
-        // Buscar todos os veículos (o serviço agora inclui destinos para veículos em rota)
+        // Primeiro buscamos todos os veículos
         filteredVehicles = await vehicleService.getAllVehicles();
+        
+        // Para veículos em rota, buscar os respectivos destinos das movimentações ativas
+        const promises = filteredVehicles.map(async (vehicle) => {
+          if (vehicle.location === 'out') {
+            try {
+              // Buscar movimentações do veículo
+              const movements = await movementService.getMovementsByVehicle(vehicle.id);
+              
+              // Encontrar a movimentação de saída mais recente (status 'out')
+              const activeMovement = movements
+                .filter(m => m.status === 'out' && m.type === 'exit')
+                .sort((a, b) => {
+                  const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+                  const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+                  return dateB.getTime() - dateA.getTime();
+                })[0];
+              
+              // Se encontrar uma movimentação ativa, atualizar o destino do veículo
+              if (activeMovement && activeMovement.destination) {
+                vehicle.destination = activeMovement.destination;
+              }
+            } catch (error) {
+              console.error('Erro ao buscar destino do veículo:', error);
+            }
+          }
+          return vehicle;
+        });
+        
+        // Esperar todas as consultas terminarem
+        await Promise.all(promises);
         
         // Aplicamos os filtros sequencialmente
         
@@ -115,9 +147,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         toast.error(`Erro ao buscar veículos: ${error.message}`);
         throw error;
       }
-    },
-    refetchInterval: 30000, // Refetch a cada 30 segundos para atualizar os dados dos veículos
-    refetchOnWindowFocus: true // Refetch quando o usuário volta para a janela
+    }
   });
 
   // Calculate total pages

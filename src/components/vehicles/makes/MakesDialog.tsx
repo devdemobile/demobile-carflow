@@ -23,7 +23,6 @@ import { useVehicleMakes } from '@/hooks/useVehicleMakes';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAuth } from '@/hooks/useAuth';
 import { VehicleMake } from '@/types';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MakesDialogProps {
   isOpen: boolean;
@@ -34,7 +33,6 @@ const MakesDialog: React.FC<MakesDialogProps> = ({ isOpen, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredMakes, setFilteredMakes] = useState<VehicleMake[]>([]);
   const { userPermissions } = useAuth();
-  const isMobile = useIsMobile();
   
   const {
     makes,
@@ -88,8 +86,8 @@ const MakesDialog: React.FC<MakesDialogProps> = ({ isOpen, onClose }) => {
           <DialogTitle className="text-2xl">Gerenciar Marcas</DialogTitle>
         </DialogHeader>
         
-        <div className="flex items-center gap-2 my-4">
-          <div className="relative flex-1">
+        <div className="flex items-center justify-between my-4">
+          <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
               className="pl-8"
@@ -100,9 +98,9 @@ const MakesDialog: React.FC<MakesDialogProps> = ({ isOpen, onClose }) => {
           </div>
           
           {userPermissions?.canEditVehicles && (
-            <Button onClick={openAddMake} className="flex-shrink-0">
-              <Plus className="h-4 w-4" />
-              {!isMobile && <span className="ml-2">Nova Marca</span>}
+            <Button onClick={openAddMake}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nova Marca
             </Button>
           )}
         </div>

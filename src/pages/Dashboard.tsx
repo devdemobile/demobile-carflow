@@ -310,7 +310,7 @@ const Dashboard = () => {
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-xl font-bold">
-            Bem-Vindo {user?.name?.split(' ')[0]}!
+            Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}!
           </h1>
           
           {!isMobile && (
