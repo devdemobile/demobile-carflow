@@ -5,11 +5,14 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
+  DialogFooter,
+  DialogDescription,
+  ScrollArea
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Vehicle, VehicleDTO } from '@/types';
 import { Camera, X, Upload, Plus } from 'lucide-react';
 import { Combobox, ComboboxOption } from '@/components/ui/combobox';
@@ -22,6 +25,7 @@ import { useVehicleModels } from '@/hooks/useVehicleModels';
 import { formatMileage } from '@/lib/utils';
 import MakeForm from './makes/MakeForm';
 import ModelForm from './models/ModelForm';
+import { useMediaQuery } from '@/hooks/use-mobile';
 
 // Lista de marcas comuns de veículos
 const commonMakes = [
@@ -58,7 +62,8 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   onSave,
   editingVehicle
 }) => {
-  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = useForm<VehicleDTO>();
+  const form = useForm<VehicleDTO>();
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors } } = form;
   const [isSaving, setIsSaving] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
@@ -69,6 +74,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [modelSearchTerm, setModelSearchTerm] = useState('');
   const [filteredMakes, setFilteredMakes] = useState<ComboboxOption[]>([]);
   const [filteredModels, setFilteredModels] = useState<ComboboxOption[]>([]);
+  const isMobile = useMediaQuery('(max-width: 768px)');
   
   const { units } = useUnits();
   const { makes, createMake, isCreating: isCreatingMake, findMakesByText } = useVehicleMakes();
@@ -277,217 +283,240 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-0">
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle>{editingVehicle ? 'Editar Veículo' : 'Cadastrar Veículo'}</DialogTitle>
+            <DialogDescription>
+              Preencha os dados do veículo abaixo
+            </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit(handleSave)} className="space-y-4 py-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="plate">Placa*</Label>
-                <Input 
-                  id="plate"
-                  placeholder="ABC1234"
-                  {...register('plate', { required: 'Placa é obrigatória' })}
-                />
-                {errors.plate && <p className="text-sm text-red-500">{errors.plate.message}</p>}
-              </div>
-              
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="mileage">Quilometragem Atual*</Label>
-                <Input 
-                  id="mileage"
-                  value={mileageInput}
-                  onChange={handleMileageChange}
-                  placeholder="0 km"
-                />
-                <input type="hidden" {...register('mileage', { 
-                  required: 'Quilometragem é obrigatória',
-                  valueAsNumber: true,
-                  min: {
-                    value: 0,
-                    message: 'Quilometragem não pode ser negativa'
-                  }
-                })} />
-                {errors.mileage && <p className="text-sm text-red-500">{errors.mileage.message}</p>}
-              </div>
-              
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="makeId">Marca*</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Combobox
-                      id="makeId"
-                      options={filteredMakes}
-                      {...register('makeId', { required: 'Marca é obrigatória' })}
-                      value={watch('makeId') || ''}
-                      onSelect={(value) => setValue('makeId', value)}
-                      placeholder="Selecione a marca"
-                      onInputChange={handleMakeSearch}
-                      allowCustomValue={false}
-                    />
-                  </div>
-                  {makeSearchTerm && !filteredMakes.some(make => make.label.toLowerCase() === makeSearchTerm.toLowerCase()) && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setIsAddMakeOpen(true)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                <input type="hidden" {...register('make', { required: true })} />
-                {errors.makeId && <p className="text-sm text-red-500">{errors.makeId.message}</p>}
-              </div>
-              
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="modelId">Modelo*</Label>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <Combobox
-                      id="modelId"
-                      options={filteredModels}
-                      {...register('modelId', { required: 'Modelo é obrigatório' })}
-                      value={watch('modelId') || ''}
-                      onSelect={(value) => setValue('modelId', value)}
-                      placeholder={watchMakeId ? "Selecione o modelo" : "Selecione uma marca primeiro"}
-                      disabled={!watchMakeId}
-                      onInputChange={handleModelSearch}
-                      allowCustomValue={false}
-                    />
-                  </div>
-                  {watchMakeId && modelSearchTerm && !filteredModels.some(model => model.label.toLowerCase() === modelSearchTerm.toLowerCase()) && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setIsAddModelOpen(true)}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-                <input type="hidden" {...register('model', { required: true })} />
-                {errors.modelId && <p className="text-sm text-red-500">{errors.modelId.message}</p>}
-              </div>
-              
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="color">Cor*</Label>
-                <Input 
-                  id="color"
-                  placeholder="Branco"
-                  {...register('color', { required: 'Cor é obrigatória' })}
-                />
-                {errors.color && <p className="text-sm text-red-500">{errors.color.message}</p>}
-              </div>
-              
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="year">Ano*</Label>
-                <Input 
-                  id="year"
-                  type="number"
-                  placeholder={new Date().getFullYear().toString()}
-                  {...register('year', { 
-                    required: 'Ano é obrigatório',
-                    valueAsNumber: true,
-                    min: {
-                      value: 1900,
-                      message: 'Ano inválido'
-                    },
-                    max: {
-                      value: new Date().getFullYear() + 1,
-                      message: `Ano não pode ser maior que ${new Date().getFullYear() + 1}`
-                    }
-                  })}
-                />
-                {errors.year && <p className="text-sm text-red-500">{errors.year.message}</p>}
-              </div>
-              
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="unitId">Unidade*</Label>
-                <select
-                  id="unitId"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  {...register('unitId', { required: 'Unidade é obrigatória' })}
-                >
-                  {units.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name} ({unit.code})
-                    </option>
-                  ))}
-                </select>
-                {errors.unitId && <p className="text-sm text-red-500">{errors.unitId.message}</p>}
-              </div>
-
-              <div className="flex flex-col space-y-1.5 col-span-1 md:col-span-2">
-                <Label>Foto do Veículo</Label>
-                <div className="flex flex-col items-center border-2 border-dashed border-gray-300 rounded-md p-4">
-                  {photo ? (
-                    <div className="relative w-full">
-                      <img 
-                        src={photo} 
-                        alt="Foto do veículo" 
-                        className="w-full h-40 object-cover rounded-md mx-auto"
-                      />
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        size="sm"
-                        className="absolute top-2 right-2"
-                        onClick={() => setPhoto(null)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col sm:flex-row w-full gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full flex-1"
-                        onClick={handleOpenCamera}
-                      >
-                        <Camera className="mr-2 h-4 w-4" /> Capturar Foto
-                      </Button>
-                      <div className="relative w-full flex-1">
-                        <Input
-                          type="file"
-                          id="photoUpload"
-                          accept="image/*"
-                          className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                          onChange={handleFileUpload}
+          <ScrollArea className="px-6 max-h-[calc(90vh-130px)]">
+            <div className="py-4">
+              <Form {...form}>
+                <form onSubmit={handleSubmit(handleSave)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormItem>
+                      <FormLabel htmlFor="plate">Placa*</FormLabel>
+                      <FormControl>
+                        <Input 
+                          id="plate"
+                          placeholder="ABC1234"
+                          {...register('plate', { required: 'Placa é obrigatória' })}
                         />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full"
+                      </FormControl>
+                      {errors.plate && <p className="text-sm text-red-500">{errors.plate.message}</p>}
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="mileage">Quilometragem Atual*</FormLabel>
+                      <FormControl>
+                        <Input 
+                          id="mileage"
+                          value={mileageInput}
+                          onChange={handleMileageChange}
+                          placeholder="0 km"
+                        />
+                      </FormControl>
+                      <input type="hidden" {...register('mileage', { 
+                        required: 'Quilometragem é obrigatória',
+                        valueAsNumber: true,
+                        min: {
+                          value: 0,
+                          message: 'Quilometragem não pode ser negativa'
+                        }
+                      })} />
+                      {errors.mileage && <p className="text-sm text-red-500">{errors.mileage.message}</p>}
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="makeId">Marca*</FormLabel>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Combobox
+                            id="makeId"
+                            options={filteredMakes}
+                            {...register('makeId', { required: 'Marca é obrigatória' })}
+                            value={watch('makeId') || ''}
+                            onSelect={(value) => setValue('makeId', value)}
+                            placeholder="Selecione a marca"
+                            onInputChange={handleMakeSearch}
+                            allowCustomValue={false}
+                          />
+                        </div>
+                        {makeSearchTerm && !filteredMakes.some(make => make.label.toLowerCase() === makeSearchTerm.toLowerCase()) && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setIsAddMakeOpen(true)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <input type="hidden" {...register('make', { required: true })} />
+                      {errors.makeId && <p className="text-sm text-red-500">{errors.makeId.message}</p>}
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="modelId">Modelo*</FormLabel>
+                      <div className="flex gap-2">
+                        <div className="flex-1">
+                          <Combobox
+                            id="modelId"
+                            options={filteredModels}
+                            {...register('modelId', { required: 'Modelo é obrigatório' })}
+                            value={watch('modelId') || ''}
+                            onSelect={(value) => setValue('modelId', value)}
+                            placeholder={watchMakeId ? "Selecione o modelo" : "Selecione uma marca primeiro"}
+                            disabled={!watchMakeId}
+                            onInputChange={handleModelSearch}
+                            allowCustomValue={false}
+                          />
+                        </div>
+                        {watchMakeId && modelSearchTerm && !filteredModels.some(model => model.label.toLowerCase() === modelSearchTerm.toLowerCase()) && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setIsAddModelOpen(true)}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <input type="hidden" {...register('model', { required: true })} />
+                      {errors.modelId && <p className="text-sm text-red-500">{errors.modelId.message}</p>}
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="color">Cor*</FormLabel>
+                      <FormControl>
+                        <Input 
+                          id="color"
+                          placeholder="Branco"
+                          {...register('color', { required: 'Cor é obrigatória' })}
+                        />
+                      </FormControl>
+                      {errors.color && <p className="text-sm text-red-500">{errors.color.message}</p>}
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="year">Ano*</FormLabel>
+                      <FormControl>
+                        <Input 
+                          id="year"
+                          type="number"
+                          placeholder={new Date().getFullYear().toString()}
+                          {...register('year', { 
+                            required: 'Ano é obrigatório',
+                            valueAsNumber: true,
+                            min: {
+                              value: 1900,
+                              message: 'Ano inválido'
+                            },
+                            max: {
+                              value: new Date().getFullYear() + 1,
+                              message: `Ano não pode ser maior que ${new Date().getFullYear() + 1}`
+                            }
+                          })}
+                        />
+                      </FormControl>
+                      {errors.year && <p className="text-sm text-red-500">{errors.year.message}</p>}
+                    </FormItem>
+                    
+                    <FormItem>
+                      <FormLabel htmlFor="unitId">Unidade*</FormLabel>
+                      <FormControl>
+                        <select
+                          id="unitId"
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          {...register('unitId', { required: 'Unidade é obrigatória' })}
                         >
-                          <Upload className="mr-2 h-4 w-4" /> Anexar Foto
-                        </Button>
+                          {units.map((unit) => (
+                            <option key={unit.id} value={unit.id}>
+                              {unit.name} ({unit.code})
+                            </option>
+                          ))}
+                        </select>
+                      </FormControl>
+                      {errors.unitId && <p className="text-sm text-red-500">{errors.unitId.message}</p>}
+                    </FormItem>
+
+                    <div className="flex flex-col space-y-1.5 col-span-1 md:col-span-2">
+                      <Label>Foto do Veículo</Label>
+                      <div className="flex flex-col items-center border-2 border-dashed border-gray-300 rounded-md p-4">
+                        {photo ? (
+                          <div className="relative w-full">
+                            <img 
+                              src={photo} 
+                              alt="Foto do veículo" 
+                              className="w-full h-40 object-cover rounded-md mx-auto"
+                            />
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              className="absolute top-2 right-2"
+                              onClick={() => setPhoto(null)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col sm:flex-row w-full gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              className="w-full flex-1"
+                              onClick={handleOpenCamera}
+                            >
+                              <Camera className="mr-2 h-4 w-4" /> Capturar Foto
+                            </Button>
+                            <div className="relative w-full flex-1">
+                              <Input
+                                type="file"
+                                id="photoUpload"
+                                accept="image/*"
+                                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                onChange={handleFileUpload}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="w-full"
+                              >
+                                <Upload className="mr-2 h-4 w-4" /> Anexar Foto
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
-              </div>
+                  </div>
+                </form>
+              </Form>
             </div>
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onClose}
-                disabled={isSaving}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? 'Salvando...' : 'Salvar'}
-              </Button>
-            </DialogFooter>
-          </form>
+          </ScrollArea>
+          
+          <DialogFooter className="px-6 py-4 border-t">
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onClose}
+              disabled={isSaving}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              type="button" 
+              disabled={isSaving}
+              onClick={handleSubmit(handleSave)}
+            >
+              {isSaving ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
       
