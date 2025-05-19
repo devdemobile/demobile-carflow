@@ -6,14 +6,11 @@ import { Movement } from '@/types';
 import MovementsTable from '@/components/movements/MovementsTable';
 import MovementCard from '@/components/movements/MovementCard';
 import MovementsFilter from '@/components/movements/MovementsFilter';
-import EnhancedMovementEditDialog from '@/components/movements/EnhancedMovementEditDialog';
+import MovementEditDialog from '@/components/movements/MovementEditDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { useMediaQuery } from '@/hooks/use-mobile';
-
-// Importar o CSS personalizado
-import '@/components/movements/movement-dialogs.css';
 
 const Movements = () => {
   const { movements, isLoading, refetch } = useMovements();
@@ -64,7 +61,7 @@ const Movements = () => {
   
   return (
     <Layout>
-      <div className={`container mx-auto py-6 ${isMobile ? 'pb-24 movements-container' : 'pb-6'}`}>
+      <div className="container mx-auto py-6 pb-16 md:pb-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Movimentações</h1>
         </div>
@@ -112,7 +109,7 @@ const Movements = () => {
         )}
         
         {/* Dialog para edição de movimentação */}
-        <EnhancedMovementEditDialog
+        <MovementEditDialog
           isOpen={isEditDialogOpen}
           onClose={() => setIsEditDialogOpen(false)}
           movement={selectedMovement}

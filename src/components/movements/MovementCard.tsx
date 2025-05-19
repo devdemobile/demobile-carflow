@@ -66,9 +66,9 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
       onClick={() => onClick(movement)}
     >
       <CardContent className="pt-6">
-        {/* Cabeçalho: Placa e Status - Ajustado para ficarem na mesma linha */}
-        <div className="flex justify-between items-center mb-3">
-          <div className="flex gap-3 items-center">
+        {/* Cabeçalho: Placa e Status */}
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex gap-3 items-start">
             {/* Miniatura do veículo */}
             <div className="w-14 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
               <img 
@@ -80,18 +80,15 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
                 }}
               />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span>
-                {/* Status na mesma linha que a placa */}
-                <Badge variant={getStatusVariant(movement.status)} className="ml-1">
-                  {getMovementStatusLabel(movement.status)}
-                </Badge>
-              </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span>
               {/* Informação completa do veículo incluindo a cor */}
               <span className="text-sm text-muted-foreground">{movement.vehicleName || ''}</span>
             </div>
           </div>
+          <Badge variant={getStatusVariant(movement.status)}>
+            {getMovementStatusLabel(movement.status)}
+          </Badge>
         </div>
         
         {/* Motorista */}
