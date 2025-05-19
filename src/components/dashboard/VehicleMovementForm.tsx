@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -134,7 +135,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
       vehiclePlate: vehicle.plate, // Usar vehiclePlate em vez de plate
       vehicleName: `${vehicle.make} ${vehicle.model}`,
       driver: data.driver,
-      destination: data.destination,
+      destination: isExit ? data.destination : undefined, // Somente incluir destino se for saída
       initialMileage: data.initialMileage,
       departureDate: today,
       departureTime: now,
@@ -192,14 +193,16 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
                   {errors.driver && <p className="text-xs text-destructive mt-1">{errors.driver.message}</p>}
                 </div>
                 
-                <div>
-                  <Label htmlFor="destination" className="text-sm">Destino</Label>
-                  <Input
-                    id="destination"
-                    placeholder="Local de destino"
-                    {...register('destination')}
-                  />
-                </div>
+                {isExit && (
+                  <div>
+                    <Label htmlFor="destination" className="text-sm">Destino</Label>
+                    <Input
+                      id="destination"
+                      placeholder="Local de destino"
+                      {...register('destination')}
+                    />
+                  </div>
+                )}
                 
                 <div>
                   <Label htmlFor="initialMileage" className="text-sm">Quilometragem atual*</Label>

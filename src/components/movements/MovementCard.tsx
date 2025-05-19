@@ -110,7 +110,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
           
           <div className="flex flex-col">
             <span className="text-xs font-semibold text-muted-foreground">Destino</span>
-            <span className="text-xs">{movement.arrivalUnitName || movement.destination || "—"}</span> {/* Texto menor */}
+            <span className="text-xs">{movement.destination || "—"}</span> {/* Texto menor */}
           </div>
         </div>
         
