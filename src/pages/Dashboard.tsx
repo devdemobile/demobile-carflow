@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
@@ -11,12 +12,19 @@ import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
 import { Vehicle, Movement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Search, Car, PackageCheck, Warehouse, Calendar } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import { movementService } from '@/services/movements/movementService';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -28,6 +36,10 @@ const Dashboard = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
+
+  // Estados para controlar a exibição de "Mostrar Mais"
+  const [showAllVehicles, setShowAllVehicles] = useState(false);
+  const [showAllMovements, setShowAllMovements] = useState(false);
   
   // Fetch vehicle stats
   const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 }, isLoading: isLoadingStats } = useQuery({
@@ -85,8 +97,7 @@ const Dashboard = () => {
             const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
             const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
             return dateB.getTime() - dateA.getTime();
-          })
-          .slice(0, 4); // Limit to 4 most recent
+          });
       } catch (error) {
         console.error('Erro ao buscar movimentações recentes:', error);
         return [];
@@ -121,8 +132,7 @@ const Dashboard = () => {
             ...vehicle,
             movementCount: vehicleMovementCount.get(vehicle.id) || 0
           }))
-          .sort((a, b) => (b.movementCount || 0) - (a.movementCount || 0))
-          .slice(0, 4); // Get top 4 most frequent
+          .sort((a, b) => (b.movementCount || 0) - (a.movementCount || 0));
       } catch (error) {
         console.error('Erro ao buscar veículos frequentes:', error);
         return [];
@@ -196,10 +206,9 @@ const Dashboard = () => {
     }
   };
   
-  // Fix the function to match the expected signature for onDelete
+  // Corrigido para aceitar apenas um parâmetro
   const handleMovementDelete = async (movement: Movement): Promise<void> => {
     try {
-      // Fix: The deleteMovement method expects only one parameter (the movement id)
       await movementService.deleteMovement(movement.id);
       refetchMovements();
       toast({
@@ -283,6 +292,20 @@ const Dashboard = () => {
     }
   ] : [];
 
+  // Preparar exibição de veículos frequentes
+  const displayFrequentVehicles = showAllVehicles 
+    ? frequentVehicles 
+    : frequentVehicles.slice(0, 4);
+
+  // Preparar exibição de movimentações recentes
+  const displayRecentMovements = showAllMovements 
+    ? recentMovements 
+    : recentMovements.slice(0, 4);
+
+  // Verificar se há mais itens além dos exibidos inicialmente
+  const hasMoreVehicles = frequentVehicles.length > 4;
+  const hasMoreMovements = recentMovements.length > 4;
+
   return (
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
@@ -294,7 +317,7 @@ const Dashboard = () => {
           {!isMobile && (
             <div className="flex gap-3 items-center">
               {headerStats.map((stat, index) => (
-                <div key={index} className="bg-card border rounded-md px-4 py-2 flex flex-col w-[130px] h-[80px]">
+                <div key={index} className="bg-card border rounded-md px-4 py-2 flex flex-col w-[150px] h-[80px]">
                   <span className="text-xs text-muted-foreground mb-0.5">{stat.title}</span>
                   <span className="font-medium text-base">{stat.value}</span>
                   {stat.description && (
@@ -327,33 +350,66 @@ const Dashboard = () => {
           </form>
         </div>
         
-        {/* Frequent Vehicles - Reduzido tamanho dos cards */}
+        {/* Frequent Vehicles - Implementação do carousel e mostrar mais */}
         <div>
           <h2 className="text-lg font-semibold mb-2">Veículos Frequentes</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {frequentVehicles.length > 0 ? (
-              frequentVehicles.map((vehicle) => (
-                <VehicleCard 
-                  key={vehicle.id} 
-                  vehicle={vehicle} 
-                  onClick={() => handleVehicleClick(vehicle)}
-                  compact={true} // Adicionando prop para versão compacta
-                />
-              ))
-            ) : (
-              <p className="text-muted-foreground text-center py-6 col-span-4">
-                Nenhum veículo cadastrado ainda.
-              </p>
-            )}
-          </div>
+          
+          {!showAllVehicles && !isMobile && frequentVehicles.length > 4 ? (
+            <Carousel className="w-full">
+              <CarouselContent className="-ml-4">
+                {frequentVehicles.slice(0, 8).map((vehicle) => (
+                  <CarouselItem key={vehicle.id} className="pl-4 md:basis-1/3 lg:basis-1/4">
+                    <VehicleCard 
+                      vehicle={vehicle} 
+                      onClick={() => handleVehicleClick(vehicle)}
+                      compact={true}
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-0" />
+              <CarouselNext className="right-0" />
+            </Carousel>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {displayFrequentVehicles.length > 0 ? (
+                displayFrequentVehicles.map((vehicle) => (
+                  <VehicleCard 
+                    key={vehicle.id} 
+                    vehicle={vehicle} 
+                    onClick={() => handleVehicleClick(vehicle)}
+                    compact={true}
+                  />
+                ))
+              ) : (
+                <p className="text-muted-foreground text-center py-6 col-span-4">
+                  Nenhum veículo cadastrado ainda.
+                </p>
+              )}
+            </div>
+          )}
+          
+          {/* Botão "Mostrar Mais" para veículos */}
+          {hasMoreVehicles && (
+            <div className="flex justify-center mt-3">
+              <Button 
+                variant="outline"
+                onClick={() => setShowAllVehicles(!showAllVehicles)}
+                className="text-sm"
+              >
+                {showAllVehicles ? "- Mostrar Menos" : "+ Mostrar Mais"}
+              </Button>
+            </div>
+          )}
         </div>
         
-        {/* Recent Movements - Ajustado grid para melhor visualização */}
+        {/* Recent Movements - Implementação do carousel e mostrar mais */}
         <div>
           <h2 className="text-lg font-semibold mb-2">Movimentações Recentes</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {isLoadingMovements ? (
-              Array.from({ length: 3 }).map((_, i) => (
+          
+          {isLoadingMovements ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="border rounded-lg shadow-sm p-4">
                   <div className="animate-pulse">
                     <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
@@ -361,21 +417,51 @@ const Dashboard = () => {
                     <div className="h-4 bg-gray-200 rounded w-1/4"></div>
                   </div>
                 </div>
-              ))
-            ) : recentMovements.length === 0 ? (
-              <div className="border rounded-lg shadow-sm p-4 col-span-full bg-muted text-center">
-                Nenhuma movimentação registrada nos últimos dias.
-              </div>
-            ) : (
-              recentMovements.map((movement) => (
+              ))}
+            </div>
+          ) : recentMovements.length === 0 ? (
+            <div className="border rounded-lg shadow-sm p-4 col-span-full bg-muted text-center">
+              Nenhuma movimentação registrada nos últimos dias.
+            </div>
+          ) : !showAllMovements && !isMobile && recentMovements.length > 4 ? (
+            <Carousel className="w-full">
+              <CarouselContent className="-ml-4">
+                {recentMovements.slice(0, 8).map((movement) => (
+                  <CarouselItem key={movement.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                    <MovementCard 
+                      movement={movement} 
+                      onClick={handleMovementClick}
+                    />
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="left-0" />
+              <CarouselNext className="right-0" />
+            </Carousel>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {displayRecentMovements.map((movement) => (
                 <MovementCard 
                   key={movement.id} 
                   movement={movement} 
                   onClick={handleMovementClick}
                 />
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Botão "Mostrar Mais" para movimentações */}
+          {hasMoreMovements && (
+            <div className="flex justify-center mt-3">
+              <Button 
+                variant="outline"
+                onClick={() => setShowAllMovements(!showAllMovements)}
+                className="text-sm"
+              >
+                {showAllMovements ? "- Mostrar Menos" : "+ Mostrar Mais"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
       

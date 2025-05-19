@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 interface VehicleCardProps {
   vehicle: Vehicle;
   onClick: (vehicle: Vehicle) => void;
-  compact?: boolean; // Adicionando propriedade para card compacto
+  compact?: boolean; // Propriedade para card compacto
 }
 
 const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = false }) => {
@@ -37,7 +37,7 @@ const VehicleCard: React.FC<VehicleCardProps> = ({ vehicle, onClick, compact = f
   
   return (
     <Card 
-      className={`cursor-pointer hover:shadow-md transition-shadow ${getBorderClass(vehicle.location)}`}
+      className={`cursor-pointer hover:shadow-md transition-shadow h-full ${getBorderClass(vehicle.location)}`}
       onClick={() => onClick(vehicle)}
     >
       <div className={cn(

@@ -62,7 +62,7 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   
   return (
     <Card 
-      className={`cursor-pointer hover:shadow-md transition-shadow ${getBorderClass(movement.status)}`}
+      className={`cursor-pointer hover:shadow-md transition-shadow h-full ${getBorderClass(movement.status)}`}
       onClick={() => onClick(movement)}
     >
       <CardContent className="pt-4"> {/* Reduzido o padding top */}
