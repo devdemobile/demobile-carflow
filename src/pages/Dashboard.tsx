@@ -354,7 +354,7 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold mb-2">Veículos Frequentes</h2>
           
           {!showAllVehicles && !isMobile && frequentVehicles.length > 4 ? (
-            <Carousel className="w-full mx-[40px]">
+            <Carousel className="w-full mx-[20px]">
               <CarouselContent className="-ml-4">
                 {frequentVehicles.slice(0, 8).map((vehicle) => (
                   <CarouselItem key={vehicle.id} className="pl-4 md:basis-1/3 lg:basis-1/4">
@@ -366,8 +366,8 @@ const Dashboard = () => {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="-left-[40px] !absolute" />
-              <CarouselNext className="-right-[40px] !absolute" />
+              <CarouselPrevious className="!absolute" />
+              <CarouselNext className="!absolute" />
             </Carousel>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
@@ -423,7 +423,7 @@ const Dashboard = () => {
               Nenhuma movimentação registrada nos últimos dias.
             </div>
           ) : !showAllMovements && !isMobile && recentMovements.length > 4 ? (
-            <Carousel className="w-full mx-[40px]">
+            <Carousel className="w-full mx-[20px]">
               <CarouselContent className="-ml-4">
                 {recentMovements.slice(0, 8).map((movement) => (
                   <CarouselItem key={movement.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
@@ -434,8 +434,8 @@ const Dashboard = () => {
                   </CarouselItem>
                 ))}
               </CarouselContent>
-              <CarouselPrevious className="-left-[40px] !absolute" />
-              <CarouselNext className="-right-[40px] !absolute" />
+              <CarouselPrevious className="!absolute" />
+              <CarouselNext className="!absolute" />
             </Carousel>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
