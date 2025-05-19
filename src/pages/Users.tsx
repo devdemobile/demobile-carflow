@@ -51,6 +51,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
 import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
 import UsersFilter from '@/components/users/UsersFilter';
+import { cn } from '@/lib/utils';
 
 interface Unit {
   id: string;
@@ -423,8 +424,7 @@ const Users = () => {
     
     const matchesRole = roleFilter ? user.role === roleFilter : true;
     
-    // Aqui está a correção: mostrar usuários ativos quando showInactiveUsers é false,
-    // e mostrar usuários inativos quando showInactiveUsers é true
+    // Filtrar por status baseado no showInactiveUsers
     const matchesStatus = showInactiveUsers 
       ? user.status === 'inactive'  // Mostrar apenas inativos quando showInactiveUsers é true
       : user.status === 'active';   // Mostrar apenas ativos quando showInactiveUsers é false
@@ -434,9 +434,9 @@ const Users = () => {
 
   const getRoleBadge = (role: string) => {
     return role === 'admin' ? (
-      <Badge className="bg-red-500">Administrador</Badge>
+      <Badge className="bg-[#0FA0CE] hover:bg-[#0FA0CE]/80">Administrador</Badge>
     ) : (
-      <Badge className="bg-blue-500">Operador</Badge>
+      <Badge className="bg-[#D3E4FD] text-blue-800 hover:bg-[#D3E4FD]/80">Operador</Badge>
     );
   };
   
@@ -448,16 +448,15 @@ const Users = () => {
     );
   };
   
-  const getStatusBadge = (status: string) => {
-    return status === 'active' ? (
-      <Badge variant="outline" className="border-green-500 text-green-500">Ativo</Badge>
-    ) : (
-      <Badge variant="outline" className="border-gray-500 text-gray-500">Inativo</Badge>
-    );
-  };
-
   const renderUserCard = (userItem: SystemUser) => (
-    <Card key={userItem.id} className={userItem.status === 'inactive' ? 'opacity-60' : ''}>
+    <Card 
+      key={userItem.id} 
+      className={cn(
+        userItem.status === 'active' 
+          ? 'border-l-4 border-l-yard' 
+          : 'border-l-4 border-l-destructive opacity-60'
+      )}
+    >
       <CardContent className="p-4">
         <div className="flex items-center gap-4 mb-3">
           <Avatar>
@@ -472,7 +471,6 @@ const Users = () => {
         <div className="flex flex-wrap gap-2 mb-3">
           {getRoleBadge(userItem.role)}
           {getShiftBadge(userItem.shift)}
-          {getStatusBadge(userItem.status)}
         </div>
         
         <div className="text-sm mb-2">
@@ -595,7 +593,6 @@ const Users = () => {
                   <TableHead>Função</TableHead>
                   <TableHead>Turno</TableHead>
                   <TableHead>Unidade</TableHead>
-                  <TableHead>Status</TableHead>
                   <TableHead>Email</TableHead>
                   {user?.role === 'admin' && (
                     <TableHead className="text-right">Ações</TableHead>
@@ -604,7 +601,14 @@ const Users = () => {
               </TableHeader>
               <TableBody>
                 {filteredUsers.map((userItem) => (
-                  <TableRow key={userItem.id} className={userItem.status === 'inactive' ? 'opacity-60' : ''}>
+                  <TableRow 
+                    key={userItem.id} 
+                    className={cn(
+                      userItem.status === 'active' 
+                        ? 'border-l-4 border-l-yard' 
+                        : 'border-l-4 border-l-destructive opacity-60'
+                    )}
+                  >
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-3">
                         <Avatar>
@@ -617,7 +621,6 @@ const Users = () => {
                     <TableCell>{getRoleBadge(userItem.role)}</TableCell>
                     <TableCell>{getShiftBadge(userItem.shift)}</TableCell>
                     <TableCell>{userItem.unitName || userItem.units?.name || "—"}</TableCell>
-                    <TableCell>{getStatusBadge(userItem.status)}</TableCell>
                     <TableCell>{userItem.email || '—'}</TableCell>
                     {user?.role === 'admin' && (
                       <TableCell className="text-right">
