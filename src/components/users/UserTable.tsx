@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { SystemUser, UserStatus } from '@/types/entities';
 import { 
@@ -97,6 +96,31 @@ const UserTable: React.FC<UserTableProps> = ({
               {isAdmin && (
                 <TableCell>
                   <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                    {user.id !== currentUserId && (
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(user.id);
+                        }}
+                        title="Excluir usuário"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-500" />
+                      </Button>
+                    )}
+                    
+                    <Switch 
+                      size="sm" 
+                      checked={user.status === 'active'} 
+                      onCheckedChange={() => {
+                        onToggleStatus(user.id, user.status);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      variant="success-danger"
+                      title={user.status === 'active' ? "Desativar usuário" : "Ativar usuário"}
+                    />
+                    
                     <Button 
                       variant="ghost" 
                       size="icon"
@@ -120,31 +144,6 @@ const UserTable: React.FC<UserTableProps> = ({
                     >
                       <ShieldCheck className="h-4 w-4" />
                     </Button>
-                    
-                    <Switch 
-                      size="sm" 
-                      checked={user.status === 'active'} 
-                      onCheckedChange={() => {
-                        onToggleStatus(user.id, user.status);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      variant="success-danger"
-                      title={user.status === 'active' ? "Desativar usuário" : "Ativar usuário"}
-                    />
-                    
-                    {user.id !== currentUserId && (
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(user.id);
-                        }}
-                        title="Excluir usuário"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
                   </div>
                 </TableCell>
               )}
