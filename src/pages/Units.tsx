@@ -23,7 +23,7 @@ import { UnitsTable } from '@/components/units/UnitsTable';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { format } from 'date-fns';
-import PageHeader from '@/components/layout/PageHeader';
+import UnitsFilter from '@/components/units/UnitsFilter';
 
 const Units = () => {
   const { 
@@ -189,25 +189,15 @@ const Units = () => {
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
-        <PageHeader
-          title="Unidades"
-          searchPlaceholder="Buscar unidade..."
-          searchValue={searchTerm}
-          onSearchChange={setSearchTerm}
-          onResetFilters={() => setSearchTerm('')}
+        <UnitsFilter
           viewMode={viewMode}
           setViewMode={setViewMode}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          onReset={() => setSearchTerm('')}
           actions={headerActions}
-        >
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={handleForceRefresh}
-            disabled={isLoading}
-          >
-            <RefreshCcw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
-        </PageHeader>
+          isLoading={isLoading}
+        />
 
         {isLoading ? (
           // Show loading skeletons while data is loading
