@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Vehicle, VehicleLocation } from '@/types';
 import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicles/vehicleService';
@@ -101,7 +101,12 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
           filteredVehicles = filteredVehicles.filter(v =>
             v.plate.toLowerCase().includes(normalizedSearch) ||
             v.make.toLowerCase().includes(normalizedSearch) ||
-            v.model.toLowerCase().includes(normalizedSearch)
+            v.model.toLowerCase().includes(normalizedSearch) ||
+            v.color.toLowerCase().includes(normalizedSearch) ||
+            (v.year?.toString() || '').includes(normalizedSearch) ||
+            v.unitName?.toLowerCase().includes(normalizedSearch) ||
+            (v.location === 'yard' && 'pátio'.includes(normalizedSearch)) ||
+            (v.location === 'out' && 'rota'.includes(normalizedSearch))
           );
         }
         
