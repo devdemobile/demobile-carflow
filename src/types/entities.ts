@@ -17,6 +17,7 @@ export interface Unit {
   address: string;
   vehicleCount?: number;
   usersCount?: number;
+  movementsCount?: number;
   createdAt?: string;
   updatedAt?: string;
   createdBy?: string;

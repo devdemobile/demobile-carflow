@@ -6,7 +6,7 @@ import {
   CardTitle,
   CardContent
 } from '@/components/ui/card';
-import { Building, MapPin, Users, TruckIcon } from 'lucide-react';
+import { MapPin, Users, TruckIcon } from 'lucide-react';
 import { Unit } from '@/types';
 
 interface UnitCardProps {

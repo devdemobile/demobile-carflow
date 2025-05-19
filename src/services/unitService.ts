@@ -1,3 +1,4 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Unit } from '@/types';
@@ -33,7 +34,8 @@ export const fetchUnits = async (): Promise<Unit[]> => {
       code: unit.code,
       address: unit.address || '',
       vehicleCount: 0, // Inicializamos com 0, atualizaremos depois se necessário
-      usersCount: 0    // Inicializamos com 0, atualizaremos depois se necessário
+      usersCount: 0,    // Inicializamos com 0, atualizaremos depois se necessário
+      movementsCount: 0 // Inicializamos o contador de movimentações
     }));
 
     // Agora carregamos as contagens em uma única operação por tipo
@@ -84,6 +86,31 @@ export const fetchUnits = async (): Promise<Unit[]> => {
           const unit = units.find(u => u.id === unitId);
           if (unit) {
             unit.usersCount = count;
+          }
+        });
+      }
+      
+      // Obter contagem de movimentações por unidade de saída
+      const { data: movementsData, error: movementsError } = await supabase
+        .from('movements')
+        .select('departure_unit_id');
+      
+      if (movementsError) {
+        console.error('Erro ao buscar movimentações:', movementsError);
+      } else if (movementsData) {
+        // Contar manualmente por departure_unit_id
+        const movementCounts: Record<string, number> = {};
+        movementsData.forEach(movement => {
+          if (movement.departure_unit_id) {
+            movementCounts[movement.departure_unit_id] = (movementCounts[movement.departure_unit_id] || 0) + 1;
+          }
+        });
+        
+        // Atualizar as unidades com as contagens
+        Object.entries(movementCounts).forEach(([unitId, count]) => {
+          const unit = units.find(u => u.id === unitId);
+          if (unit) {
+            unit.movementsCount = count;
           }
         });
       }
