@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,6 +51,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
 import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
 import UsersFilter from '@/components/users/UsersFilter';
+import { cn } from '@/lib/utils';
 
 interface Unit {
   id: string;
