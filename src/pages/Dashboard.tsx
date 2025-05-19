@@ -253,49 +253,54 @@ const Dashboard = () => {
     }
   };
 
-  // Create mini stats for the header
+  // Cálculo das porcentagens
+  const inYardPercentage = vehicleStats.totalVehicles > 0 
+    ? Math.round((vehicleStats.vehiclesInYard / vehicleStats.totalVehicles) * 100) 
+    : 0;
+    
+  const outPercentage = vehicleStats.totalVehicles > 0 
+    ? Math.round((vehicleStats.vehiclesOut / vehicleStats.totalVehicles) * 100) 
+    : 0;
+
+  // Create header stats with percentages
   const headerStats = !isMobile ? [
     {
-      title: "Total",
-      value: vehicleStats.totalVehicles,
-      icon: <Car className="h-3 w-3" />
+      title: "Total de Veículos",
+      value: vehicleStats.totalVehicles
     },
     {
-      title: "No Pátio",
+      title: "Veículos no Pátio",
       value: vehicleStats.vehiclesInYard,
-      icon: <Warehouse className="h-3 w-3" />
+      description: `${inYardPercentage}% da frota`
     },
     {
-      title: "Em Rota",
+      title: "Veículos Fora",
       value: vehicleStats.vehiclesOut,
-      icon: <PackageCheck className="h-3 w-3" />
+      description: `${outPercentage}% da frota`
     },
     {
-      title: "Hoje",
-      value: todayMovements,
-      icon: <Calendar className="h-3 w-3" />
+      title: "Movimentados Hoje",
+      value: todayMovements
     }
   ] : [];
 
   return (
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <h1 className="text-xl font-bold">
             Bem-Vindo ao CarFlow, {user?.name?.split(' ')[0]}!
           </h1>
           
           {!isMobile && (
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-3 items-center">
               {headerStats.map((stat, index) => (
-                <div key={index} className="bg-card border rounded-md px-3 py-1.5 flex items-center gap-2 text-sm">
-                  <div className="text-muted-foreground">
-                    {stat.icon}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground">{stat.title}</span>
-                    <span className="font-medium">{stat.value}</span>
-                  </div>
+                <div key={index} className="bg-card border rounded-md px-4 py-2 flex flex-col min-w-28">
+                  <span className="text-xs text-muted-foreground mb-0.5">{stat.title}</span>
+                  <span className="font-medium text-base">{stat.value}</span>
+                  {stat.description && (
+                    <span className="text-xs text-muted-foreground">{stat.description}</span>
+                  )}
                 </div>
               ))}
             </div>
