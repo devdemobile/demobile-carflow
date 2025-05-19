@@ -51,6 +51,22 @@ export interface UserDTO {
   permissions?: UserPermissions;
 }
 
+export interface VehicleMovementFormData {
+  type: 'entry' | 'exit';
+  status: 'out' | 'yard';
+  driver: string;
+  vehicleId: string;
+  departureUnitId?: string;
+  arrivalUnitId?: string;
+  departureDate?: string;
+  departureTime?: string;
+  arrivalDate?: string;
+  arrivalTime?: string;
+  initialMileage: number;
+  finalMileage?: number;
+  destination?: string;
+}
+
 export interface LoginCredentials {
   username: string;
   password: string;
@@ -61,3 +77,4 @@ export interface ApiResponse<T> {
   error?: string;
   success: boolean;
 }
+

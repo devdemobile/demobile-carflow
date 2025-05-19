@@ -5,3 +5,4 @@ export * from './dto';
 
 // Definir outros tipos globais conforme necessário
 export type TabValue = string;
+
