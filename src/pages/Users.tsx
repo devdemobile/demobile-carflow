@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,7 +42,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserRole, UserShift, UserStatus, SystemUser } from '@/types/entities';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserRound, Filter, Grid, List, Key, ShieldCheck } from 'lucide-react';
+import { Pencil, Trash2, UserRound, Search, Key, ShieldCheck } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -51,6 +50,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent } from '@/components/ui/card';
 import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
 import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
+import ViewToggle from '@/components/ui/view-toggle';
 
 interface Unit {
   id: string;
@@ -79,7 +79,7 @@ const Users = () => {
   const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid'); // Changed default to grid
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null);
@@ -541,32 +541,19 @@ const Users = () => {
           <div className="flex flex-col sm:flex-row gap-2">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input 
-                  className="pl-2 max-w-[300px]"
+                  className="pl-8 max-w-[300px]"
                   placeholder="Buscar usuário..." 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               
-              <div className="flex border rounded-md">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="icon"
-                  className="rounded-r-none"
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="icon"
-                  className="rounded-l-none"
-                  onClick={() => setViewMode('table')}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
+              <ViewToggle 
+                viewMode={viewMode} 
+                onViewChange={setViewMode}
+              />
             </div>
             
             {user?.role === 'admin' && (

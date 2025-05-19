@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -12,8 +11,6 @@ import {
   Car, 
   Trash2, 
   Pencil, 
-  Grid, 
-  List, 
   RefreshCcw,
   Calendar,
   Clock,
@@ -28,6 +25,7 @@ import { UnitsTable } from '@/components/units/UnitsTable';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { format } from 'date-fns';
+import ViewToggle from '@/components/ui/view-toggle';
 
 const Units = () => {
   const { 
@@ -215,24 +213,10 @@ const Units = () => {
             </Button>
             
             {isDesktop && (
-              <div className="flex border rounded-md">
-                <Button
-                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                  size="icon"
-                  className="rounded-r-none"
-                  onClick={() => setViewMode('grid')}
-                >
-                  <Grid className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'ghost'}
-                  size="icon"
-                  className="rounded-l-none"
-                  onClick={() => setViewMode('table')}
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
+              <ViewToggle
+                viewMode={viewMode}
+                onViewChange={setViewMode}
+              />
             )}
           </div>
         </div>

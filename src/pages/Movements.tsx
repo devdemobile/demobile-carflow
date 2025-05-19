@@ -17,12 +17,13 @@ import {
 } from '@/components/ui/pagination';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Grid, List, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
 import { movementService } from '@/services/movements/movementService';
 import { useAuth } from '@/hooks/useAuth';
 import { authService } from '@/services/auth/authService';
 import { movementLogService } from '@/services/movements/movementLogService';
+import ViewToggle from '@/components/ui/view-toggle';
 
 const Movements = () => {
   const isMobile = useIsMobile();
@@ -214,6 +215,18 @@ const Movements = () => {
     <Layout>
       <div className="container mx-auto py-6 pb-16">
         <h1 className="text-3xl font-bold mb-6">Movimentações</h1>
+        
+        <div className="flex items-center justify-between mb-6">
+          {/* Filter components go here */}
+          <div className="flex-1">
+            {/* Existing filter components */}
+          </div>
+          
+          <ViewToggle 
+            viewMode={viewMode} 
+            onViewChange={setViewMode}
+          />
+        </div>
         
         <MovementsFilter 
           filters={filters} 

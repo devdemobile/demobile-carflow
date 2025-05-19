@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
@@ -15,6 +14,8 @@ import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import MakesDialog from '@/components/vehicles/makes/MakesDialog';
 import ModelsDialog from '@/components/vehicles/models/ModelsDialog';
+import DashboardHeader from '@/components/dashboard/DashboardHeader';
+import ViewToggle from '@/components/ui/view-toggle';
 
 const Vehicles = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -49,41 +50,39 @@ const Vehicles = () => {
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-          <div className="flex items-center space-x-2">
-            <h1 className="text-3xl font-bold">Veículos</h1>
-            
-            {userPermissions?.canEditVehicles && (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsMakesDialogOpen(true)}
-                  aria-label="Gerenciar marcas"
-                >
-                  <Tag className="h-4 w-4" />
-                  {!isMobile && <span className="ml-1">Marcas</span>}
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => setIsModelsDialogOpen(true)}
-                  aria-label="Gerenciar modelos"
-                >
-                  <Cog className="h-4 w-4" />
-                  {!isMobile && <span className="ml-1">Modelos</span>}
-                </Button>
-              </>
-            )}
-          </div>
-          
-          {userPermissions?.canEditVehicles && (
-            <Button onClick={openAddVehicle}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Veículo
-            </Button>
-          )}
-        </div>
+        <DashboardHeader
+          title="Veículos"
+          actions={
+            <>
+              {userPermissions?.canEditVehicles && (
+                <>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsMakesDialogOpen(true)}
+                    aria-label="Gerenciar marcas"
+                  >
+                    <Tag className="h-4 w-4" />
+                    {!isMobile && <span className="ml-1">Marcas</span>}
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsModelsDialogOpen(true)}
+                    aria-label="Gerenciar modelos"
+                  >
+                    <Cog className="h-4 w-4" />
+                    {!isMobile && <span className="ml-1">Modelos</span>}
+                  </Button>
+                  <Button onClick={openAddVehicle}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Veículo
+                  </Button>
+                </>
+              )}
+            </>
+          }
+        />
         
         <VehiclesFilter 
           viewMode={viewMode}
