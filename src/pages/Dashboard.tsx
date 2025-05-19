@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import VehicleCard from '@/components/vehicles/VehicleCard';
 import MovementCard from '@/components/movements/MovementCard';
 import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
+import MovementEditDialog from '@/components/movements/MovementEditDialog';
 import { Vehicle, Movement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Search, Car, PackageCheck, Warehouse, Calendar } from 'lucide-react';
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
+  const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
   
   // Fetch vehicle stats
   const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 } } = useQuery({
@@ -171,8 +173,45 @@ const Dashboard = () => {
   
   const handleMovementClick = (movement: Movement) => {
     setSelectedMovement(movement);
-    // Adicionar lógica para abrir um modal de detalhes ou navegar para a página de detalhes
-    console.log("Movimento selecionado:", movement);
+    setIsMovementDialogOpen(true);
+  };
+  
+  const handleMovementUpdate = async (updatedMovement: Movement): Promise<void> => {
+    try {
+      await movementService.updateMovement(updatedMovement.id, updatedMovement);
+      refetchMovements();
+      toast({
+        title: "Movimentação atualizada",
+        description: "A movimentação foi atualizada com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao atualizar movimentação:", error);
+      toast({
+        title: "Erro ao atualizar",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao atualizar a movimentação.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+  
+  const handleMovementDelete = async (movement: Movement, password: string): Promise<void> => {
+    try {
+      await movementService.deleteMovement(movement.id, password);
+      refetchMovements();
+      toast({
+        title: "Movimentação excluída",
+        description: "A movimentação foi excluída com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao excluir movimentação:", error);
+      toast({
+        title: "Erro ao excluir",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao excluir a movimentação.",
+        variant: "destructive",
+      });
+      throw error;
+    }
   };
   
   const handleMovementSubmit = async (formData: Movement) => {
@@ -330,6 +369,16 @@ const Dashboard = () => {
           onSubmit={handleMovementSubmit}
         />
       )}
+
+      {/* Movement Details Dialog */}
+      <MovementEditDialog 
+        isOpen={isMovementDialogOpen}
+        onClose={() => setIsMovementDialogOpen(false)}
+        movement={selectedMovement}
+        onUpdate={handleMovementUpdate}
+        onDelete={handleMovementDelete}
+        showUnits={true}
+      />
     </Layout>
   );
 };
