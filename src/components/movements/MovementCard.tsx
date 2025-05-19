@@ -67,8 +67,8 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
     >
       <CardContent className="pt-6">
         {/* Cabeçalho: Placa e Status */}
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex gap-3 items-start">
+        <div className="flex justify-between items-center mb-3">
+          <div className="flex gap-3 items-center">
             {/* Miniatura do veículo */}
             <div className="w-14 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
               <img 

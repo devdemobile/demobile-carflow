@@ -1,0 +1,11 @@
+
+/* Espaçamento entre os botões no diálogo de movimentação */
+.movement-edit-dialog .dialog-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.movement-edit-dialog .dialog-buttons button:first-child {
+  margin-right: 8px;
+}
