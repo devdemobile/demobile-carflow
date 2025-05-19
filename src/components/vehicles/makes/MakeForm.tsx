@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { VehicleMake } from '@/types';
+import { useEffect } from 'react';
 
 interface MakeFormProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface MakeFormProps {
   onSave: (name: string) => void;
   isLoading: boolean;
   editingMake?: VehicleMake | null;
+  initialValue?: string;
 }
 
 const MakeForm: React.FC<MakeFormProps> = ({
@@ -25,13 +27,25 @@ const MakeForm: React.FC<MakeFormProps> = ({
   onClose,
   onSave,
   isLoading,
-  editingMake
+  editingMake,
+  initialValue
 }) => {
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<{ name: string }>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue } = useForm<{ name: string }>({
     defaultValues: {
-      name: editingMake?.name || ''
+      name: editingMake?.name || initialValue || ''
     }
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      // Set the initial value when the modal opens
+      if (editingMake) {
+        setValue('name', editingMake.name);
+      } else if (initialValue) {
+        setValue('name', initialValue);
+      }
+    }
+  }, [isOpen, editingMake, initialValue, setValue]);
 
   const handleClose = () => {
     reset();

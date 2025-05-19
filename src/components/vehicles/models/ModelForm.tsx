@@ -1,5 +1,4 @@
 
-import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
   Dialog,
@@ -12,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { VehicleModel } from '@/types';
-import { useVehicleMakes } from '@/hooks/useVehicleMakes';
 import { Combobox } from '@/components/ui/combobox';
+import { useVehicleMakes } from '@/hooks/useVehicleMakes';
+import { useEffect } from 'react';
 
 interface ModelFormProps {
   isOpen: boolean;
@@ -22,6 +22,7 @@ interface ModelFormProps {
   isLoading: boolean;
   editingModel?: VehicleModel | null;
   defaultMakeId?: string;
+  initialValue?: string;
 }
 
 const ModelForm: React.FC<ModelFormProps> = ({
@@ -30,35 +31,42 @@ const ModelForm: React.FC<ModelFormProps> = ({
   onSave,
   isLoading,
   editingModel,
-  defaultMakeId
+  defaultMakeId,
+  initialValue
 }) => {
   const { makes } = useVehicleMakes();
   
-  const { register, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<{ 
-    name: string;
-    makeId: string;
-  }>({
-    defaultValues: {
-      name: editingModel?.name || '',
-      makeId: editingModel?.makeId || defaultMakeId || ''
-    }
-  });
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = 
+    useForm<{ name: string; makeId: string }>({
+      defaultValues: {
+        name: editingModel?.name || initialValue || '',
+        makeId: editingModel?.makeId || defaultMakeId || ''
+      }
+    });
 
+  // Atualizar formulário quando os valores iniciais mudam
   useEffect(() => {
-    if (editingModel) {
-      setValue('name', editingModel.name);
-      setValue('makeId', editingModel.makeId);
-    } else if (defaultMakeId) {
-      setValue('makeId', defaultMakeId);
+    if (isOpen) {
+      if (editingModel) {
+        setValue('name', editingModel.name);
+        setValue('makeId', editingModel.makeId);
+      } else {
+        if (initialValue) {
+          setValue('name', initialValue);
+        }
+        if (defaultMakeId) {
+          setValue('makeId', defaultMakeId);
+        }
+      }
     }
-  }, [editingModel, defaultMakeId, setValue]);
+  }, [isOpen, editingModel, defaultMakeId, initialValue, setValue]);
 
   const handleClose = () => {
     reset();
     onClose();
   };
 
-  const handleSave = (data: { name: string; makeId: string }) => {
+  const handleSaveModel = (data: { name: string; makeId: string }) => {
     onSave(data);
   };
 
@@ -69,15 +77,19 @@ const ModelForm: React.FC<ModelFormProps> = ({
           <DialogTitle>{editingModel ? 'Editar Modelo' : 'Novo Modelo'}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit(handleSave)} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit(handleSaveModel)} className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="makeId">Marca</Label>
             <Combobox
+              id="makeId"
               options={makes.map(make => ({ label: make.name, value: make.id }))}
-              {...register('makeId', { required: 'Marca é obrigatória' })}
               value={watch('makeId')}
               onSelect={(value) => setValue('makeId', value)}
               placeholder="Selecione a marca"
+            />
+            <input 
+              type="hidden" 
+              {...register('makeId', { required: 'Marca é obrigatória' })} 
             />
             {errors.makeId && (
               <p className="text-sm text-red-500">{errors.makeId.message}</p>
@@ -88,7 +100,7 @@ const ModelForm: React.FC<ModelFormProps> = ({
             <Label htmlFor="name">Nome do Modelo</Label>
             <Input
               id="name"
-              placeholder="Ex: Fiesta, Onix, etc."
+              placeholder="Ex: Gol, Corolla, etc."
               {...register('name', { 
                 required: 'Nome do modelo é obrigatório',
                 minLength: {

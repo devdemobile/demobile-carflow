@@ -26,7 +26,7 @@ export function useVehicleMakes() {
   // Criar nova marca
   const createMutation = useMutation({
     mutationFn: (name: string) => makeService.createMake(name),
-    onSuccess: () => {
+    onSuccess: (newMake) => {
       queryClient.invalidateQueries({ queryKey: ['vehicle-makes'] });
       toast.success('Marca criada com sucesso');
       setIsAddMakeOpen(false);
@@ -90,6 +90,23 @@ export function useVehicleMakes() {
     setSelectedMake(null);
   };
 
+  // Função para criar marca com callback opcional
+  const createMake = (
+    name: string, 
+    options?: { onSuccess?: (make: VehicleMake | null) => void }
+  ) => {
+    createMutation.mutate(name, {
+      onSuccess: (data) => {
+        queryClient.invalidateQueries({ queryKey: ['vehicle-makes'] });
+        toast.success('Marca criada com sucesso');
+        setIsAddMakeOpen(false);
+        if (options?.onSuccess) {
+          options.onSuccess(data);
+        }
+      }
+    });
+  };
+
   return {
     makes,
     isLoading,
@@ -105,7 +122,7 @@ export function useVehicleMakes() {
     closeEditMake,
     openDeleteMake,
     closeDeleteMake,
-    createMake: createMutation.mutate,
+    createMake,
     updateMake: updateMutation.mutate,
     deleteMake: deleteMutation.mutate,
     isCreating: createMutation.isPending,

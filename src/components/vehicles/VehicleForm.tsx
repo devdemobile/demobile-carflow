@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { 
@@ -11,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Vehicle, VehicleDTO } from '@/types';
-import { Camera, X, Upload } from 'lucide-react';
+import { Camera, X, Upload, Plus } from 'lucide-react';
 import { Combobox } from '@/components/ui/combobox';
 import { toast } from 'sonner';
 import CameraModal from './CameraModal';
@@ -20,6 +21,8 @@ import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useVehicleMakes } from '@/hooks/useVehicleMakes';
 import { useVehicleModels } from '@/hooks/useVehicleModels';
 import { formatMileage } from '@/lib/utils';
+import MakeForm from './makes/MakeForm';
+import ModelForm from './models/ModelForm';
 
 // Lista de marcas comuns de veículos
 const commonMakes = [
@@ -61,12 +64,16 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
   const [mileageInput, setMileageInput] = useState('');
+  const [isAddMakeOpen, setIsAddMakeOpen] = useState(false);
+  const [isAddModelOpen, setIsAddModelOpen] = useState(false);
+  const [makeSearchTerm, setMakeSearchTerm] = useState('');
+  const [modelSearchTerm, setModelSearchTerm] = useState('');
   
   const { units } = useUnits();
-  const { makes } = useVehicleMakes();
+  const { makes, createMake, isCreating: isCreatingMake } = useVehicleMakes();
   
   const watchMakeId = watch('makeId');
-  const { models } = useVehicleModels(watchMakeId);
+  const { models, createModel, isCreating: isCreatingModel } = useVehicleModels(watchMakeId);
   
   // Carrega os dados do veículo quando estiver editando
   useEffect(() => {
@@ -198,6 +205,49 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
   };
 
+  const handleCreateMake = (name: string) => {
+    createMake(name, {
+      onSuccess: (newMake) => {
+        if (newMake) {
+          setValue('makeId', newMake.id);
+          setValue('make', newMake.name);
+          toast.success(`Marca "${newMake.name}" criada com sucesso!`);
+          setIsAddMakeOpen(false);
+        }
+      }
+    });
+  };
+
+  const handleCreateModel = (data: { name: string; makeId: string }) => {
+    if (!data.makeId && watchMakeId) {
+      data.makeId = watchMakeId;
+    }
+    
+    if (!data.makeId) {
+      toast.error('Selecione uma marca antes de adicionar um modelo.');
+      return;
+    }
+    
+    createModel(data, {
+      onSuccess: (newModel) => {
+        if (newModel) {
+          setValue('modelId', newModel.id);
+          setValue('model', newModel.name);
+          toast.success(`Modelo "${newModel.name}" criado com sucesso!`);
+          setIsAddModelOpen(false);
+        }
+      }
+    });
+  };
+
+  const handleMakeSearch = (value: string) => {
+    setMakeSearchTerm(value);
+  };
+
+  const handleModelSearch = (value: string) => {
+    setModelSearchTerm(value);
+  };
+
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -239,29 +289,61 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
               
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="makeId">Marca*</Label>
-                <Combobox
-                  id="makeId"
-                  options={makes.map(make => ({ label: make.name, value: make.id }))}
-                  {...register('makeId', { required: 'Marca é obrigatória' })}
-                  value={watch('makeId') || ''}
-                  onSelect={(value) => setValue('makeId', value)}
-                  placeholder="Selecione a marca"
-                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Combobox
+                      id="makeId"
+                      options={makes.map(make => ({ label: make.name, value: make.id }))}
+                      {...register('makeId', { required: 'Marca é obrigatória' })}
+                      value={watch('makeId') || ''}
+                      onSelect={(value) => setValue('makeId', value)}
+                      placeholder="Selecione a marca"
+                      onInputChange={handleMakeSearch}
+                      allowCustomValue={false}
+                    />
+                  </div>
+                  {makeSearchTerm && !makes.some(make => make.name.toLowerCase() === makeSearchTerm.toLowerCase()) && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setIsAddMakeOpen(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <input type="hidden" {...register('make', { required: true })} />
                 {errors.makeId && <p className="text-sm text-red-500">{errors.makeId.message}</p>}
               </div>
               
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="modelId">Modelo*</Label>
-                <Combobox
-                  id="modelId"
-                  options={models.map(model => ({ label: model.name, value: model.id }))}
-                  {...register('modelId', { required: 'Modelo é obrigatório' })}
-                  value={watch('modelId') || ''}
-                  onSelect={(value) => setValue('modelId', value)}
-                  placeholder={watchMakeId ? "Selecione o modelo" : "Selecione uma marca primeiro"}
-                  disabled={!watchMakeId}
-                />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <Combobox
+                      id="modelId"
+                      options={models.map(model => ({ label: model.name, value: model.id }))}
+                      {...register('modelId', { required: 'Modelo é obrigatório' })}
+                      value={watch('modelId') || ''}
+                      onSelect={(value) => setValue('modelId', value)}
+                      placeholder={watchMakeId ? "Selecione o modelo" : "Selecione uma marca primeiro"}
+                      disabled={!watchMakeId}
+                      onInputChange={handleModelSearch}
+                      allowCustomValue={false}
+                    />
+                  </div>
+                  {watchMakeId && modelSearchTerm && !models.some(model => model.name.toLowerCase() === modelSearchTerm.toLowerCase()) && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="outline"
+                      onClick={() => setIsAddModelOpen(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
                 <input type="hidden" {...register('model', { required: true })} />
                 {errors.modelId && <p className="text-sm text-red-500">{errors.modelId.message}</p>}
               </div>
@@ -387,6 +469,25 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
         isOpen={isCameraOpen} 
         onClose={() => setIsCameraOpen(false)}
         onCapture={handleCapturePhoto}
+      />
+      
+      {/* Modal para adicionar uma nova marca */}
+      <MakeForm
+        isOpen={isAddMakeOpen}
+        onClose={() => setIsAddMakeOpen(false)}
+        onSave={handleCreateMake}
+        isLoading={isCreatingMake}
+        initialValue={makeSearchTerm}
+      />
+      
+      {/* Modal para adicionar um novo modelo */}
+      <ModelForm
+        isOpen={isAddModelOpen}
+        onClose={() => setIsAddModelOpen(false)}
+        onSave={handleCreateModel}
+        isLoading={isCreatingModel}
+        defaultMakeId={watchMakeId}
+        initialValue={modelSearchTerm}
       />
     </>
   );

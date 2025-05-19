@@ -34,6 +34,7 @@ interface ComboboxProps {
   name?: string;
   id?: string;
   disabled?: boolean;
+  onInputChange?: (value: string) => void;
 }
 
 const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
@@ -47,7 +48,8 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
     emptyMessage = "Nenhum item encontrado.",
     name,
     id,
-    disabled = false
+    disabled = false,
+    onInputChange
   }, ref) => {
     const [open, setOpen] = React.useState(false);
     const [searchValue, setSearchValue] = React.useState("");
@@ -61,10 +63,13 @@ const Combobox = forwardRef<HTMLInputElement, ComboboxProps>(
     // Função para lidar com mudanças no input
     const handleInputChange = React.useCallback((inputValue: string) => {
       setSearchValue(inputValue);
+      if (onInputChange) {
+        onInputChange(inputValue);
+      }
       if (allowCustomValue) {
         onSelect(inputValue);
       }
-    }, [allowCustomValue, onSelect]);
+    }, [allowCustomValue, onSelect, onInputChange]);
 
     // Encontra a label para o valor atual
     const selectedOptionLabel = React.useMemo(() => {

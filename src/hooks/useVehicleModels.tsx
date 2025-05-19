@@ -101,6 +101,26 @@ export function useVehicleModels(makeId?: string) {
     setSelectedModel(null);
   };
 
+  // Função para criar modelo com callback opcional
+  const createModel = (
+    data: { name: string; makeId: string },
+    options?: { onSuccess?: (model: VehicleModel | null) => void }
+  ) => {
+    createMutation.mutate(data, {
+      onSuccess: (newModel) => {
+        queryClient.invalidateQueries({ queryKey: ['vehicle-models'] });
+        if (makeId) {
+          queryClient.invalidateQueries({ queryKey: ['vehicle-models', makeId] });
+        }
+        toast.success('Modelo criado com sucesso');
+        setIsAddModelOpen(false);
+        if (options?.onSuccess) {
+          options.onSuccess(newModel);
+        }
+      }
+    });
+  };
+
   return {
     models,
     isLoading,
@@ -116,7 +136,7 @@ export function useVehicleModels(makeId?: string) {
     closeEditModel,
     openDeleteModel,
     closeDeleteModel,
-    createModel: createMutation.mutate,
+    createModel,
     updateModel: updateMutation.mutate,
     deleteModel: deleteMutation.mutate,
     isCreating: createMutation.isPending,
