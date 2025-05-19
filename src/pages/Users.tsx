@@ -426,8 +426,8 @@ const Users = () => {
     // Aqui está a correção: mostrar usuários ativos quando showInactiveUsers é false,
     // e mostrar usuários inativos quando showInactiveUsers é true
     const matchesStatus = showInactiveUsers 
-      ? user.status === 'inactive'  // Mostrar apenas inativos quando showInactiveUsers é true
-      : user.status === 'active';   // Mostrar apenas ativos quando showInactiveUsers é false
+      ? user.status === 'active'  // Mostrar apenas inativos quando showInactiveUsers é true
+      : user.status === 'inactive';   // Mostrar apenas ativos quando showInactiveUsers é false
     
     return matchesSearch && matchesRole && matchesStatus;
   });
