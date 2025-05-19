@@ -566,6 +566,9 @@ const Users = () => {
             setSearchTerm('');
             setRoleFilter(null);
           }}
+          showInactiveUsers={showInactiveUsers}
+          onStatusChange={setShowInactiveUsers}
+          actions={undefined}
         />
         
         {loading ? (

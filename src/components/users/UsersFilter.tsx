@@ -2,6 +2,8 @@
 import React from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/layout/PageHeader';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 interface UsersFilterProps {
   viewMode: 'grid' | 'table';
@@ -12,6 +14,8 @@ interface UsersFilterProps {
   onRoleFilterChange: (value: string | null) => void;
   onReset: () => void;
   actions?: React.ReactNode;
+  showInactiveUsers?: boolean;
+  onStatusChange?: (value: boolean) => void;
 }
 
 const UsersFilter: React.FC<UsersFilterProps> = ({
@@ -22,7 +26,9 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
   roleFilter,
   onRoleFilterChange,
   onReset,
-  actions
+  actions,
+  showInactiveUsers = false,
+  onStatusChange
 }) => {
   return (
     <PageHeader
@@ -34,6 +40,19 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
       setViewMode={setViewMode}
       actions={actions}
     >
+      {onStatusChange && (
+        <div className="flex items-center gap-2 mr-2">
+          <Switch 
+            id="show-inactive" 
+            checked={showInactiveUsers}
+            onCheckedChange={onStatusChange}
+            variant="success-danger"
+          />
+          <Label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
+            {!showInactiveUsers ? 'Ativos' : 'Inativos'}
+          </Label>
+        </div>
+      )}
       <Select
         value={roleFilter || "all"}
         onValueChange={(value) => onRoleFilterChange(value === "all" ? null : value)}
