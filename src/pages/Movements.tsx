@@ -7,11 +7,9 @@ import MovementsTable from '@/components/movements/MovementsTable';
 import MovementCard from '@/components/movements/MovementCard';
 import MovementsFilter from '@/components/movements/MovementsFilter';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
-import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useMediaQuery } from '@/hooks/use-mobile';
 
 const Movements = () => {
@@ -22,7 +20,6 @@ const Movements = () => {
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { userPermissions } = useAuth();
-  const navigate = useNavigate();
   const isMobile = useMediaQuery('(max-width: 768px)');
   
   // Redirecionar se o usuário não tem permissão
@@ -67,12 +64,6 @@ const Movements = () => {
       <div className="container mx-auto py-6 pb-16 md:pb-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Movimentações</h1>
-          {userPermissions?.canCreateMovements && (
-            <Button onClick={() => navigate('/dashboard')}>
-              <Plus className="h-4 w-4 md:mr-2" />
-              {!isMobile && <span>Nova Movimentação</span>}
-            </Button>
-          )}
         </div>
         
         <MovementsFilter
