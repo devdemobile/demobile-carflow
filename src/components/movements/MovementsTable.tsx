@@ -31,6 +31,15 @@ const MovementsTable: React.FC<MovementsTableProps> = ({
   // Use onMovementClick if provided, otherwise fall back to onRowClick
   const handleRowClick = onMovementClick || onRowClick;
   
+  // Função para determinar a variante do badge baseado no status
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'yard': return 'success';
+      case 'out': return 'warning';
+      default: return 'default';
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -78,7 +87,22 @@ const MovementsTable: React.FC<MovementsTableProps> = ({
               className="cursor-pointer hover:bg-muted/50"
               onClick={() => handleRowClick(movement)}
             >
-              <TableCell className="font-medium">{movement.vehiclePlate || movement.vehicleId}</TableCell>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-2">
+                  {/* Miniatura do veículo */}
+                  <div className="w-8 h-8 rounded-md overflow-hidden bg-muted flex-shrink-0">
+                    <img 
+                      src={movement.vehicleImageUrl || '/placeholder.svg'} 
+                      alt={`Veículo ${movement.vehiclePlate || movement.vehicleId}`} 
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.src = '/placeholder.svg';
+                      }}
+                    />
+                  </div>
+                  {movement.vehiclePlate || movement.vehicleId}
+                </div>
+              </TableCell>
               
               {showUnits && (
                 <TableCell>
@@ -118,11 +142,7 @@ const MovementsTable: React.FC<MovementsTableProps> = ({
               
               <TableCell>
                 <Badge 
-                  variant={
-                    movement.status === 'yard' ? 'outline' :
-                    movement.status === 'out' ? 'secondary' :
-                    'default'
-                  }
+                  variant={getStatusVariant(movement.status)}
                 >
                   {movement.status === 'yard' ? 'No pátio' : 
                    movement.status === 'out' ? 'Em rota' : 

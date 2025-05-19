@@ -39,6 +39,15 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
     }
   };
 
+  // Determina a variante da tag baseada no status
+  const getStatusVariant = (status: string) => {
+    switch (status) {
+      case 'yard': return 'success';
+      case 'out': return 'warning';
+      default: return 'outline';
+    }
+  };
+
   // Calcular quilometragem percorrida
   const mileageRun = movement.finalMileage && movement.initialMileage 
     ? movement.finalMileage - movement.initialMileage 
@@ -48,6 +57,9 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   const initialMileageFormatted = movement.initialMileage?.toLocaleString() || '0';
   const finalMileageFormatted = movement.finalMileage?.toLocaleString() || '—';
   
+  // Imagem padrão para veículos
+  const vehicleImageUrl = movement.vehicleImageUrl || '/placeholder.svg';
+  
   return (
     <Card 
       className={`cursor-pointer hover:shadow-md transition-shadow ${getBorderClass(movement.status)}`}
@@ -56,12 +68,25 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
       <CardContent className="pt-6">
         {/* Cabeçalho: Placa e Status */}
         <div className="flex justify-between items-start mb-3">
-          <div className="flex flex-col">
-            <span className="text-lg font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span>
-            {/* Informação completa do veículo incluindo a cor */}
-            <span className="text-sm text-muted-foreground">{movement.vehicleName || ''}</span>
+          <div className="flex gap-3 items-start">
+            {/* Miniatura do veículo */}
+            <div className="w-14 h-14 rounded-md overflow-hidden bg-muted flex-shrink-0">
+              <img 
+                src={vehicleImageUrl} 
+                alt={`Veículo ${movement.vehiclePlate || movement.plate || movement.vehicleId}`} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = '/placeholder.svg';
+                }}
+              />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-lg font-semibold">{movement.vehiclePlate || movement.plate || movement.vehicleId}</span>
+              {/* Informação completa do veículo incluindo a cor */}
+              <span className="text-sm text-muted-foreground">{movement.vehicleName || ''}</span>
+            </div>
           </div>
-          <Badge variant={movement.status === 'yard' ? 'outline' : 'secondary'}>
+          <Badge variant={getStatusVariant(movement.status)}>
             {getMovementStatusLabel(movement.status)}
           </Badge>
         </div>
