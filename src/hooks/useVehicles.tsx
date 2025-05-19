@@ -77,6 +77,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
               // Se encontrar uma movimentação ativa, atualizar o destino do veículo
               if (activeMovement && activeMovement.destination) {
                 vehicle.destination = activeMovement.destination;
+                console.log(`Destino do veículo ${vehicle.plate} definido como: ${activeMovement.destination}`);
               }
             } catch (error) {
               console.error('Erro ao buscar destino do veículo:', error);
@@ -86,15 +87,17 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         });
         
         // Esperar todas as consultas terminarem
-        await Promise.all(promises);
+        const updatedVehicles = await Promise.all(promises);
         
         // Aplicamos os filtros sequencialmente
         
         // Filtrar por status
         if (filters.status && filters.status !== 'all') {
-          filteredVehicles = filteredVehicles.filter(v => 
+          filteredVehicles = updatedVehicles.filter(v => 
             v.location === filters.status
           );
+        } else {
+          filteredVehicles = updatedVehicles;
         }
         
         // Filtrar por marca
@@ -147,7 +150,9 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         toast.error(`Erro ao buscar veículos: ${error.message}`);
         throw error;
       }
-    }
+    },
+    refetchInterval: 30000, // Refetch a cada 30 segundos para atualizar os dados dos veículos
+    refetchOnWindowFocus: true // Refetch quando o usuário volta para a janela
   });
 
   // Calculate total pages

@@ -1,406 +1,425 @@
+
 import React, { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Car, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useVehicles } from '@/hooks/useVehicles';
-import { Vehicle, Movement } from '@/types';
-import { formatMileage } from '@/lib/utils';
-import { 
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { Vehicle, Movement, VehicleMovementFormData } from '@/types';
+import { useUnits } from '@/hooks/useUnits';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 import { movementService } from '@/services/movements/movementService';
 
 interface VehicleMovementFormProps {
-  isOpen?: boolean;
-  onClose?: () => void;
-  vehicle?: Vehicle;
-  onSubmit?: (formData: Movement) => void;
-  lastMovement?: Movement;
-}
-
-interface MovementFormData {
-  driver: string;
-  destination: string;
-  initialMileage: number;
-  finalMileage?: number;
-  notes?: string;
+  isOpen: boolean;
+  onClose: () => void;
+  vehicle: Vehicle;
+  onSubmit: (data: Movement) => Promise<void>;
 }
 
 const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   isOpen,
   onClose,
   vehicle,
-  onSubmit,
-  lastMovement
+  onSubmit
 }) => {
-  const navigate = useNavigate();
-  const { findVehicleByPlate } = useVehicles();
-  const [plate, setPlate] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [error, setError] = useState('');
-  const [loadingLastMovement, setLoadingLastMovement] = useState(false);
-  const [lastDriverName, setLastDriverName] = useState('');
-  
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<MovementFormData>();
-  const [mileageInput, setMileageInput] = useState('');
+  // Obtém as unidades
+  const { units } = useUnits();
+
+  // Estado do tipo de movimentação (entrada/saída)
+  const [movementType, setMovementType] = useState<'entry' | 'exit'>(
+    vehicle.location === 'yard' ? 'exit' : 'entry'
+  );
+
+  // Estados para controle de inputs numéricos
+  const [initialMileageInput, setInitialMileageInput] = useState(String(vehicle.mileage || 0));
   const [finalMileageInput, setFinalMileageInput] = useState('');
   
-  // Determinar se é entrada ou saída baseado na localização atual do veículo
-  const isExit = vehicle?.location === 'yard';
-  const movementType = isExit ? 'exit' : 'entry';
-  const formTitle = isExit ? 'Registrar Saída' : 'Registrar Entrada';
-  const buttonText = isExit ? 'Registrar Saída' : 'Registrar Entrada';
-  
-  // Para acessar os valores do formulário
-  const watchInitialMileage = watch('initialMileage');
-  const watchFinalMileage = watch('finalMileage');
-  
-  // Obter a data e hora atual formatadas para exibição
-  const currentDate = new Date().toLocaleDateString('pt-BR');
-  const currentTime = new Date().toLocaleTimeString('pt-BR', { 
-    hour: '2-digit', 
-    minute: '2-digit' 
+  // Estado para armazenar a movimentação ativa atual (se for uma entrada)
+  const [activeMovement, setActiveMovement] = useState<Movement | null>(null);
+
+  // Configuração do esquema de validação de acordo com o tipo de movimento
+  const movementSchema = z.object({
+    type: z.string().min(1, 'Tipo de movimentação é obrigatório'),
+    status: z.string().min(1, 'Status é obrigatório'),
+    driver: z.string().min(3, 'Nome do motorista deve ter pelo menos 3 caracteres'),
+    vehicleId: z.string().min(1, 'ID do veículo é obrigatório'),
+    departureUnitId: z.string().optional(),
+    arrivalUnitId: z.string().optional(),
+    departureDate: z.string().optional(),
+    departureTime: z.string().optional(),
+    arrivalDate: z.string().optional(),
+    arrivalTime: z.string().optional(),
+    initialMileage: z.number().min(0, 'Quilometragem inicial deve ser maior que zero'),
+    finalMileage: z.number().optional(),
+    destination: movementType === 'exit' ? 
+      z.string().min(1, 'Destino é obrigatório') : 
+      z.string().optional(),
+  });
+
+  // Hook form com validação
+  const form = useForm<VehicleMovementFormData>({
+    resolver: zodResolver(movementSchema),
+    defaultValues: {
+      type: movementType,
+      status: movementType === 'exit' ? 'out' : 'yard',
+      driver: '',
+      vehicleId: vehicle.id,
+      departureUnitId: vehicle.unitId || '',
+      arrivalUnitId: vehicle.unitId || '',
+      initialMileage: vehicle.mileage || 0,
+      destination: ''
+    },
+    mode: 'onChange',
   });
   
-  // Carregar o último movimento para preencher o motorista automaticamente
-  useEffect(() => {
-    if (vehicle && !isExit) {
-      setLoadingLastMovement(true);
-      
-      // Buscar a última movimentação de saída para este veículo
-      movementService.getMovementsByVehicle(vehicle.id)
-        .then(movements => {
-          const lastExitMovement = movements
-            .filter(m => m.type === 'exit' && m.status === 'out')
-            .sort((a, b) => {
-              const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-              const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
-              return dateB.getTime() - dateA.getTime();
-            })[0];
-          
-          if (lastExitMovement && lastExitMovement.driver) {
-            setLastDriverName(lastExitMovement.driver);
-            setValue('driver', lastExitMovement.driver);
-          }
-        })
-        .catch(err => {
-          console.error('Erro ao buscar último movimento:', err);
-        })
-        .finally(() => {
-          setLoadingLastMovement(false);
-        });
-    }
-  }, [vehicle, isExit, setValue]);
+  const { register, handleSubmit, formState: { errors, isSubmitting }, setValue, watch } = form;
   
-  // Set initial values when vehicle changes
-  useEffect(() => {
-    if (vehicle) {
-      const today = new Date().toISOString().split('T')[0];
-      const currentTime = new Date().toTimeString().split(' ')[0].substring(0, 5);
-      
-      if (isExit) {
-        // Para saída, limpar o motorista e destino
-        setValue('driver', '');
-        setValue('destination', '');
-        setValue('initialMileage', vehicle.mileage || 0);
-      } else {
-        // Para entrada, não precisa definir destino
-        setValue('finalMileage', undefined);
-      }
-      
-      setValue('notes', '');
-      
-      // Atualizar entradas de quilometragem
-      setMileageInput(formatMileage(vehicle.mileage || 0));
-      setFinalMileageInput('');
-    }
-  }, [vehicle, setValue, isExit]);
+  // Assistir os campos para revalidar
+  const watchedInitialMileage = watch('initialMileage');
 
-  const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPlate(e.target.value.toUpperCase());
-    setError('');
-  };
-
-  const handleMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Gerenciador de mudança para quilometragem inicial
+  const handleInitialMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    setInitialMileageInput(value);
     
-    // Remove todos os caracteres não numéricos
-    const numericValue = value.replace(/\D/g, '');
-    
-    // Converte para número
-    const mileage = numericValue ? parseInt(numericValue, 10) : 0;
-    
-    // Atualiza o valor no formulário
-    setValue('initialMileage', mileage);
-    
-    // Atualiza o valor exibido com formatação
-    setMileageInput(formatMileage(mileage));
+    // Converter para número
+    const numericValue = value === '' ? 0 : parseInt(value.replace(/\D/g, ''), 10);
+    setValue('initialMileage', numericValue);
   };
-  
+
+  // Gerenciador de mudança para quilometragem final
   const handleFinalMileageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    setFinalMileageInput(value);
     
-    // Remove todos os caracteres não numéricos
-    const numericValue = value.replace(/\D/g, '');
-    
-    // Converte para número
-    const mileage = numericValue ? parseInt(numericValue, 10) : 0;
-    
-    // Atualiza o valor no formulário
-    setValue('finalMileage', mileage);
-    
-    // Atualiza o valor exibido com formatação
-    setFinalMileageInput(formatMileage(mileage));
+    // Converter para número
+    const numericValue = value === '' ? 0 : parseInt(value.replace(/\D/g, ''), 10);
+    setValue('finalMileage', numericValue);
   };
 
-  const handleSearchSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!plate.trim()) return;
-
-    setIsSearching(true);
-    setError('');
-
-    try {
-      const vehicle = await findVehicleByPlate(plate.trim());
-      if (vehicle) {
-        navigate(`/movements/new?vehicleId=${vehicle.id}`);
-      } else {
-        setError('Veículo não encontrado. Verifique a placa informada.');
-      }
-    } catch (error) {
-      console.error('Erro ao buscar veículo:', error);
-      setError('Erro ao buscar veículo. Tente novamente.');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleDialogFormSubmit = (data: MovementFormData) => {
-    if (!vehicle || !onSubmit) return;
-    
-    // Validações específicas para entrada e saída
-    if (isExit) {
-      // Para saída: KM inicial deve ser >= KM atual do veículo
-      if (data.initialMileage < (vehicle.mileage || 0)) {
-        toast.error(`Quilometragem inicial não pode ser menor que a atual (${formatMileage(vehicle.mileage || 0)} km)`);
-        return;
-      }
-      
-      // Destino é obrigatório para saída
-      if (!data.destination) {
-        toast.error('Destino é obrigatório para registrar saída');
-        return;
-      }
-    } else {
-      // Para entrada: KM final deve ser >= KM inicial da última saída
-      const lastMileage = vehicle.mileage || 0;
-      if ((data.finalMileage || 0) < lastMileage) {
-        toast.error(`Quilometragem final não pode ser menor que a inicial (${formatMileage(lastMileage)} km)`);
-        return;
-      }
-    }
-    
-    // Pega a data e hora atuais
-    const today = new Date().toISOString().split('T')[0];
-    const now = new Date().toTimeString().split(' ')[0].substring(0, 5);
-    
-    // Create movement object from form data
-    const movement: Movement = {
-      id: Math.random().toString(),
-      vehicleId: vehicle.id,
-      vehiclePlate: vehicle.plate,
-      vehicleName: `${vehicle.make} ${vehicle.model}`,
-      driver: data.driver,
-      destination: isExit ? data.destination : undefined,
-      initialMileage: isExit ? data.initialMileage : vehicle.mileage || 0,
-      finalMileage: !isExit ? data.finalMileage : undefined,
-      departureDate: today,
-      departureTime: now,
-      notes: data.notes,
-      departureUnitId: vehicle.unitId || '',
-      status: isExit ? 'out' : 'yard',
-      type: isExit ? 'exit' : 'entry'
-    };
-    
-    onSubmit(movement);
-    toast.success(`Movimentação de ${isExit ? 'saída' : 'entrada'} registrada com sucesso!`);
-  };
-
-  // If this is being used as a dialog, render the dialog version
-  if (isOpen !== undefined && onClose && vehicle) {
-    const borderColorClass = isExit ? 'border-amber-500' : 'border-emerald-500';
-    
-    return (
-      <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-        <DialogContent className={`sm:max-w-[500px] ${borderColorClass} border-2`}>
-          <DialogHeader>
-            <DialogTitle className={isExit ? 'text-amber-600' : 'text-emerald-600'}>
-              {formTitle}
-            </DialogTitle>
-            <DialogDescription>
-              {isExit 
-                ? 'Preencha os campos abaixo para registrar a saída do veículo.' 
-                : 'Preencha os campos abaixo para registrar a entrada do veículo.'
-              }
-              <span className="block text-muted-foreground text-xs mt-1">
-                {currentDate} às {currentTime}
-              </span>
-            </DialogDescription>
-          </DialogHeader>
+  // Função para buscar a movimentação ativa atual (se for uma entrada)
+  const fetchActiveMovement = async () => {
+    if (movementType === 'entry' && vehicle.location === 'out') {
+      try {
+        // Buscar movimentações do veículo
+        const movements = await movementService.getMovementsByVehicle(vehicle.id);
+        
+        // Encontrar a movimentação ativa mais recente
+        const activeMovement = movements
+          .filter(m => m.status === 'out' && m.type === 'exit')
+          .sort((a, b) => {
+            const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+            const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+            return dateB.getTime() - dateA.getTime();
+          })[0];
           
-          <form onSubmit={handleSubmit(handleDialogFormSubmit)} className="space-y-4 py-2">
-            <div className="grid gap-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-full">
-                  <Label htmlFor="vehicle-info">Veículo</Label>
-                  <p id="vehicle-info" className="text-sm font-medium">
-                    {vehicle.plate} - {vehicle.make} {vehicle.model}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="grid gap-3">
-                <div>
-                  <Label htmlFor="driver" className="text-sm">Motorista*</Label>
-                  <Input
-                    id="driver"
-                    placeholder="Nome do motorista"
-                    {...register('driver', { required: 'Motorista é obrigatório' })}
-                  />
-                  {errors.driver && <p className="text-xs text-destructive mt-1">{errors.driver.message}</p>}
-                  {!isExit && lastDriverName && (
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Este é o motorista que realizou a saída
-                    </p>
-                  )}
-                </div>
-                
-                {isExit && (
-                  <div>
-                    <Label htmlFor="destination" className="text-sm">Destino*</Label>
-                    <Input
-                      id="destination"
-                      placeholder="Local de destino"
-                      {...register('destination', { required: 'Destino é obrigatório para saída' })}
-                    />
-                    {errors.destination && <p className="text-xs text-destructive mt-1">{errors.destination.message}</p>}
-                  </div>
-                )}
-                
-                {isExit ? (
-                  <div>
-                    <Label htmlFor="initialMileage" className="text-sm">Quilometragem inicial*</Label>
-                    <Input
-                      id="initialMileage"
-                      placeholder="0 km"
-                      value={mileageInput}
-                      onChange={handleMileageChange}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      KM atual: {formatMileage(vehicle.mileage || 0)} km
-                    </p>
-                    {errors.initialMileage && <p className="text-xs text-destructive mt-1">{errors.initialMileage.message}</p>}
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <Label htmlFor="initialMileage" className="text-sm">Quilometragem inicial</Label>
-                      <Input
-                        id="initialMileage"
-                        value={formatMileage(vehicle.mileage || 0)}
-                        disabled
-                        className="bg-muted"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="finalMileage" className="text-sm">Quilometragem final*</Label>
-                      <Input
-                        id="finalMileage"
-                        placeholder="0 km"
-                        value={finalMileageInput}
-                        onChange={handleFinalMileageChange}
-                      />
-                      <input 
-                        type="hidden" 
-                        {...register('finalMileage', { 
-                          required: 'Quilometragem final é obrigatória',
-                          min: {
-                            value: vehicle.mileage || 0,
-                            message: `Deve ser maior ou igual a ${formatMileage(vehicle.mileage || 0)} km`
-                          }
-                        })}
-                      />
-                      {errors.finalMileage && <p className="text-xs text-destructive mt-1">{errors.finalMileage.message}</p>}
-                    </div>
-                  </>
-                )}
-              </div>
+        if (activeMovement) {
+          setActiveMovement(activeMovement);
+          
+          // Preencher o form com os dados da movimentação ativa
+          setValue('driver', activeMovement.driver);
+          setValue('departureUnitId', activeMovement.departureUnitId || '');
+          setValue('initialMileage', activeMovement.initialMileage || vehicle.mileage || 0);
+          setValue('destination', activeMovement.destination || '');
+          setInitialMileageInput(String(activeMovement.initialMileage || vehicle.mileage || 0));
+        }
+      } catch (error) {
+        console.error("Erro ao buscar movimentação ativa:", error);
+      }
+    }
+  };
+  
+  // Carregar movimentação ativa ao abrir o form
+  useEffect(() => {
+    if (isOpen && vehicle.location === 'out' && movementType === 'entry') {
+      fetchActiveMovement();
+    }
+  }, [isOpen, vehicle.location, movementType]);
+
+  // Alterar o tipo de movimentação
+  useEffect(() => {
+    if (vehicle) {
+      const newType = vehicle.location === 'yard' ? 'exit' : 'entry';
+      setMovementType(newType);
+      setValue('type', newType);
+      setValue('status', newType === 'exit' ? 'out' : 'yard');
+
+      // Reset fields
+      if (newType === 'exit') {
+        setValue('initialMileage', vehicle.mileage || 0);
+        setInitialMileageInput(String(vehicle.mileage || 0));
+        setValue('destination', '');
+      } else {
+        // Se for entrada, será preenchido pelo fetchActiveMovement
+      }
+    }
+  }, [vehicle, setValue]);
+
+  // Função para formatar a data atual
+  const formatToday = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Função para formatar a hora atual
+  const formatTime = () => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // Handler para submissão do formulário
+  const onFormSubmit = async (data: VehicleMovementFormData) => {
+    try {
+      // Preparar objeto de movimentação para envio
+      const movementData: Movement = {
+        id: '',  // Será gerado pelo backend
+        vehicleId: vehicle.id,
+        driver: data.driver,
+        destination: data.destination || '',
+        initialMileage: data.initialMileage,
+        departureUnitId: data.departureUnitId || vehicle.unitId || '',
+        departureDate: movementType === 'exit' ? formatToday() : activeMovement?.departureDate || '',
+        departureTime: movementType === 'exit' ? formatTime() : activeMovement?.departureTime || '',
+        type: movementType,
+        status: movementType === 'exit' ? 'out' : 'yard',
+      };
+      
+      // Se for entrada, adicionar campos específicos
+      if (movementType === 'entry') {
+        movementData.arrivalUnitId = data.arrivalUnitId || vehicle.unitId;
+        movementData.arrivalDate = formatToday();
+        movementData.arrivalTime = formatTime();
+        movementData.finalMileage = data.finalMileage;
+        
+        // Se tiver uma movimentação ativa, usar seu ID
+        if (activeMovement) {
+          movementData.id = activeMovement.id;
+        }
+      }
+
+      // Enviar para o componente pai
+      await onSubmit(movementData);
+      onClose();
+    } catch (error) {
+      console.error("Erro ao submeter formulário:", error);
+    }
+  };
+
+  // Prepara as opções de unidades para os selects
+  const unitOptions = units.map(unit => ({
+    value: unit.id,
+    label: unit.name
+  }));
+
+  // Título do form baseado no tipo de movimentação
+  const formTitle = movementType === 'exit' ? 'Registrar Saída' : 'Registrar Entrada';
+
+  // Título do botão baseado no tipo de movimentação
+  const buttonTitle = movementType === 'exit' ? 'Registrar Saída' : 'Registrar Entrada';
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{formTitle} - {vehicle.plate}</DialogTitle>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onFormSubmit)} className="space-y-4">
+            {/* Detalhes do Veículo */}
+            <div className="bg-muted p-3 rounded-md text-sm space-y-1">
+              <div><strong>Veículo:</strong> {vehicle.make} {vehicle.model} {vehicle.color}</div>
+              <div><strong>Placa:</strong> {vehicle.plate}</div>
+              <div><strong>Unidade:</strong> {vehicle.unitName || 'Principal'}</div>
             </div>
             
-            <DialogFooter className="pt-2">
-              <Button variant="outline" onClick={onClose} type="button">Cancelar</Button>
-              <Button 
-                type="submit" 
-                className={isExit ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}
-              >
-                {buttonText}
+            {/* Alerta para validação de quilometragem */}
+            {movementType === 'entry' && errors.finalMileage && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  {errors.finalMileage.message}
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {movementType === 'exit' && watchedInitialMileage < (vehicle.mileage || 0) && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  Quilometragem inicial não pode ser menor que a atual do veículo ({vehicle.mileage} km)
+                </AlertDescription>
+              </Alert>
+            )}
+            
+            {/* Motorista */}
+            <FormField
+              control={form.control}
+              name="driver"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Motorista*</FormLabel>
+                  <FormControl>
+                    <Input required {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {/* Destino (apenas para saídas) */}
+            {movementType === 'exit' && (
+              <FormField
+                control={form.control}
+                name="destination"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Destino*</FormLabel>
+                    <FormControl>
+                      <Input required {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            {/* Unidades */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {movementType === 'exit' && (
+                <FormField
+                  control={form.control}
+                  name="departureUnitId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unidade de Saída</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a unidade" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {unitOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
+              {movementType === 'entry' && (
+                <FormField
+                  control={form.control}
+                  name="arrivalUnitId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unidade de Chegada</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a unidade" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {unitOptions.map(option => (
+                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+            </div>
+            
+            {/* Quilometragem */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* KM Inicial */}
+              <div className="space-y-2">
+                <Label htmlFor="initialMileage">
+                  {movementType === 'exit' ? 'KM Inicial*' : 'KM Inicial (Saída)'}
+                </Label>
+                <Input
+                  id="initialMileage" 
+                  type="text" 
+                  placeholder="0 km"
+                  value={initialMileageInput}
+                  onChange={handleInitialMileageChange}
+                  disabled={movementType === 'entry'}
+                  required={movementType === 'exit'}
+                  {...(movementType === 'exit' ? register('initialMileage', { 
+                    required: 'Quilometragem inicial é obrigatória',
+                    min: {
+                      value: vehicle.mileage || 0,
+                      message: `Deve ser maior ou igual a ${vehicle.mileage} km`
+                    }
+                  }) : {})}
+                />
+                {errors.initialMileage && (
+                  <p className="text-red-500 text-xs mt-1">{errors.initialMileage.message}</p>
+                )}
+              </div>
+              
+              {/* KM Final (apenas para entrada) */}
+              {movementType === 'entry' && (
+                <div className="space-y-2">
+                  <Label htmlFor="finalMileage">KM Final*</Label>
+                  <Input
+                    id="finalMileage"
+                    type="text"
+                    placeholder="0 km"
+                    value={finalMileageInput}
+                    onChange={handleFinalMileageChange}
+                    required
+                    {...register('finalMileage', { 
+                      required: 'Quilometragem final é obrigatória',
+                      min: {
+                        value: activeMovement?.initialMileage || vehicle.mileage || 0,
+                        message: `Deve ser maior ou igual a ${activeMovement?.initialMileage || vehicle.mileage} km`
+                      }
+                    })}
+                  />
+                  {errors.finalMileage && (
+                    <p className="text-red-500 text-xs mt-1">{errors.finalMileage.message}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {buttonTitle}
               </Button>
             </DialogFooter>
           </form>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  // Otherwise render the search form
-  return (
-    <form onSubmit={handleSearchSubmit} className="space-y-4">
-      <div className="grid gap-2">
-        <label htmlFor="plate-search" className="text-sm font-medium leading-none">
-          {vehicle?.location === 'yard' ? 'Registrar Saída' : 'Registrar Entrada'}
-          <span className="text-xs text-muted-foreground ml-2">
-            {currentDate} às {currentTime}
-          </span>
-        </label>
-        <div className="relative">
-          <Input
-            id="plate-search"
-            placeholder="BRA2E25"
-            value={plate}
-            onChange={handlePlateChange}
-            className="pl-9 uppercase"
-          />
-          <Car className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground mt-1">Digite a placa do veículo</p>
-        </div>
-      </div>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
-      <Button 
-        type="submit" 
-        disabled={isSearching || !plate.trim()}
-        className={vehicle?.location === 'yard' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}
-      >
-        {isSearching ? (
-          <>
-            <Search className="mr-2 h-4 w-4 animate-spin" />
-            Buscando...
-          </>
-        ) : (
-          vehicle?.location === 'yard' ? 'Registrar Saída' : 'Registrar Entrada'
-        )}
-      </Button>
-    </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
