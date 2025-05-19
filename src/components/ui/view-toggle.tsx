@@ -6,15 +6,27 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 interface ViewToggleProps {
   viewMode: 'grid' | 'table';
   onViewChange: (mode: 'grid' | 'table') => void;
+  className?: string;
 }
 
-const ViewToggle: React.FC<ViewToggleProps> = ({ viewMode, onViewChange }) => {
+/**
+ * Componente padronizado para alternar entre visualizações em grade e tabela.
+ * 
+ * @param viewMode - Modo de visualização atual ('grid' ou 'table')
+ * @param onViewChange - Função chamada quando o modo de visualização é alterado
+ * @param className - Classes CSS adicionais para estilização personalizada
+ */
+const ViewToggle: React.FC<ViewToggleProps> = ({ 
+  viewMode, 
+  onViewChange,
+  className = "" 
+}) => {
   return (
     <ToggleGroup 
       type="single" 
       value={viewMode} 
       onValueChange={(value) => value && onViewChange(value as 'grid' | 'table')}
-      className="hidden md:flex"
+      className={`hidden md:flex ${className}`}
     >
       <ToggleGroupItem value="grid" aria-label="Ver em grade">
         <Grid2X2 className="h-4 w-4" />
