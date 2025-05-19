@@ -104,6 +104,7 @@ export interface Movement {
   type: MovementType;
   createdBy?: string;
   notes?: string;
+  photoUrl?: string; // URL da foto do veículo associado
 }
 
 export interface MovementLog {

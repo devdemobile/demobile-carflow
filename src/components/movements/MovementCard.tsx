@@ -57,8 +57,8 @@ const MovementCard: React.FC<MovementCardProps> = ({ movement, onClick }) => {
   const initialMileageFormatted = movement.initialMileage?.toLocaleString() || '0';
   const finalMileageFormatted = movement.finalMileage?.toLocaleString() || '—';
   
-  // Imagem padrão para veículos
-  const vehicleImageUrl = movement.vehicleImageUrl || '/placeholder.svg';
+  // Imagem do veículo
+  const vehicleImageUrl = movement.photoUrl || '/placeholder.svg';
   
   return (
     <Card 

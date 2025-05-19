@@ -37,7 +37,7 @@ export class MovementRepository implements IMovementRepository {
           departure_date, departure_time,
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
-          vehicle_id, vehicles(id, plate, make, model), 
+          vehicle_id, vehicles(id, plate, make, model, photo_url), 
           departure_unit_id, units:departure_unit_id(id, name),
           arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
@@ -63,7 +63,7 @@ export class MovementRepository implements IMovementRepository {
           departure_date, departure_time,
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
-          vehicle_id, vehicles(id, plate, make, model), 
+          vehicle_id, vehicles(id, plate, make, model, photo_url), 
           departure_unit_id, units:departure_unit_id(id, name),
           arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
@@ -89,7 +89,7 @@ export class MovementRepository implements IMovementRepository {
           departure_date, departure_time,
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
-          vehicle_id, vehicles(id, plate, make, model), 
+          vehicle_id, vehicles(id, plate, make, model, photo_url), 
           departure_unit_id, units:departure_unit_id(id, name),
           arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
@@ -116,7 +116,7 @@ export class MovementRepository implements IMovementRepository {
           departure_date, departure_time,
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
-          vehicle_id, vehicles(id, plate, make, model), 
+          vehicle_id, vehicles(id, plate, make, model, photo_url), 
           departure_unit_id, units:departure_unit_id(id, name),
           arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
@@ -145,7 +145,7 @@ export class MovementRepository implements IMovementRepository {
           departure_date, departure_time,
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
-          vehicle_id, vehicles(id, plate, make, model), 
+          vehicle_id, vehicles(id, plate, make, model, photo_url), 
           departure_unit_id, units:departure_unit_id(id, name),
           arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
@@ -176,7 +176,7 @@ export class MovementRepository implements IMovementRepository {
           departure_date, departure_time,
           arrival_date, arrival_time,
           initial_mileage, final_mileage, mileage_run, duration,
-          vehicle_id, vehicles(id, plate, make, model), 
+          vehicle_id, vehicles(id, plate, make, model, photo_url), 
           departure_unit_id, units:departure_unit_id(id, name),
           arrival_unit_id, arrival_units:arrival_unit_id(id, name)
         `)
@@ -286,6 +286,7 @@ export class MovementRepository implements IMovementRepository {
       vehicleId: data.vehicle_id,
       vehiclePlate: data.vehicles?.plate, // Adicionada placa do veículo
       vehicleName: data.vehicles ? `${data.vehicles.make} ${data.vehicles.model}` : undefined,
+      photoUrl: data.vehicles?.photo_url, // Adicionada URL da foto do veículo
       driver: data.driver,
       destination: data.destination,
       initialMileage: data.initial_mileage,

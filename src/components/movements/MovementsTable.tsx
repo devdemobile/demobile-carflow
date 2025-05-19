@@ -18,17 +18,17 @@ interface MovementsTableProps {
   isLoading?: boolean;
   onRowClick: (movement: Movement) => void;
   showUnits?: boolean;
-  onMovementClick?: (movement: Movement) => void; // Add this prop for backward compatibility
+  onMovementClick?: (movement: Movement) => void; // Compatibilidade
 }
 
 const MovementsTable: React.FC<MovementsTableProps> = ({ 
   movements, 
   isLoading = false,
   onRowClick,
-  onMovementClick, // Accept the new prop
+  onMovementClick, // Aceita a nova prop
   showUnits = false
 }) => {
-  // Use onMovementClick if provided, otherwise fall back to onRowClick
+  // Usa onMovementClick se fornecido, caso contrário usa onRowClick
   const handleRowClick = onMovementClick || onRowClick;
   
   // Função para determinar a variante do badge baseado no status
@@ -92,7 +92,7 @@ const MovementsTable: React.FC<MovementsTableProps> = ({
                   {/* Miniatura do veículo */}
                   <div className="w-8 h-8 rounded-md overflow-hidden bg-muted flex-shrink-0">
                     <img 
-                      src={movement.vehicleImageUrl || '/placeholder.svg'} 
+                      src={movement.photoUrl || '/placeholder.svg'} 
                       alt={`Veículo ${movement.vehiclePlate || movement.vehicleId}`} 
                       className="w-full h-full object-cover"
                       onError={(e) => {
