@@ -534,7 +534,7 @@ const Users = () => {
                 variant="success-danger"
               />
               <label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
-                {showInactiveUsers ? 'Inativos' : 'Ativos'}
+                {showInactiveUsers ? 'Ativos' : 'Inativos'}
               </label>
             </div>
           </div>
