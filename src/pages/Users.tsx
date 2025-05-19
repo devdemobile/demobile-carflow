@@ -42,7 +42,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserRole, UserShift, UserStatus, SystemUser } from '@/types/entities';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, UserRound, Search, Key, ShieldCheck } from 'lucide-react';
+import { Pencil, Trash2, Key, ShieldCheck, Plus } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
@@ -50,8 +50,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Card, CardContent } from '@/components/ui/card';
 import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
 import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
-import ViewToggle from '@/components/ui/view-toggle';
-import { cn } from '@/lib/utils';
+import UsersFilter from '@/components/users/UsersFilter';
 
 interface Unit {
   id: string;
@@ -80,10 +79,11 @@ const Users = () => {
   const [showInactiveUsers, setShowInactiveUsers] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid'); // Changed default to grid
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<SystemUser | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string | null>(null);
   
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -421,7 +421,9 @@ const Users = () => {
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    return matchesSearch && (showInactiveUsers || user.status === 'active');
+    const matchesRole = roleFilter ? user.role === roleFilter : true;
+    
+    return matchesSearch && matchesRole && (showInactiveUsers || user.status === 'active');
   });
 
   const getRoleBadge = (role: string) => {
@@ -522,7 +524,7 @@ const Users = () => {
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
             <h1 className="text-3xl font-bold">Usuários</h1>
             
@@ -539,32 +541,26 @@ const Users = () => {
             </div>
           </div>
           
-          <div className="flex flex-col sm:flex-row gap-2">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  className="pl-8 max-w-[300px]"
-                  placeholder="Buscar usuário..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              
-              <ViewToggle 
-                viewMode={viewMode} 
-                onViewChange={setViewMode}
-              />
-            </div>
-            
-            {user?.role === 'admin' && (
-              <Button onClick={handleNewUser}>
-                <UserRound className="h-4 w-4 mr-2" />
-                Novo Usuário
-              </Button>
-            )}
-          </div>
+          {user?.role === 'admin' && (
+            <Button onClick={handleNewUser}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Usuário
+            </Button>
+          )}
         </div>
+        
+        <UsersFilter
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          roleFilter={roleFilter}
+          onRoleFilterChange={setRoleFilter}
+          onReset={() => {
+            setSearchTerm('');
+            setRoleFilter(null);
+          }}
+        />
         
         {loading ? (
           <div className="space-y-4">
