@@ -24,6 +24,8 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
   roleFilter,
   onRoleFilterChange,
   onReset,
+  showInactiveUsers,
+  onStatusChange,
   actions
 }) => {
   return (
@@ -36,19 +38,34 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
       setViewMode={setViewMode}
       actions={actions}
     >
-      <Select
-        value={roleFilter || "all"}
-        onValueChange={(value) => onRoleFilterChange(value === "all" ? null : value)}
-      >
-        <SelectTrigger className="w-full md:w-[180px]">
-          <SelectValue placeholder="Perfil" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">Todos</SelectItem>
-          <SelectItem value="admin">Administrador</SelectItem>
-          <SelectItem value="operator">Operador</SelectItem>
-        </SelectContent>
-      </Select>
+      <div className="flex gap-2 items-center">
+        {onStatusChange && (
+          <div className="flex items-center gap-2 mr-2">
+            <button
+              onClick={() => onStatusChange(!showInactiveUsers)}
+              className={`px-4 py-2 rounded-md text-white transition-colors ${
+                !showInactiveUsers ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
+              }`}
+            >
+              {!showInactiveUsers ? 'Ativos' : 'Inativos'}
+            </button>
+          </div>
+        )}
+        
+        <Select
+          value={roleFilter || "all"}
+          onValueChange={(value) => onRoleFilterChange(value === "all" ? null : value)}
+        >
+          <SelectTrigger className="w-full md:w-[180px]">
+            <SelectValue placeholder="Perfil" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="admin">Administrador</SelectItem>
+            <SelectItem value="operator">Operador</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
     </PageHeader>
   );
 };

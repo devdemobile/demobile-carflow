@@ -11,21 +11,20 @@ import {
   DialogContent, 
   DialogHeader, 
   DialogTitle,
-  DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Plus } from 'lucide-react';
 import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
 import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
 import UsersFilter from '@/components/users/UsersFilter';
-import { SystemUser, UserStatus } from '@/types/entities';
+import { SystemUser } from '@/types/entities';
 import UserTable from '@/components/users/UserTable';
 import UserCard from '@/components/users/UserCard';
 import UserForm, { UserFormValues } from '@/components/users/UserForm';
 import useUsers from '@/hooks/useUsers';
+import { cn } from '@/lib/utils';
 
 const Users = () => {
   const { user } = useAuth();
@@ -231,26 +230,12 @@ const Users = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Usuários</h1>
           
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Switch 
-                id="show-inactive" 
-                checked={showInactiveUsers}
-                onCheckedChange={setShowInactiveUsers}
-                variant="success-danger"
-              />
-              <label htmlFor="show-inactive" className="text-sm font-medium cursor-pointer">
-                {showInactiveUsers ? 'Inativos' : 'Ativos'}
-              </label>
-            </div>
-            
-            {user?.role === 'admin' && (
-              <Button onClick={handleNewUser}>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Usuário
-              </Button>
-            )}
-          </div>
+          {user?.role === 'admin' && (
+            <Button onClick={handleNewUser}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Usuário
+            </Button>
+          )}
         </div>
         
         <UsersFilter
@@ -264,6 +249,8 @@ const Users = () => {
             setSearchTerm('');
             setRoleFilter(null);
           }}
+          showInactiveUsers={showInactiveUsers}
+          onStatusChange={setShowInactiveUsers}
         />
         
         {loading ? (

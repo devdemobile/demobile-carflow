@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
-import { Pencil, Trash2, Key, ShieldCheck } from 'lucide-react';
+import { Pencil, Key, ShieldCheck, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface UserCardProps {
@@ -76,44 +76,51 @@ const UserCard: React.FC<UserCardProps> = ({
         </div>
         
         {isAdmin && (
-          <div className="flex flex-wrap justify-end gap-2 mt-4 pt-2 border-t">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => onEdit(user)}
-            >
-              <Pencil className="h-4 w-4 mr-1" />
-              Editar
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => onChangePassword(user)}
-            >
-              <Key className="h-4 w-4 mr-1" />
-              Senha
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => onEditPermissions(user)}
-            >
-              <ShieldCheck className="h-4 w-4 mr-1" />
-              Permissões
-            </Button>
-            
-            <Switch size="sm" checked={user.status === 'active'} onCheckedChange={() => onToggleStatus(user.id, user.status)} />
+          <div className="flex items-center justify-between mt-4 pt-3 border-t">
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => onEdit(user)}
+                title="Editar usuário"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => onChangePassword(user)}
+                title="Alterar senha"
+              >
+                <Key className="h-4 w-4" />
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => onEditPermissions(user)}
+                title="Editar permissões"
+              >
+                <ShieldCheck className="h-4 w-4" />
+              </Button>
+
+              <Switch 
+                checked={user.status === 'active'} 
+                onCheckedChange={() => onToggleStatus(user.id, user.status)}
+                variant="success-danger"
+                title={user.status === 'active' ? "Desativar usuário" : "Ativar usuário"}
+              />
+            </div>
             
             {user.id !== currentUserId && (
               <Button 
                 variant="ghost" 
-                size="sm"
+                size="icon"
                 onClick={() => onDelete(user.id)}
+                title="Excluir usuário"
               >
-                <Trash2 className="h-4 w-4 mr-1 text-red-500" />
-                Excluir
+                <Trash2 className="h-4 w-4 text-red-500" />
               </Button>
             )}
           </div>
