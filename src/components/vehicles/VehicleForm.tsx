@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Vehicle, VehicleDTO } from '@/types';
 import { Camera, X, Upload, Plus } from 'lucide-react';
-import { Combobox } from '@/components/ui/combobox';
+import { Combobox, ComboboxOption } from '@/components/ui/combobox';
 import { toast } from 'sonner';
 import CameraModal from './CameraModal';
 import { useUnits } from '@/hooks/useUnits';
