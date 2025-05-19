@@ -36,11 +36,9 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
       onResetFilters={onReset}
       viewMode={viewMode}
       setViewMode={setViewMode}
-      actions={actions}
-    >
-      <div className="flex gap-2 items-center">
-        {onStatusChange && (
-          <div className="flex items-center gap-2 mr-2">
+      actions={
+        <div className="flex items-center gap-2">
+          {onStatusChange && (
             <button
               onClick={() => onStatusChange(!showInactiveUsers)}
               className={`px-4 py-2 rounded-md text-white transition-colors ${
@@ -49,9 +47,12 @@ const UsersFilter: React.FC<UsersFilterProps> = ({
             >
               {!showInactiveUsers ? 'Ativos' : 'Inativos'}
             </button>
-          </div>
-        )}
-        
+          )}
+          {actions}
+        </div>
+      }
+    >
+      <div className="flex gap-2 items-center">
         <Select
           value={roleFilter || "all"}
           onValueChange={(value) => onRoleFilterChange(value === "all" ? null : value)}

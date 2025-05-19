@@ -66,8 +66,8 @@ const UserCard: React.FC<UserCardProps> = ({
         </div>
         
         <div className="flex flex-wrap gap-2 mb-3">
-          {getRoleBadge(user.role)}
           {getShiftBadge(user.shift)}
+          {getRoleBadge(user.role)}
         </div>
         
         <div className="text-sm mb-2">
@@ -77,7 +77,7 @@ const UserCard: React.FC<UserCardProps> = ({
         
         {isAdmin && (
           <div className="flex items-center justify-between mt-4 pt-3 border-t">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
               <Button 
                 variant="ghost" 
                 size="icon"

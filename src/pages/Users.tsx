@@ -216,10 +216,9 @@ const Users = () => {
     
     const matchesRole = roleFilter ? user.role === roleFilter : true;
     
-    // Filtrar por status baseado no showInactiveUsers
     const matchesStatus = showInactiveUsers 
-      ? user.status === 'inactive'  // Mostrar apenas inativos quando showInactiveUsers é true
-      : user.status === 'active';   // Mostrar apenas ativos quando showInactiveUsers é false
+      ? user.status === 'inactive'  
+      : user.status === 'active';   
     
     return matchesSearch && matchesRole && matchesStatus;
   });
@@ -232,8 +231,8 @@ const Users = () => {
           
           {user?.role === 'admin' && (
             <Button onClick={handleNewUser}>
-              <Plus className="h-4 w-4 mr-2" />
-              Novo Usuário
+              <Plus className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Novo Usuário</span>
             </Button>
           )}
         </div>
@@ -251,6 +250,7 @@ const Users = () => {
           }}
           showInactiveUsers={showInactiveUsers}
           onStatusChange={setShowInactiveUsers}
+          actions={null}
         />
         
         {loading ? (

@@ -60,8 +60,8 @@ const UserTable: React.FC<UserTableProps> = ({
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>Usuário</TableHead>
-            <TableHead>Função</TableHead>
             <TableHead>Turno</TableHead>
+            <TableHead>Função</TableHead>
             <TableHead>Unidade</TableHead>
             <TableHead>Email</TableHead>
             {isAdmin && (
@@ -88,13 +88,13 @@ const UserTable: React.FC<UserTableProps> = ({
                 </div>
               </TableCell>
               <TableCell>{user.username}</TableCell>
-              <TableCell>{getRoleBadge(user.role)}</TableCell>
               <TableCell>{getShiftBadge(user.shift)}</TableCell>
+              <TableCell>{getRoleBadge(user.role)}</TableCell>
               <TableCell>{user.unitName || user.units?.name || "—"}</TableCell>
               <TableCell>{user.email || '—'}</TableCell>
               {isAdmin && (
                 <TableCell>
-                  <div className="flex items-center justify-end gap-2">
+                  <div className="flex items-center justify-end gap-1">
                     <Button 
                       variant="ghost" 
                       size="icon"
