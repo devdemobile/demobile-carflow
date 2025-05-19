@@ -124,8 +124,7 @@ const UserTable: React.FC<UserTableProps> = ({
                     <Switch 
                       size="sm" 
                       checked={user.status === 'active'} 
-                      onCheckedChange={(checked) => {
-                        e.stopPropagation();
+                      onCheckedChange={() => {
                         onToggleStatus(user.id, user.status);
                       }}
                       onClick={(e) => e.stopPropagation()}
