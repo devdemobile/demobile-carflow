@@ -28,3 +28,31 @@ export async function handleSupabaseRequest<T>(
     return null;
   }
 }
+
+/**
+ * Verifica o status da conexão com o Supabase
+ */
+export async function checkSupabaseConnection(): Promise<boolean> {
+  try {
+    // Tenta fazer uma chamada simples para verificar a conexão
+    const { error } = await supabase.from('units').select('id').limit(1);
+    
+    if (error) {
+      console.error("Erro na conexão com o Supabase:", error);
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Exceção ao verificar conexão com o Supabase:", error);
+    return false;
+  }
+}
+
+/**
+ * Registra um erro de operação com o Supabase
+ */
+export function logSupabaseError(operation: string, error: any): void {
+  console.error(`Erro em ${operation}:`, error);
+  // Aqui poderíamos implementar uma lógica para enviar erros para um serviço de monitoramento
+}
