@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,6 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface DeleteUnitDialogProps {
   isOpen: boolean;
@@ -24,6 +26,9 @@ export const DeleteUnitDialog: React.FC<DeleteUnitDialogProps> = ({
   onConfirm,
   unitName,
 }) => {
+  const [confirmationText, setConfirmationText] = useState('');
+  const isConfirmDisabled = confirmationText !== unitName;
+  
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
@@ -35,11 +40,26 @@ export const DeleteUnitDialog: React.FC<DeleteUnitDialogProps> = ({
             Esta ação não pode ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
+        
+        <div className="py-4">
+          <Label htmlFor="confirmation-text" className="text-sm font-medium">
+            Digite o nome da unidade <strong>"{unitName}"</strong> para confirmar:
+          </Label>
+          <Input 
+            id="confirmation-text"
+            value={confirmationText}
+            onChange={(e) => setConfirmationText(e.target.value)}
+            className="mt-2"
+            placeholder={unitName}
+          />
+        </div>
+        
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction 
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={isConfirmDisabled}
           >
             Excluir
           </AlertDialogAction>
