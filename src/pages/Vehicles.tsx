@@ -35,10 +35,14 @@ const Vehicles = () => {
     closeVehicleDetails,
     isAddVehicleOpen,
     openAddVehicle,
-    closeAddVehicle
+    closeAddVehicle,
+    viewMode,
+    setViewMode,
+    // Novos dados para os filtros
+    makeOptions,
+    modelOptions,
+    unitOptions
   } = useVehicles();
-  
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   
   // Redirecionar se o usuário não tem permissão
   if (userPermissions && !userPermissions.canViewVehicles) {
@@ -85,6 +89,9 @@ const Vehicles = () => {
           onReset={resetFilters}
           actions={headerActions}
           showViewToggle={!isMobile}
+          availableMakes={makeOptions}
+          availableModels={modelOptions}
+          availableUnits={unitOptions}
         />
         
         {viewMode === 'table' ? (

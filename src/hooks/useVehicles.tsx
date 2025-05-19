@@ -1,15 +1,19 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Vehicle, VehicleLocation } from '@/types';
 import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { toast } from 'sonner';
+import { useVehicleMakes } from './useVehicleMakes';
+import { useVehicleModels } from './useVehicleModels';
+import { useUnits } from './useUnits';
 
 // Export the interface so it can be imported elsewhere
 export interface VehicleFilters {
   search: string;
   plate?: string;
   make?: string;
+  model?: string;
   status?: string;
   location: VehicleLocation | null;
   unitId: string | null;
@@ -17,10 +21,15 @@ export interface VehicleFilters {
 
 export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
   const queryClient = useQueryClient();
+  const { makes } = useVehicleMakes();
+  const { models } = useVehicleModels();
+  const { units } = useUnits();
+  
   const [filters, setFilters] = useState<VehicleFilters>({
     search: initialFilters?.search || '',
     plate: initialFilters?.plate || '',
     make: initialFilters?.make || '',
+    model: initialFilters?.model || '',
     status: initialFilters?.status || '',
     location: initialFilters?.location || null,
     unitId: initialFilters?.unitId || null,
@@ -33,28 +42,67 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
   const [isVehicleDetailsOpen, setIsVehicleDetailsOpen] = useState(false);
   const [isAddVehicleOpen, setIsAddVehicleOpen] = useState(false);
 
+  // Preparar dados para os filtros de dropdown
+  const makeOptions = makes.map(make => ({ value: make.id, label: make.name }));
+  const modelOptions = models.map(model => ({ value: model.id, label: model.name }));
+  const unitOptions = units.map(unit => ({ value: unit.id, label: unit.name }));
+
   // Fetch vehicles with filters
   const { data: allVehicles = [], isLoading, isError, refetch }: UseQueryResult<Vehicle[], Error> = useQuery({
     queryKey: ['vehicles', filters],
     queryFn: async () => {
       try {
-        // Apply search filter
+        // Lógica de filtragem
+        let filteredVehicles: Vehicle[] = [];
+        
+        // Aplicar filtro de busca
         if (filters.search) {
           return await vehicleService.searchVehicles(filters.search);
         }
         
-        // Apply location filter
+        // Aplicar filtro de localização
         if (filters.location) {
           return await vehicleService.getVehiclesByLocation(filters.location);
         }
 
-        // Apply unit filter
-        if (filters.unitId) {
+        // Aplicar filtro de unidade
+        if (filters.unitId && filters.unitId !== 'all') {
           return await vehicleService.getVehiclesByUnit(filters.unitId);
         }
         
-        // No filters, return all vehicles
-        return await vehicleService.getAllVehicles();
+        // Obter todos os veículos e aplicar filtros de client side
+        filteredVehicles = await vehicleService.getAllVehicles();
+        
+        // Filtrar por status
+        if (filters.status && filters.status !== 'all') {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.location === filters.status
+          );
+        }
+        
+        // Filtrar por marca
+        if (filters.make && filters.make !== 'all') {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.makeId === filters.make || v.make === filters.make
+          );
+        }
+        
+        // Filtrar por modelo
+        if (filters.model && filters.model !== 'all') {
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.modelId === filters.model || v.model === filters.model
+          );
+        }
+        
+        // Filtrar por placa
+        if (filters.plate) {
+          const normalizedPlate = filters.plate.toLowerCase().trim();
+          filteredVehicles = filteredVehicles.filter(v => 
+            v.plate.toLowerCase().includes(normalizedPlate)
+          );
+        }
+        
+        return filteredVehicles;
       } catch (error: any) {
         toast.error(`Erro ao buscar veículos: ${error.message}`);
         throw error;
@@ -92,6 +140,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
       search: '',
       plate: '',
       make: '',
+      model: '',
       status: '',
       location: null,
       unitId: null,
@@ -152,6 +201,9 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     isAddVehicleOpen,
     openAddVehicle,
     closeAddVehicle,
-    findVehicleByPlate // Ensuring this is properly exported
+    findVehicleByPlate,
+    makeOptions,
+    modelOptions,
+    unitOptions
   };
 };
