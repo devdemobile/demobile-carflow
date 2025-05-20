@@ -28,6 +28,7 @@ export class AuthRepository implements IAuthRepository {
       console.log("Iniciando processo de login para", credentials.username);
       
       // 1. Primeiro verificamos se as credenciais são válidas usando a função RPC
+      console.log("Verificando credenciais com RPC verify_password...");
       const userId = await handleSupabaseRequest(
         async () => await supabase.rpc('verify_password', {
           username: credentials.username,
@@ -41,9 +42,17 @@ export class AuthRepository implements IAuthRepository {
         return null;
       }
       
+      console.log("Credenciais válidas para o usuário ID:", userId);
+      
       // 2. Agora que confirmamos que as credenciais são válidas, podemos autenticar com o Supabase Auth
+      // Primeiro verificamos se o username é um email
+      const isEmail = credentials.username.includes('@');
+      const email = isEmail ? credentials.username : `${credentials.username}@example.com`;
+      
+      console.log("Tentando autenticação com Supabase Auth usando email:", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.username, // Usando username como email para compatibilidade
+        email: email,
         password: credentials.password
       });
       
@@ -56,8 +65,14 @@ export class AuthRepository implements IAuthRepository {
           
           // Tenta criar um novo usuário
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: credentials.username,
-            password: credentials.password
+            email: email,
+            password: credentials.password,
+            options: {
+              data: {
+                username: credentials.username,
+                name: credentials.username  // Usando username como nome temporário
+              }
+            }
           });
           
           if (signUpError) {
@@ -89,15 +104,28 @@ export class AuthRepository implements IAuthRepository {
    */
   async signInWithSupabase(credentials: LoginCredentials): Promise<{ userId: string | null, error: any }> {
     try {
+      console.log("Tentando login direto com Supabase Auth");
+      
+      // Verificar se o username é um email
+      const isEmail = credentials.username.includes('@');
+      const email = isEmail ? credentials.username : `${credentials.username}@example.com`;
+      
+      console.log("Usando email para login:", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: credentials.username, // Usando username como email
+        email: email,
         password: credentials.password
       });
       
-      if (error) return { userId: null, error };
+      if (error) {
+        console.error("Erro no login direto com Supabase Auth:", error);
+        return { userId: null, error };
+      }
       
+      console.log("Login direto bem-sucedido:", data.user?.id);
       return { userId: data.user?.id || null, error: null };
     } catch (error) {
+      console.error("Exceção no login direto:", error);
       return { userId: null, error };
     }
   }
@@ -106,6 +134,8 @@ export class AuthRepository implements IAuthRepository {
    * Busca dados do usuário pelo ID
    */
   async getUserData(userId: string): Promise<SystemUser | null> {
+    console.log("Buscando dados do usuário:", userId);
+    
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
@@ -115,7 +145,12 @@ export class AuthRepository implements IAuthRepository {
       'Erro ao buscar dados do usuário'
     );
     
-    if (!data) return null;
+    if (!data) {
+      console.log("Nenhum dado de usuário encontrado para o ID:", userId);
+      return null;
+    }
+    
+    console.log("Dados do usuário encontrados:", data);
     
     // Mapear permissões
     const permissions = data.system_user_permissions?.[0] 

@@ -7,22 +7,33 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, KeyRound, User } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { AlertTriangle, KeyRound, User, AlertCircle } from 'lucide-react';
+import { supabase, directSupabaseLogin, testSupabaseConnection } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const { user, login, error: authError } = useAuth();
   const navigate = useNavigate();
 
-  // Verificar status da sessão atual
+  // Verificar status da sessão atual e conexão com o Supabase
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      console.log("Status da sessão ao carregar Login:", data.session ? "Autenticado" : "Não autenticado");
+      try {
+        // Verificar sessão atual
+        const { data } = await supabase.auth.getSession();
+        console.log("Status da sessão ao carregar Login:", data.session ? "Autenticado" : "Não autenticado");
+        
+        // Testar conexão com o Supabase
+        const isConnected = await testSupabaseConnection();
+        setConnectionStatus(isConnected ? 'connected' : 'error');
+      } catch (e) {
+        console.error("Erro ao verificar sessão ou conexão:", e);
+        setConnectionStatus('error');
+      }
     };
     
     checkSession();
@@ -55,16 +66,30 @@ const Login = () => {
     
     try {
       console.log("Tentando login com:", username);
+      
+      // Tentar autenticação normal primeiro
       const success = await login({ username, password });
       
       if (success) {
         navigate('/');
-      } else {
-        setError("Credenciais inválidas. Verifique seu nome de usuário e senha.");
+        return;
       }
+      
+      // Se falhar, tentar login direto com Supabase Auth
+      console.log("Login normal falhou, tentando login direto com Supabase...");
+      const directResult = await directSupabaseLogin(username, password);
+      
+      if (directResult.success) {
+        console.log("Login direto bem-sucedido! Redirecionando...");
+        navigate('/');
+        return;
+      }
+      
+      // Se ambos falharem, exibir mensagem de erro
+      setError("Credenciais inválidas. Verifique seu nome de usuário e senha.");
     } catch (err: any) {
       console.error("Erro no login:", err);
-      setError("Ocorreu um erro ao fazer login. Tente novamente.");
+      setError(`Ocorreu um erro ao fazer login: ${err.message || 'Erro desconhecido'}`);
     } finally {
       setLoading(false);
     }
@@ -80,6 +105,14 @@ const Login = () => {
           <CardDescription>
             Faça login para acessar o sistema
           </CardDescription>
+          {connectionStatus === 'error' && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Problema de conexão com o banco de dados. Verifique se o Supabase está configurado corretamente.
+              </AlertDescription>
+            </Alert>
+          )}
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -120,14 +153,21 @@ const Login = () => {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-4">
             <Button 
               type="submit" 
               className="w-full"
-              disabled={loading}
+              disabled={loading || connectionStatus === 'checking'}
             >
               {loading ? "Entrando..." : "Entrar"}
             </Button>
+            <div className="text-xs text-center text-muted-foreground">
+              Status da conexão: {
+                connectionStatus === 'checking' ? 'Verificando...' :
+                connectionStatus === 'connected' ? 'Conectado ao Supabase' :
+                'Erro de conexão'
+              }
+            </div>
           </CardFooter>
         </form>
       </Card>
