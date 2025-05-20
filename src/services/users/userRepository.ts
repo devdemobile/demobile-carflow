@@ -313,9 +313,6 @@ export class UserRepository implements IUserRepository {
    * Verifica credenciais de usuário
    */
   async verifyPassword(username: string, password: string): Promise<string | null> {
-    console.log("=== VERIFICAÇÃO DE SENHA ===");
-    console.log("Parâmetros:", { username, password: password });
-    
     const result = await handleSupabaseRequest(
       async () => await supabase.rpc('verify_password', {
         username,
@@ -323,8 +320,7 @@ export class UserRepository implements IUserRepository {
       }),
       'Erro ao verificar credenciais'
     );
-    
-    console.log("Resultado da verificação:", result);
+
     return result || null;
   }
 

@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleDTO, VehicleLocation } from '@/types';
-import { handleSupabaseRequest, logSupabaseError } from '@/services/api/supabase';
+import { handleSupabaseRequest } from '@/services/api/supabase';
 
 export interface IVehicleRepository {
   findAll(): Promise<Vehicle[]>;
@@ -20,31 +20,20 @@ export class VehicleRepository implements IVehicleRepository {
    * Busca todos os veículos
    */
   async findAll(): Promise<Vehicle[]> {
-    try {
-      console.log("Buscando todos os veículos...");
-      
-      const { data, error } = await supabase
+    const data = await handleSupabaseRequest(
+      async () => await supabase
         .from('vehicles')
         .select(`
           *,
           units(id, name)
         `)
-        .order('plate');
-        
-      if (error) {
-        console.error("Erro ao buscar veículos:", error);
-        throw error;
-      }
-      
-      console.log(`${data?.length || 0} veículos encontrados`);
-      
-      if (!data) return [];
-      
-      return data.map(this.mapVehicleFromDb);
-    } catch (error) {
-      logSupabaseError('findAll:vehicles', error);
-      return [];
-    }
+        .order('plate'),
+      'Erro ao buscar veículos'
+    );
+    
+    if (!data) return [];
+    
+    return data.map(this.mapVehicleFromDb);
   }
 
   /**

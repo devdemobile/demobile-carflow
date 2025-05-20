@@ -1,3 +1,4 @@
+
 /**
  * Repositório para autenticação
  */
@@ -19,56 +20,67 @@ export interface IAuthRepository {
 export class AuthRepository implements IAuthRepository {
   /**
    * Realiza login com credenciais
-   * Este método usa apenas a API verify_password do Supabase
    */
   async login(credentials: LoginCredentials): Promise<string | null> {
-    try {
-      console.log("Iniciando processo de login para", credentials.username);
-      
-      // Verificar se as credenciais são válidas usando a função RPC
-      console.log("Verificando credenciais com RPC verify_password...");
-      const userId = await handleSupabaseRequest(
-        async () => await supabase.rpc('verify_password', {
-          username: credentials.username,
-          password_attempt: credentials.password
-        }),
-        'Erro ao validar credenciais'
-      );
-      
-      if (!userId) {
-        console.log("Credenciais inválidas ou erro na verificação");
-        return null;
-      }
-      
-      console.log("Credenciais válidas para o usuário ID:", userId);
-      return userId;
-    } catch (error) {
-      console.error("Exceção no processo de login:", error);
-      return null;
-    }
+    return handleSupabaseRequest(
+      async () => await supabase.rpc('verify_password', {
+        username: credentials.username,
+        password_attempt: credentials.password
+      }),
+      'Erro ao realizar login'
+    );
   }
 
   /**
-   * Busca os dados do usuário pelo ID
+   * Busca dados do usuário pelo ID
    */
   async getUserData(userId: string): Promise<SystemUser | null> {
-    try {
-      const { data, error } = await supabase
+    const data = await handleSupabaseRequest(
+      async () => await supabase
         .from('system_users')
-        .select('*')
+        .select('*, units(name), system_user_permissions(*)')
         .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error("Erro ao buscar dados do usuário:", error);
-        return null;
+        .single(),
+      'Erro ao buscar dados do usuário'
+    );
+    
+    if (!data) return null;
+    
+    // Mapear permissões
+    const permissions = data.system_user_permissions?.[0] 
+      ? {
+        canViewVehicles: data.system_user_permissions[0].can_view_vehicles,
+        canEditVehicles: data.system_user_permissions[0].can_edit_vehicles,
+        canViewUnits: data.system_user_permissions[0].can_view_units,
+        canEditUnits: data.system_user_permissions[0].can_edit_units,
+        canViewUsers: data.system_user_permissions[0].can_view_users,
+        canEditUsers: data.system_user_permissions[0].can_edit_users,
+        canViewMovements: data.system_user_permissions[0].can_view_movements,
+        canEditMovements: data.system_user_permissions[0].can_edit_movements
       }
+      : {
+        canViewVehicles: false,
+        canEditVehicles: false,
+        canViewUnits: false,
+        canEditUnits: false,
+        canViewUsers: false,
+        canEditUsers: false,
+        canViewMovements: true,
+        canEditMovements: false
+      };
       
-      return data;
-    } catch (error) {
-      console.error("Exceção ao buscar dados do usuário:", error);
-      return null;
-    }
+    return {
+      id: data.id,
+      name: data.name,
+      username: data.username,
+      email: data.email,
+      role: data.role,
+      shift: data.shift,
+      status: data.status,
+      unitId: data.unit_id,
+      unitName: data.units?.name,
+      permissions
+    };
   }
 }
 

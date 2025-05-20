@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+
 import { SystemUser, LoginCredentials } from '@/types';
 import { authService } from '@/services/auth/authService';
 import { toast } from 'sonner';
@@ -21,13 +22,7 @@ export const AuthContext = createContext<AuthContextValue>({
   switchUnit: async () => false
 });
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
-  return context;
-};
+export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SystemUser | null>(null);
@@ -54,9 +49,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      console.log("Iniciando login para:", credentials.username);
-      
-      // Usando o serviço de autenticação atualizado
       const userData = await authService.login(credentials);
       
       if (userData) {
@@ -64,11 +56,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('user', JSON.stringify(userData));
         return true;
       }
-      
       setError('Credenciais inválidas');
       return false;
     } catch (err: any) {
-      console.error("Erro no processo de login:", err);
       setError(err.message || 'Erro ao fazer login');
       return false;
     } finally {
@@ -81,22 +71,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     localStorage.removeItem('user');
   };
-  
+
   // Função para trocar de unidade
   const switchUnit = async (unitId: string): Promise<boolean> => {
     if (!user) return false;
     
     try {
-      const updatedUser = await authService.switchUnit(user.id, unitId);
-      if (updatedUser) {
-        setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        return true;
-      }
-      return false;
-    } catch (err: any) {
-      console.error("Erro ao trocar de unidade:", err);
-      toast.error(err.message || 'Erro ao trocar de unidade');
+      // No momento só atualizamos o estado local
+      // Em uma implementação real, poderíamos validar no servidor
+      const updatedUser = {
+        ...user,
+        unitId: unitId
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      toast.success(`Unidade alterada com sucesso`);
+      return true;
+    } catch (err) {
+      console.error('Erro ao trocar unidade:', err);
+      toast.error('Erro ao trocar de unidade');
       return false;
     }
   };

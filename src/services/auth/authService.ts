@@ -1,8 +1,9 @@
+
 /**
  * Serviço para autenticação de usuários
  */
 import { LoginCredentials, SystemUser } from '@/types';
-import { AuthRepository } from './authRepository';
+import { IAuthRepository, authRepository } from './authRepository';
 import { toast } from 'sonner';
 
 /**
@@ -12,17 +13,16 @@ export interface IAuthService {
   login(credentials: LoginCredentials): Promise<SystemUser | null>;
   validateUserStatus(user: SystemUser): boolean;
   verifyPassword(username: string, password: string): Promise<boolean>;
-  switchUnit(userId: string, unitId: string): Promise<SystemUser | null>;
 }
 
 /**
  * Implementação do serviço de autenticação
  */
 export class AuthService implements IAuthService {
-  private repository: AuthRepository;
+  private repository: IAuthRepository;
 
-  constructor() {
-    this.repository = new AuthRepository();
+  constructor(authRepo: IAuthRepository) {
+    this.repository = authRepo;
   }
 
   /**
@@ -81,30 +81,9 @@ export class AuthService implements IAuthService {
       return false;
     }
   }
-
-  async switchUnit(userId: string, unitId: string): Promise<SystemUser | null> {
-    try {
-      // Buscar dados do usuário
-      const userData = await this.repository.getUserData(userId);
-      if (!userData) {
-        return null;
-      }
-
-      // Atualizar unidade
-      const updatedUser = {
-        ...userData,
-        unitId: unitId
-      };
-
-      return updatedUser;
-    } catch (error) {
-      console.error('Erro ao trocar unidade:', error);
-      return null;
-    }
-  }
 }
 
 /**
  * Instância singleton do serviço
  */
-export const authService = new AuthService();
+export const authService = new AuthService(authRepository);
