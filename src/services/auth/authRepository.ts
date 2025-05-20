@@ -31,7 +31,7 @@ export class AuthRepository implements IAuthRepository {
       // 1. Primeiro verificamos se as credenciais são válidas usando a função RPC
       console.log("Tentando chamar verify_password com parâmetros:", {
         username: credentials.username,
-        password_attempt: "***"
+        password_attempt: credentials.password
       });
       
       const userId = await handleSupabaseRequest(

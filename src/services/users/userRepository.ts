@@ -314,7 +314,7 @@ export class UserRepository implements IUserRepository {
    */
   async verifyPassword(username: string, password: string): Promise<string | null> {
     console.log("=== VERIFICAÇÃO DE SENHA ===");
-    console.log("Parâmetros:", { username, password: "***" });
+    console.log("Parâmetros:", { username, password: password });
     
     const result = await handleSupabaseRequest(
       async () => await supabase.rpc('verify_password', {

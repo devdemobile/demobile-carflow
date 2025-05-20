@@ -70,7 +70,7 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 export const directSupabaseLogin = async (username: string, password: string): Promise<{success: boolean, userId: string | null, error: any}> => {
   try {
     console.log("=== INÍCIO DO LOGIN DIRETO ===");
-    console.log("Parâmetros recebidos:", { username, password: "***" });
+    console.log("Parâmetros recebidos:", { username, password: password });
     
     // Primeiro verificamos se o usuário existe na tabela system_users
     console.log("Buscando usuário na tabela system_users...");

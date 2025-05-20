@@ -66,7 +66,7 @@ const Login = () => {
     setError(null);
 
     console.log("=== INÍCIO DO SUBMIT DO LOGIN ===");
-    console.log("Dados do formulário:", { username, password: "***" });
+    console.log("Dados do formulário:", { username, password: password });
     
     if (!username || !password) {
       console.log("Erro: campos vazios");
