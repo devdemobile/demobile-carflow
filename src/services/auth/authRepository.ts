@@ -33,6 +33,32 @@ export class AuthRepository implements IAuthRepository {
         username: credentials.username,
         password_attempt: "***"
       });
+
+      try {
+        const { data, error } = await supabase.rpc('verify_password', {
+          username: credentials.username,
+          password_attempt: credentials.password
+        });
+        
+        console.log("Resposta direta do Supabase:", { data, error });
+        
+        if (error) {
+          console.error("Erro na chamada RPC:", error);
+          return null;
+        }
+        
+        console.log("Resultado do verify_password:", data);
+        
+        if (!data) {
+          console.log("Credenciais inválidas ou erro na verificação");
+          return null;
+        }
+        
+        return data;
+      } catch (rpcError) {
+        console.error("Exceção na chamada RPC:", rpcError);
+        return null;
+      }
       
       const userId = await handleSupabaseRequest(
         async () => await supabase.rpc('verify_password', {
