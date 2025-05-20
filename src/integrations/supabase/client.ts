@@ -69,14 +69,18 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 // Função para tentar login direto com o Supabase Auth
 export const directSupabaseLogin = async (username: string, password: string): Promise<{success: boolean, userId: string | null, error: any}> => {
   try {
-    console.log("Tentando login direto com Supabase Auth...");
+    console.log("=== INÍCIO DO LOGIN DIRETO ===");
+    console.log("Parâmetros recebidos:", { username, password: "***" });
     
     // Primeiro verificamos se o usuário existe na tabela system_users
+    console.log("Buscando usuário na tabela system_users...");
     const { data: userData, error: userError } = await supabase
       .from('system_users')
       .select('id, email, username')
       .eq('username', username)
       .single();
+    
+    console.log("Resultado da busca:", { userData, error: userError });
     
     if (userError) {
       console.error("Erro ao buscar usuário na tabela system_users:", userError);
