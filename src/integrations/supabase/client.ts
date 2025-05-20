@@ -16,7 +16,8 @@ export const supabase = createClient<Database>(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true
+      detectSessionInUrl: true,
+      storage: localStorage
     },
     global: {
       headers: {
@@ -32,3 +33,15 @@ export const supabase = createClient<Database>(
     }
   }
 );
+
+// Função para verificar se o cliente está autenticado
+export const isAuthenticated = async (): Promise<boolean> => {
+  const { data } = await supabase.auth.getSession();
+  return !!data.session;
+};
+
+// Função para obter o ID do usuário atual
+export const getCurrentUserId = async (): Promise<string | null> => {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id || null;
+};

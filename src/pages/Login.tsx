@@ -7,7 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, KeyRound, User } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -16,6 +17,16 @@ const Login = () => {
   const [error, setError] = useState<string | null>(null);
   const { user, login, error: authError } = useAuth();
   const navigate = useNavigate();
+
+  // Verificar status da sessão atual
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      console.log("Status da sessão ao carregar Login:", data.session ? "Autenticado" : "Não autenticado");
+    };
+    
+    checkSession();
+  }, []);
 
   // Redirecionar se já estiver autenticado
   useEffect(() => {
@@ -51,7 +62,7 @@ const Login = () => {
       } else {
         setError("Credenciais inválidas. Verifique seu nome de usuário e senha.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro no login:", err);
       setError("Ocorreu um erro ao fazer login. Tente novamente.");
     } finally {
@@ -80,25 +91,33 @@ const Login = () => {
             )}
             <div className="space-y-2">
               <Label htmlFor="username">Nome de usuário</Label>
-              <Input 
-                id="username" 
-                type="text"
-                placeholder="admin"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  id="username" 
+                  type="text"
+                  placeholder="admin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="admin123"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  id="password" 
+                  type="password" 
+                  placeholder="admin123"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
+              </div>
             </div>
           </CardContent>
           <CardFooter>

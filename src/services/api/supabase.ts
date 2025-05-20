@@ -17,7 +17,11 @@ export async function handleSupabaseRequest<T>(
     
     if (error) {
       console.error(`Erro na chamada ao Supabase: ${error.message}`, error);
-      toast.error(`${errorMessage}: ${error.message}`);
+      if (error.code === 'PGRST301' || error.code === '42501') {
+        toast.error('Permissão negada: você precisa estar autenticado ou não tem permissão para esta operação');
+      } else {
+        toast.error(`${errorMessage}: ${error.message}`);
+      }
       return null;
     }
     
@@ -34,11 +38,18 @@ export async function handleSupabaseRequest<T>(
  */
 export async function checkSupabaseConnection(): Promise<boolean> {
   try {
+    // Primeiro verifica se o usuário está autenticado
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log('Status da sessão:', sessionData.session ? 'Autenticado' : 'Não autenticado');
+    
     // Tenta fazer uma chamada simples para verificar a conexão
     const { error } = await supabase.from('units').select('id').limit(1);
     
     if (error) {
       console.error("Erro na conexão com o Supabase:", error);
+      if (error.code === 'PGRST301') {
+        toast.error("Você precisa estar autenticado para acessar os dados");
+      }
       return false;
     }
     

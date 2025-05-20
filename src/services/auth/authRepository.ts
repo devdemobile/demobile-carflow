@@ -12,6 +12,7 @@ import { handleSupabaseRequest } from '@/services/api/supabase';
 export interface IAuthRepository {
   login(credentials: LoginCredentials): Promise<string | null>;
   getUserData(userId: string): Promise<SystemUser | null>;
+  signInWithSupabase(credentials: LoginCredentials): Promise<{ userId: string | null, error: any }>;
 }
 
 /**
@@ -20,15 +21,85 @@ export interface IAuthRepository {
 export class AuthRepository implements IAuthRepository {
   /**
    * Realiza login com credenciais
+   * Este método usa a API verify_password do Supabase e em seguida autentica com o supabase.auth
    */
   async login(credentials: LoginCredentials): Promise<string | null> {
-    return handleSupabaseRequest(
-      async () => await supabase.rpc('verify_password', {
-        username: credentials.username,
-        password_attempt: credentials.password
-      }),
-      'Erro ao realizar login'
-    );
+    try {
+      console.log("Iniciando processo de login para", credentials.username);
+      
+      // 1. Primeiro verificamos se as credenciais são válidas usando a função RPC
+      const userId = await handleSupabaseRequest(
+        async () => await supabase.rpc('verify_password', {
+          username: credentials.username,
+          password_attempt: credentials.password
+        }),
+        'Erro ao validar credenciais'
+      );
+      
+      if (!userId) {
+        console.log("Credenciais inválidas ou erro na verificação");
+        return null;
+      }
+      
+      // 2. Agora que confirmamos que as credenciais são válidas, podemos autenticar com o Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.username, // Usando username como email para compatibilidade
+        password: credentials.password
+      });
+      
+      if (error) {
+        console.error("Erro na autenticação com Supabase Auth:", error);
+        
+        // Se não conseguir autenticar com email/senha, tente criar um usuário com essas credenciais
+        if (error.message.includes("Email not confirmed") || error.message.includes("Invalid login credentials")) {
+          console.log("Tentando criar usuário no Supabase Auth...");
+          
+          // Tenta criar um novo usuário
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: credentials.username,
+            password: credentials.password
+          });
+          
+          if (signUpError) {
+            console.error("Erro ao criar usuário no Supabase Auth:", signUpError);
+            return null;
+          }
+          
+          console.log("Usuário criado com sucesso no Supabase Auth");
+          
+          // Retorna o userId original da RPC, pois esse é o ID usado nas tabelas do sistema
+          return userId;
+        }
+        
+        return null;
+      }
+      
+      // Sucesso na autenticação com Supabase Auth
+      console.log("Autenticação bem-sucedida com Supabase Auth");
+      return userId;
+    } catch (error) {
+      console.error("Exceção no processo de login:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Método alternativo de login que usa diretamente o supabase.auth
+   * Útil para sistemas que usam apenas o auth do Supabase
+   */
+  async signInWithSupabase(credentials: LoginCredentials): Promise<{ userId: string | null, error: any }> {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: credentials.username, // Usando username como email
+        password: credentials.password
+      });
+      
+      if (error) return { userId: null, error };
+      
+      return { userId: data.user?.id || null, error: null };
+    } catch (error) {
+      return { userId: null, error };
+    }
   }
 
   /**
