@@ -64,8 +64,12 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    console.log("=== INÍCIO DO SUBMIT DO LOGIN ===");
+    console.log("Dados do formulário:", { username, password: "***" });
     
     if (!username || !password) {
+      console.log("Erro: campos vazios");
       setError("Nome de usuário e senha são obrigatórios.");
       return;
     }
@@ -73,6 +77,7 @@ const Login = () => {
     setLoading(true);
     
     try {
+      console.log("Iniciando processo de login...");
       console.log("Tentando login com:", username);
       
       // Usando a função atualizada de login direto com Supabase Auth
