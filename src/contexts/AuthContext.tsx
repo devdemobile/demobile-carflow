@@ -12,7 +12,14 @@ interface AuthContextValue {
   switchUnit: (unitId: string) => Promise<boolean>;
 }
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export const AuthContext = createContext<AuthContextValue>({
+  user: null,
+  loading: true,
+  error: null,
+  login: async () => false,
+  logout: () => {},
+  switchUnit: async () => false
+});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
