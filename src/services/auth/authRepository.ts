@@ -25,22 +25,29 @@ export class AuthRepository implements IAuthRepository {
    */
   async login(credentials: LoginCredentials): Promise<string | null> {
     try {
-      console.log("Iniciando processo de login para", credentials.username);
-      
-      // 1. Primeiro verificamos se as credenciais são válidas usando a função RPC
-      console.log("Verificando credenciais com RPC verify_password...");
-      const userId = await handleSupabaseRequest(
-        async () => await supabase.rpc('verify_password', {
-          username: credentials.username,
-          password_attempt: credentials.password
-        }),
-        'Erro ao validar credenciais'
-      );
-      
-      if (!userId) {
-        console.log("Credenciais inválidas ou erro na verificação");
-        return null;
-      }
+    console.log("=== INÍCIO DO PROCESSO DE LOGIN ===");
+    console.log("Credenciais recebidas:", { username: credentials.username, password: "***" });
+    
+    // 1. Primeiro verificamos se as credenciais são válidas usando a função RPC
+    console.log("Tentando chamar verify_password com parâmetros:", {
+      username: credentials.username,
+      password_attempt: "***"
+    });
+    
+    const userId = await handleSupabaseRequest(
+      async () => await supabase.rpc('verify_password', {
+        username: credentials.username,
+        password_attempt: credentials.password
+      }),
+      'Erro ao validar credenciais'
+    );
+    
+    console.log("Resposta do verify_password:", userId);
+    
+    if (!userId) {
+      console.log("Credenciais inválidas ou erro na verificação");
+      return null;
+    }
       
       console.log("Credenciais válidas para o usuário ID:", userId);
       
