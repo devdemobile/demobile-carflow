@@ -96,8 +96,8 @@ export const directSupabaseLogin = async (username: string, password: string): P
     
     // Verificar a senha usando a função verify_password
     const { data: verifyResult, error: verifyError } = await supabase.rpc('verify_password', {
-      username: username,
-      password_attempt: password
+      password_attempt: password,
+      username_input: username
     });
     
     if (verifyError || !verifyResult) {
