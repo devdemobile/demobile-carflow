@@ -26,7 +26,7 @@ export class AuthRepository implements IAuthRepository {
   async login(credentials: LoginCredentials): Promise<string | null> {
     try {
       console.log("=== INÍCIO DO PROCESSO DE LOGIN ===");
-      console.log("Credenciais recebidas:", { username: credentials.username, password: "***" });
+      console.log("Credenciais recebidas:", { username: credentials.username, password: credentials.password });
       
       // 1. Primeiro verificamos se as credenciais são válidas usando a função RPC
       console.log("Tentando chamar verify_password com parâmetros:", {
