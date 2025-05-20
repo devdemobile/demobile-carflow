@@ -44,33 +44,49 @@ export class AuthRepository implements IAuthRepository {
       
       console.log("Credenciais válidas para o usuário ID:", userId);
       
-      // 2. Agora que confirmamos que as credenciais são válidas, podemos autenticar com o Supabase Auth
-      // Primeiro verificamos se o username é um email
-      const isEmail = credentials.username.includes('@');
-      const email = isEmail ? credentials.username : `${credentials.username}@example.com`;
+      // 2. Buscar informações do usuário para obter email
+      const { data: userData, error: userError } = await supabase
+        .from('system_users')
+        .select('email, username')
+        .eq('id', userId)
+        .single();
+      
+      if (userError || !userData) {
+        console.error("Erro ao buscar dados do usuário:", userError);
+        return null;
+      }
+      
+      // 3. Verificar se já existe sessão ativa
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        console.log("Já existe uma sessão ativa");
+        return userId;
+      }
+      
+      // 4. Agora que confirmamos que as credenciais são válidas, podemos autenticar com o Supabase Auth
+      const email = userData.email || `${userData.username || credentials.username}@example.com`;
       
       console.log("Tentando autenticação com Supabase Auth usando email:", email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
         email: email,
         password: credentials.password
       });
       
-      if (error) {
-        console.error("Erro na autenticação com Supabase Auth:", error);
+      if (authError) {
+        console.error("Erro na autenticação com Supabase Auth:", authError);
         
-        // Se não conseguir autenticar com email/senha, tente criar um usuário com essas credenciais
-        if (error.message.includes("Email not confirmed") || error.message.includes("Invalid login credentials")) {
+        // Se o erro for de credenciais inválidas, tentar criar um usuário
+        if (authError.message.includes("Invalid login credentials")) {
           console.log("Tentando criar usuário no Supabase Auth...");
           
-          // Tenta criar um novo usuário
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email: email,
             password: credentials.password,
             options: {
               data: {
-                username: credentials.username,
-                name: credentials.username  // Usando username como nome temporário
+                username: userData.username || credentials.username,
+                system_user_id: userId
               }
             }
           });
@@ -82,11 +98,21 @@ export class AuthRepository implements IAuthRepository {
           
           console.log("Usuário criado com sucesso no Supabase Auth");
           
-          // Retorna o userId original da RPC, pois esse é o ID usado nas tabelas do sistema
-          return userId;
+          // Tentar login novamente após criar o usuário
+          const { data: retryAuth, error: retryError } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: credentials.password
+          });
+          
+          if (retryError) {
+            console.error("Erro no segundo login após criar usuário:", retryError);
+            return null;
+          }
+          
+          console.log("Login bem-sucedido após criar usuário");
+        } else {
+          return null;
         }
-        
-        return null;
       }
       
       // Sucesso na autenticação com Supabase Auth

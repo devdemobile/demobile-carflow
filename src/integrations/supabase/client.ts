@@ -67,36 +67,97 @@ export const testSupabaseConnection = async (): Promise<boolean> => {
 };
 
 // Função para tentar login direto com o Supabase Auth
-export const directSupabaseLogin = async (email: string, password: string): Promise<{success: boolean, userId: string | null, error: any}> => {
+export const directSupabaseLogin = async (username: string, password: string): Promise<{success: boolean, userId: string | null, error: any}> => {
   try {
-    // Primeiro tentamos com o email como está
-    let { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
+    console.log("Tentando login direto com Supabase Auth...");
+    
+    // Primeiro verificamos se o usuário existe na tabela system_users
+    const { data: userData, error: userError } = await supabase
+      .from('system_users')
+      .select('id, email, username')
+      .eq('username', username)
+      .single();
+    
+    if (userError) {
+      console.error("Erro ao buscar usuário na tabela system_users:", userError);
+      return { success: false, userId: null, error: userError };
+    }
+    
+    if (!userData) {
+      console.log("Usuário não encontrado na tabela system_users");
+      return { success: false, userId: null, error: new Error("Usuário não encontrado") };
+    }
+    
+    console.log("Usuário encontrado na tabela system_users:", userData);
+    
+    // Verificar a senha usando a função verify_password
+    const { data: verifyResult, error: verifyError } = await supabase.rpc('verify_password', {
+      username: username,
+      password_attempt: password
     });
-
-    // Se falhar com o email original, tentamos adicionando um domínio sintético
-    // (caso o usuário tenha passado apenas um username)
-    if (error && !email.includes('@')) {
-      const syntheticEmail = `${email}@example.com`;
-      console.log("Tentando login com email sintético:", syntheticEmail);
-      
-      const result = await supabase.auth.signInWithPassword({
-        email: syntheticEmail,
-        password
-      });
-      
-      data = result.data;
-      error = result.error;
+    
+    if (verifyError || !verifyResult) {
+      console.error("Erro ao verificar senha:", verifyError || "Senha inválida");
+      return { success: false, userId: null, error: verifyError || new Error("Senha inválida") };
     }
-
-    if (error) {
-      console.error("Erro no login direto com Supabase:", error);
-      return { success: false, userId: null, error };
+    
+    console.log("Senha verificada com sucesso para o usuário:", userData.id);
+    
+    // Definir email para uso na autenticação do Supabase
+    const email = userData.email || `${username}@example.com`;
+    
+    // Tentar fazer login com o Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+    
+    if (authError) {
+      console.log("Erro no login com Supabase Auth:", authError);
+      
+      // Se o erro for de credenciais inválidas e a senha foi verificada corretamente,
+      // talvez o usuário não exista no auth.users. Vamos tentar criar.
+      if (authError.message.includes("Invalid login credentials")) {
+        console.log("Tentando criar usuário no Supabase Auth...");
+        
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email: email,
+          password: password,
+          options: {
+            data: {
+              username: username,
+              system_user_id: userData.id
+            }
+          }
+        });
+        
+        if (signUpError) {
+          console.error("Erro ao criar usuário no Supabase Auth:", signUpError);
+          return { success: false, userId: null, error: signUpError };
+        }
+        
+        console.log("Usuário criado com sucesso no Supabase Auth:", signUpData);
+        
+        // Tentar login novamente após criar o usuário
+        const { data: retryAuth, error: retryError } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+        
+        if (retryError) {
+          console.error("Erro no segundo login após criar usuário:", retryError);
+          return { success: false, userId: null, error: retryError };
+        }
+        
+        console.log("Login bem-sucedido após criar usuário:", retryAuth);
+        return { success: true, userId: userData.id, error: null };
+      }
+      
+      return { success: false, userId: null, error: authError };
     }
-
-    console.log("Login direto com Supabase bem-sucedido:", data.user?.id);
-    return { success: true, userId: data.user?.id || null, error: null };
+    
+    console.log("Login direto com Supabase Auth bem-sucedido:", authData.user?.id);
+    return { success: true, userId: userData.id, error: null };
   } catch (e) {
     console.error("Exceção no login direto com Supabase:", e);
     return { success: false, userId: null, error: e };

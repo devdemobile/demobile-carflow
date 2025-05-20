@@ -27,6 +27,14 @@ const Login = () => {
         const { data } = await supabase.auth.getSession();
         console.log("Status da sessão ao carregar Login:", data.session ? "Autenticado" : "Não autenticado");
         
+        // Verificar usuários registrados no auth
+        const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+        console.log("Usuários registrados no Supabase Auth:", authUsers || "Erro ao listar usuários");
+        
+        if (authError) {
+          console.error("Erro ao listar usuários do Auth:", authError);
+        }
+        
         // Testar conexão com o Supabase
         const isConnected = await testSupabaseConnection();
         setConnectionStatus(isConnected ? 'connected' : 'error');
@@ -67,22 +75,33 @@ const Login = () => {
     try {
       console.log("Tentando login com:", username);
       
-      // Tentar autenticação normal primeiro
-      const success = await login({ username, password });
-      
-      if (success) {
-        navigate('/');
-        return;
-      }
-      
-      // Se falhar, tentar login direto com Supabase Auth
-      console.log("Login normal falhou, tentando login direto com Supabase...");
+      // Usando a função atualizada de login direto com Supabase Auth
       const directResult = await directSupabaseLogin(username, password);
       
       if (directResult.success) {
         console.log("Login direto bem-sucedido! Redirecionando...");
-        navigate('/');
-        return;
+        
+        // Atualizar o contexto de autenticação
+        const success = await login({ username, password });
+        
+        if (success) {
+          console.log("Contexto de autenticação atualizado com sucesso");
+          navigate('/');
+          return;
+        } else {
+          console.error("Falha ao atualizar o contexto de autenticação mesmo após login bem-sucedido");
+        }
+      }
+      
+      // Se o login direto falhar, tentar o login normal como fallback
+      if (!directResult.success) {
+        console.log("Login direto falhou, tentando login normal...");
+        const success = await login({ username, password });
+        
+        if (success) {
+          navigate('/');
+          return;
+        }
       }
       
       // Se ambos falharem, exibir mensagem de erro
