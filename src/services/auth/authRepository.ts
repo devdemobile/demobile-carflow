@@ -24,7 +24,7 @@ export class AuthRepository implements IAuthRepository {
   async login(credentials: LoginCredentials): Promise<string | null> {
     return handleSupabaseRequest(
       async () => await supabase.rpc('verify_password', {
-        username: credentials.username,
+        username_input: credentials.username,
         password_attempt: credentials.password
       }),
       'Erro ao realizar login'

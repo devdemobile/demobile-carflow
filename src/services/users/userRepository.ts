@@ -111,8 +111,9 @@ export class UserRepository implements IUserRepository {
   async create(userData: UserDTO, createdBy: string): Promise<SystemUser | null> {
     // Hash da senha usando a função do banco de dados
     const hashResult = await handleSupabaseRequest(
-      async () => await supabase.rpc('hash_password', {
-        password: userData.password
+      async () => await supabase.rpc('verify_password2', {
+        username: userData.username,
+        password_attempt: userData.password
       }),
       'Erro ao criar hash da senha'
     );
@@ -130,7 +131,7 @@ export class UserRepository implements IUserRepository {
           name: userData.name,
           username: userData.username,
           email: userData.email,
-          password_hash: hashResult,
+          password_hash: String(hashResult), // Garantir que seja uma string
           role: userData.role,
           shift: userData.shift,
           status: userData.status || 'active',
@@ -188,16 +189,18 @@ export class UserRepository implements IUserRepository {
 
     // Se houver senha, atualizar o hash
     if (userData.password) {
+      // Usar a função correta para senha
       const hashResult = await handleSupabaseRequest(
-        async () => await supabase.rpc('hash_password', {
-          password: userData.password
+        async () => await supabase.rpc('verify_password2', {
+          username: userData.username || '', // Provisório, precisaremos do username
+          password_attempt: userData.password
         }),
         'Erro ao criar hash da senha'
       );
 
       if (!hashResult) return false;
 
-      updateData.password_hash = hashResult;
+      updateData.password_hash = String(hashResult);
     }
 
     const result = await handleSupabaseRequest(
@@ -221,10 +224,15 @@ export class UserRepository implements IUserRepository {
    * Atualiza a senha de um usuário
    */
   async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
-    // Hash da senha usando a função do banco de dados
+    // Precisamos obter o username primeiro
+    const user = await this.findById(userId);
+    if (!user) return false;
+
+    // Usando a função correta para senha
     const hashResult = await handleSupabaseRequest(
-      async () => await supabase.rpc('hash_password', {
-        password: newPassword
+      async () => await supabase.rpc('verify_password2', {
+        username: user.username,
+        password_attempt: newPassword
       }),
       'Erro ao criar hash da senha'
     );
@@ -238,7 +246,7 @@ export class UserRepository implements IUserRepository {
       async () => await supabase
         .from('system_users')
         .update({
-          password_hash: hashResult,
+          password_hash: String(hashResult),
           updated_at: new Date().toISOString()
         })
         .eq('id', userId),
@@ -315,7 +323,7 @@ export class UserRepository implements IUserRepository {
   async verifyPassword(username: string, password: string): Promise<string | null> {
     const result = await handleSupabaseRequest(
       async () => await supabase.rpc('verify_password', {
-        username,
+        username_input: username,
         password_attempt: password
       }),
       'Erro ao verificar credenciais'
