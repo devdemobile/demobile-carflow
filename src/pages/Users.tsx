@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -100,8 +99,9 @@ const Users = () => {
         
         // Atualizar senha apenas se fornecida
         if (values.password && values.password.length > 0) {
-          const { data: passwordHash, error: passwordError } = await supabase.rpc('hash_password', {
-            password: values.password
+          const { data: passwordHash, error: passwordError } = await supabase.rpc('verify_password2', {
+            username: editingUser.username,
+            password_attempt: values.password
           });
           
           if (passwordError) throw passwordError;
@@ -137,18 +137,21 @@ const Users = () => {
         toast.success('Usuário atualizado com sucesso');
       } else {
         // Criar novo usuário
-        const { data: passwordHash, error: passwordError } = await supabase.rpc('hash_password', {
-          password: values.password as string
+        // Usar verify_password2 em vez de hash_password
+        const { data: passwordHash, error: passwordError } = await supabase.rpc('verify_password2', {
+          username: values.username,
+          password_attempt: values.password as string
         });
         
         if (passwordError) throw passwordError;
         
+        // Corrigir o tipo de passwordHash para string
         const { data: userData, error: insertError } = await supabase
           .from('system_users')
           .insert({
             name: values.name,
             username: values.username,
-            password_hash: passwordHash,
+            password_hash: String(passwordHash),
             role: values.role,
             shift: values.shift,
             unit_id: values.unit_id,

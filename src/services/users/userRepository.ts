@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { SystemUser, UserPermissions, UserRole, UserShift, UserStatus } from '@/types/entities';
 import { UserDTO } from '@/types/dto';
@@ -106,10 +105,10 @@ export class UserRepository implements IUserRepository {
   }
 
   /**
-   * Cria um novo usuário
+   * Criar um novo usuário
    */
   async create(userData: UserDTO, createdBy: string): Promise<SystemUser | null> {
-    // Hash da senha usando a função do banco de dados
+    // Obtém o hash da senha usando a função correta do banco de dados
     const hashResult = await handleSupabaseRequest(
       async () => await supabase.rpc('verify_password2', {
         username: userData.username,
@@ -118,64 +117,63 @@ export class UserRepository implements IUserRepository {
       'Erro ao criar hash da senha'
     );
 
-    if (!hashResult) {
-      console.error('Falha ao gerar hash da senha');
-      return null;
-    }
+    if (!hashResult) return null;
 
-    // Inserir usuário
-    const userInsert = await handleSupabaseRequest(
-      async () => await supabase
+    try {
+      // Criar o usuário com o hash da senha
+      const { data, error } = await supabase
         .from('system_users')
         .insert({
           name: userData.name,
           username: userData.username,
           email: userData.email,
-          password_hash: String(hashResult), // Garantir que seja uma string
+          password_hash: String(hashResult), // Converter para string para garantir compatibilidade
           role: userData.role,
           shift: userData.shift,
           status: userData.status || 'active',
           unit_id: userData.unitId,
-          created_by: createdBy
+          created_by: createdBy,
         })
-        .select()
-        .single(),
-      'Erro ao criar usuário'
-    );
+        .select('*')
+        .single();
 
-    if (!userInsert) return null;
+      if (!data) return null;
 
-    // Criar permissões para o usuário
-    const permissionsInsert = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_user_permissions')
-        .insert({
-          user_id: userInsert.id,
-          can_view_vehicles: userData.permissions?.canViewVehicles || false,
-          can_edit_vehicles: userData.permissions?.canEditVehicles || false,
-          can_view_units: userData.permissions?.canViewUnits || false,
-          can_edit_units: userData.permissions?.canEditUnits || false,
-          can_view_users: userData.permissions?.canViewUsers || false,
-          can_edit_users: userData.permissions?.canEditUsers || false,
-          can_view_movements: userData.permissions?.canViewMovements || true,
-          can_edit_movements: userData.permissions?.canEditMovements || false
-        }),
-      'Erro ao criar permissões do usuário'
-    );
+      // Criar permissões para o usuário
+      const permissionsInsert = await handleSupabaseRequest(
+        async () => await supabase
+          .from('system_user_permissions')
+          .insert({
+            user_id: data.id,
+            can_view_vehicles: userData.permissions?.canViewVehicles || false,
+            can_edit_vehicles: userData.permissions?.canEditVehicles || false,
+            can_view_units: userData.permissions?.canViewUnits || false,
+            can_edit_units: userData.permissions?.canEditUnits || false,
+            can_view_users: userData.permissions?.canViewUsers || false,
+            can_edit_users: userData.permissions?.canEditUsers || false,
+            can_view_movements: userData.permissions?.canViewMovements || true,
+            can_edit_movements: userData.permissions?.canEditMovements || false
+          }),
+        'Erro ao criar permissões do usuário'
+      );
 
-    if (!permissionsInsert) {
-      // Se falhou ao criar permissões, remover o usuário criado
-      await supabase.from('system_users').delete().eq('id', userInsert.id);
+      if (!permissionsInsert) {
+        // Se falhou ao criar permissões, remover o usuário criado
+        await supabase.from('system_users').delete().eq('id', data.id);
+        return null;
+      }
+
+      return this.findById(data.id);
+    } catch (error) {
+      console.error('Erro ao criar usuário:', error);
       return null;
     }
-
-    return this.findById(userInsert.id);
   }
 
   /**
-   * Atualiza um usuário
+   * Atualizar um usuário existente
    */
-  async update(id: string, userData: Partial<UserDTO>): Promise<boolean> {
+  async update(userId: string, userData: Partial<UserDTO>): Promise<boolean> {
     const updateData: Record<string, any> = {
       updated_at: new Date().toISOString()
     };
@@ -189,10 +187,13 @@ export class UserRepository implements IUserRepository {
 
     // Se houver senha, atualizar o hash
     if (userData.password) {
-      // Usar a função correta para senha
+      // Precisamos do username para a função verify_password2
+      const user = await this.findById(userId);
+      if (!user) return false;
+      
       const hashResult = await handleSupabaseRequest(
         async () => await supabase.rpc('verify_password2', {
-          username: userData.username || '', // Provisório, precisaremos do username
+          username: user.username,
           password_attempt: userData.password
         }),
         'Erro ao criar hash da senha'
@@ -207,13 +208,13 @@ export class UserRepository implements IUserRepository {
       async () => await supabase
         .from('system_users')
         .update(updateData)
-        .eq('id', id),
+        .eq('id', userId),
       'Erro ao atualizar usuário'
     );
 
     // Atualizar permissões se fornecidas
     if (userData.permissions) {
-      const success = await this.updatePermissions(id, userData.permissions);
+      const success = await this.updatePermissions(userId, userData.permissions);
       if (!success) return false;
     }
 
@@ -228,7 +229,7 @@ export class UserRepository implements IUserRepository {
     const user = await this.findById(userId);
     if (!user) return false;
 
-    // Usando a função correta para senha
+    // Usar a função correta para gerar o hash da senha
     const hashResult = await handleSupabaseRequest(
       async () => await supabase.rpc('verify_password2', {
         username: user.username,
@@ -237,11 +238,9 @@ export class UserRepository implements IUserRepository {
       'Erro ao criar hash da senha'
     );
 
-    if (!hashResult) {
-      console.error('Falha ao gerar hash da senha');
-      return false;
-    }
+    if (!hashResult) return false;
 
+    // Atualizar o hash da senha no banco de dados
     const result = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
@@ -250,10 +249,10 @@ export class UserRepository implements IUserRepository {
           updated_at: new Date().toISOString()
         })
         .eq('id', userId),
-      'Erro ao atualizar senha do usuário'
+      'Erro ao atualizar senha'
     );
 
-    return result !== null;
+    return !!result;
   }
 
   /**
@@ -318,7 +317,7 @@ export class UserRepository implements IUserRepository {
   }
 
   /**
-   * Verifica credenciais de usuário
+   * Verifica a senha de um usuário
    */
   async verifyPassword(username: string, password: string): Promise<string | null> {
     const result = await handleSupabaseRequest(
@@ -329,7 +328,7 @@ export class UserRepository implements IUserRepository {
       'Erro ao verificar credenciais'
     );
 
-    return result || null;
+    return result;
   }
 
   /**

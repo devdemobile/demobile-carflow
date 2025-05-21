@@ -277,7 +277,7 @@ const VehicleForm: React.FC<VehicleFormProps> = ({
     }
     
     const foundModels = findModelsByText(value);
-    setFilteredModels(foundModels.map(model => ({ label: model.name, value: make.id })));
+    setFilteredModels(foundModels.map(model => ({ label: model.name, value: model.id })));
   };
 
   return (
