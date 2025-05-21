@@ -7,12 +7,13 @@ import { SystemUser } from '@/types';
 interface UserPermissions {
   canViewVehicles: boolean;
   canEditVehicles: boolean;
-  canDeleteVehicles: boolean;
   canViewMovements: boolean;
   canEditMovements: boolean;
   canCreateMovements: boolean;
   canViewUsers: boolean;
   canEditUsers: boolean;
+  canViewUnits: boolean;
+  canEditUnits: boolean;
 }
 
 // Define the return type for our useAuth hook
@@ -33,16 +34,17 @@ export const useAuth = (): AuthHookReturn => {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   
-  // Adiciona permissões do usuário baseadas no papel/função dele
+  // Adiciona permissões do usuário baseadas nas permissões do banco e papel/função
   const userPermissions = context.user ? {
-    canViewVehicles: true,
-    canEditVehicles: context.user.role === 'admin',
-    canDeleteVehicles: context.user.role === 'admin',
-    canViewMovements: true,
+    canViewVehicles: context.user.permissions?.canViewVehicles || context.user.role === 'admin',
+    canEditVehicles: context.user.permissions?.canEditVehicles || context.user.role === 'admin',
+    canViewMovements: context.user.permissions?.canViewMovements || true, 
     canCreateMovements: true,
-    canEditMovements: context.user.role === 'admin',
-    canViewUsers: context.user.role === 'admin',
-    canEditUsers: context.user.role === 'admin',
+    canEditMovements: context.user.permissions?.canEditMovements || context.user.role === 'admin',
+    canViewUsers: context.user.permissions?.canViewUsers || context.user.role === 'admin',
+    canEditUsers: context.user.permissions?.canEditUsers || context.user.role === 'admin',
+    canViewUnits: context.user.permissions?.canViewUnits || context.user.role === 'admin',
+    canEditUnits: context.user.permissions?.canEditUnits || context.user.role === 'admin',
   } : null;
   
   return {

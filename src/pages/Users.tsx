@@ -99,13 +99,8 @@ const Users = () => {
         
         // Atualizar senha apenas se fornecida
         if (values.password && values.password.length > 0) {
-          const { data: passwordHash, error: passwordError } = await supabase.rpc('verify_password2', {
-            username: editingUser.username,
-            password_attempt: values.password
-          });
-          
-          if (passwordError) throw passwordError;
-          updateData.password_hash = passwordHash;
+          // Agora usamos a senha diretamente como password_hash
+          updateData.password_hash = values.password;
         }
         
         const { data: updatedUser, error: updateError } = await supabase
@@ -137,21 +132,13 @@ const Users = () => {
         toast.success('Usuário atualizado com sucesso');
       } else {
         // Criar novo usuário
-        // Usar verify_password2 em vez de hash_password
-        const { data: passwordHash, error: passwordError } = await supabase.rpc('verify_password2', {
-          username: values.username,
-          password_attempt: values.password as string
-        });
-        
-        if (passwordError) throw passwordError;
-        
-        // Corrigir o tipo de passwordHash para string
+        // Agora usamos a senha diretamente como password_hash
         const { data: userData, error: insertError } = await supabase
           .from('system_users')
           .insert({
             name: values.name,
             username: values.username,
-            password_hash: String(passwordHash),
+            password_hash: values.password,
             role: values.role,
             shift: values.shift,
             unit_id: values.unit_id,
