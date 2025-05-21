@@ -454,11 +454,11 @@ export type Database = {
           count: number
         }[]
       }
-      hash_password: {
-        Args: { password: string }
+      verify_password: {
+        Args: { password_attempt: string; username_input: string }
         Returns: string
       }
-      verify_password: {
+      verify_password2: {
         Args: { username: string; password_attempt: string }
         Returns: string
       }
