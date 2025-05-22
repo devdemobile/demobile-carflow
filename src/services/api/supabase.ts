@@ -45,6 +45,7 @@ export async function callRPC<T, R>(
   errorMessage: string = `Erro ao chamar ${functionName}`
 ): Promise<R | null> {
   try {
+    console.log(`Chamando função RPC: ${functionName} com parâmetros:`, params);
     const { data, error } = await supabase.rpc(functionName, params as any);
     
     if (error) {

@@ -25,14 +25,22 @@ export class AuthRepository implements IAuthRepository {
     const { username, password } = credentials;
     
     try {
+      console.log('Verificando credenciais:', { username });
+      
       const userId = await callRPC<
-        { username: string, password_attempt: string },
+        { username_input: string, password_attempt: string },
         string
       >('verify_password', 
-        { username, password_attempt: password }, 
+        { username_input: username, password_attempt: password }, 
         'Falha na autenticação'
       );
       
+      if (!userId) {
+        console.error('Autenticação falhou: usuário não encontrado ou senha inválida');
+        return null;
+      }
+      
+      console.log('Autenticação bem-sucedida para o usuário:', userId);
       return userId;
     } catch (error: any) {
       console.error('Erro ao verificar credenciais:', error);

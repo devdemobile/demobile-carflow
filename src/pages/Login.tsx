@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
+import { testAuthentication, testVerifyPasswordFunction } from '@/utils/authTest';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -59,6 +60,14 @@ const Login = () => {
     }
   };
 
+  const handleTestAuth = async () => {
+    await testAuthentication();
+  };
+  
+  const handleTestFunction = async () => {
+    await testVerifyPasswordFunction();
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-muted/40">
       <Card className="w-full max-w-md">
@@ -101,7 +110,7 @@ const Login = () => {
               />
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col space-y-2">
             <Button 
               type="submit" 
               className="w-full"
@@ -109,6 +118,25 @@ const Login = () => {
             >
               {loading ? "Entrando..." : "Entrar"}
             </Button>
+            
+            <div className="flex w-full gap-2 mt-4">
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-1/2 text-xs"
+                onClick={handleTestAuth}
+              >
+                Testar Autenticação
+              </Button>
+              <Button 
+                type="button"
+                variant="outline" 
+                className="w-1/2 text-xs"
+                onClick={handleTestFunction}
+              >
+                Testar Função
+              </Button>
+            </div>
           </CardFooter>
         </form>
       </Card>
