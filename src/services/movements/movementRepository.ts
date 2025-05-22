@@ -1,25 +1,9 @@
 
-/**
- * Repositório de acesso a dados de Movimentações
- */
 import { supabase } from '@/integrations/supabase/client';
 import { Movement, MovementDTO, VehicleLocation } from '@/types';
 import { handleSupabaseRequest } from '@/services/api/supabase';
-
-/**
- * Interface do repositório de movimentações
- */
-export interface IMovementRepository {
-  findAll(): Promise<Movement[]>;
-  findById(id: string): Promise<Movement | null>;
-  findByVehicle(vehicleId: string): Promise<Movement[]>;
-  findByStatus(status: VehicleLocation): Promise<Movement[]>;
-  findByDriver(driverName: string): Promise<Movement[]>;
-  search(term: string): Promise<Movement[]>;
-  create(movementData: MovementDTO, userId: string): Promise<Movement | null>;
-  updateWithReturn(id: string, data: Partial<Movement>): Promise<Movement | null>;
-  delete(id: string): Promise<boolean>;
-}
+import { IMovementRepository } from './movementRepository.interface';
+import { MovementMapper } from './movementMapper';
 
 /**
  * Implementação do repositório de movimentações usando Supabase
@@ -48,7 +32,7 @@ export class MovementRepository implements IMovementRepository {
     
     if (!data) return [];
     
-    return data.map(this.mapMovementFromDB);
+    return data.map(MovementMapper.mapMovementFromDB);
   }
 
   /**
@@ -74,7 +58,7 @@ export class MovementRepository implements IMovementRepository {
     
     if (!data) return null;
     
-    return this.mapMovementFromDB(data);
+    return MovementMapper.mapMovementFromDB(data);
   }
 
   /**
@@ -101,7 +85,7 @@ export class MovementRepository implements IMovementRepository {
     
     if (!data) return [];
     
-    return data.map(this.mapMovementFromDB);
+    return data.map(MovementMapper.mapMovementFromDB);
   }
 
   /**
@@ -128,7 +112,7 @@ export class MovementRepository implements IMovementRepository {
     
     if (!data) return [];
     
-    return data.map(this.mapMovementFromDB);
+    return data.map(MovementMapper.mapMovementFromDB);
   }
 
   /**
@@ -157,7 +141,7 @@ export class MovementRepository implements IMovementRepository {
     
     if (!data) return [];
     
-    return data.map(this.mapMovementFromDB);
+    return data.map(MovementMapper.mapMovementFromDB);
   }
 
   /**
@@ -188,7 +172,7 @@ export class MovementRepository implements IMovementRepository {
     
     if (!data) return [];
     
-    return data.map(this.mapMovementFromDB);
+    return data.map(MovementMapper.mapMovementFromDB);
   }
 
   /**
@@ -275,36 +259,6 @@ export class MovementRepository implements IMovementRepository {
     );
     
     return result !== null;
-  }
-
-  /**
-   * Mapeia dados da movimentação do formato DB para o formato da aplicação
-   */
-  private mapMovementFromDB(data: any): Movement {
-    return {
-      id: data.id,
-      vehicleId: data.vehicle_id,
-      vehiclePlate: data.vehicles?.plate, // Adicionada placa do veículo
-      vehicleName: data.vehicles ? `${data.vehicles.make} ${data.vehicles.model}` : undefined,
-      photoUrl: data.vehicles?.photo_url, // Adicionada URL da foto do veículo
-      driver: data.driver,
-      destination: data.destination,
-      initialMileage: data.initial_mileage,
-      finalMileage: data.final_mileage,
-      mileageRun: data.mileage_run,
-      departureUnitId: data.departure_unit_id,
-      departureUnitName: data.units?.name, // Adicionado nome da unidade de saída
-      departureDate: data.departure_date,
-      departureTime: data.departure_time,
-      arrivalUnitId: data.arrival_unit_id,
-      arrivalUnitName: data.arrival_units?.name, // Adicionado nome da unidade de chegada
-      arrivalDate: data.arrival_date,
-      arrivalTime: data.arrival_time,
-      duration: data.duration,
-      status: data.status,
-      type: data.type,
-      createdBy: data.created_by
-    };
   }
 }
 

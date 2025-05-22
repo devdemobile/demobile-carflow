@@ -11,6 +11,9 @@ interface UsersHeaderProps {
   isAdmin: boolean;
 }
 
+/**
+ * Header component for the Users page
+ */
 const UsersHeader: React.FC<UsersHeaderProps> = ({
   onNewUser,
   showInactiveUsers,

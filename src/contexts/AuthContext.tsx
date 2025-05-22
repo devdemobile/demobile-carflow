@@ -23,6 +23,9 @@ export const AuthContext = createContext<AuthContextValue>({
   switchUnit: async () => false
 });
 
+/**
+ * Provider component for authentication context
+ */
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SystemUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, []);
   
-  // Função de login
+  /**
+   * Login function that authenticates a user with credentials
+   */
   const login = async (credentials: LoginCredentials): Promise<boolean> => {
     setLoading(true);
     setError(null);
@@ -70,13 +75,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
   
-  // Função de logout
+  /**
+   * Logout function that clears the user session
+   */
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
   };
 
-  // Função para trocar de unidade
+  /**
+   * Function to switch the user's current unit
+   */
   const switchUnit = async (unitId: string): Promise<boolean> => {
     if (!user) return false;
     

@@ -27,6 +27,9 @@ interface AuthHookReturn {
   userPermissions: UserPermissions | null;
 }
 
+/**
+ * Custom hook for authentication-related functionalities
+ */
 export const useAuth = (): AuthHookReturn => {
   const context = useContext(AuthContext);
   

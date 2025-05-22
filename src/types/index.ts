@@ -1,7 +1,5 @@
 
-// Reexportar todos os tipos de arquivos específicos
+// Re-export all types from entities and dto
 export * from './entities';
 export * from './dto';
-
-// Definir outros tipos globais conforme necessário
-export type TabValue = string;
+export * from './user.types';

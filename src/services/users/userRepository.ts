@@ -1,24 +1,14 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { SystemUser, UserPermissions, UserRole, UserShift, UserStatus } from '@/types/entities';
-import { UserDTO } from '@/types/dto';
+import { SystemUser, UserPermissions, UserStatus } from '@/types/entities';
+import { UserDTO } from '@/types/user.types';
 import { handleSupabaseRequest } from '@/services/api/supabase';
+import { IUserRepository } from './userRepository.interface';
+import { UserMapper } from './userMapper';
 
-export interface IUserRepository {
-  findAll(): Promise<SystemUser[]>;
-  findById(id: string): Promise<SystemUser | null>;
-  findByUsername(username: string): Promise<SystemUser | null>;
-  findByUnitId(unitId: string): Promise<SystemUser[]>;
-  create(userData: UserDTO, createdBy: string): Promise<SystemUser | null>;
-  update(id: string, userData: Partial<UserDTO>): Promise<boolean>;
-  updatePermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean>;
-  updateStatus(userId: string, status: UserStatus): Promise<boolean>;
-  updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
-  delete(id: string): Promise<boolean>;
-  verifyPassword(username: string, password: string): Promise<string | null>;
-  getUserPermissions(userId: string): Promise<UserPermissions | null>;
-}
-
+/**
+ * Implementation of user repository using Supabase
+ */
 export class UserRepository implements IUserRepository {
   /**
    * Busca todos os usuários
@@ -37,7 +27,7 @@ export class UserRepository implements IUserRepository {
 
     if (!data) return [];
 
-    return data.map(this.mapUserFromDb);
+    return data.map(UserMapper.mapUserFromDb);
   }
 
   /**
@@ -59,7 +49,7 @@ export class UserRepository implements IUserRepository {
 
     if (!data) return null;
 
-    return this.mapUserWithPermissionsFromDb(data);
+    return UserMapper.mapUserWithPermissionsFromDb(data);
   }
 
   /**
@@ -81,7 +71,7 @@ export class UserRepository implements IUserRepository {
 
     if (!data) return null;
 
-    return this.mapUserWithPermissionsFromDb(data);
+    return UserMapper.mapUserWithPermissionsFromDb(data);
   }
 
   /**
@@ -102,7 +92,7 @@ export class UserRepository implements IUserRepository {
 
     if (!data) return [];
 
-    return data.map(this.mapUserFromDb);
+    return data.map(UserMapper.mapUserFromDb);
   }
 
   /**
@@ -113,8 +103,8 @@ export class UserRepository implements IUserRepository {
       // Gerar um hash da senha usando a função do banco de dados
       const hashResult = await handleSupabaseRequest(
         async () => await supabase.rpc('verify_password2', {
-          username: userData.username,
-          password_attempt: userData.password
+          username: userData.username || '',
+          password_attempt: userData.password || ''
         }),
         'Erro ao criar hash da senha'
       );
@@ -355,58 +345,11 @@ export class UserRepository implements IUserRepository {
 
     if (!data) return null;
 
-    return {
-      canViewVehicles: data.can_view_vehicles,
-      canEditVehicles: data.can_edit_vehicles,
-      canViewUnits: data.can_view_units,
-      canEditUnits: data.can_edit_units,
-      canViewUsers: data.can_view_users,
-      canEditUsers: data.can_edit_users,
-      canViewMovements: data.can_view_movements,
-      canEditMovements: data.can_edit_movements
-    };
-  }
-
-  /**
-   * Mapeia dados do usuário do formato do DB para o formato da aplicação
-   */
-  private mapUserFromDb(data: any): SystemUser {
-    return {
-      id: data.id,
-      name: data.name,
-      username: data.username,
-      email: data.email,
-      role: data.role,
-      shift: data.shift,
-      status: data.status,
-      unitId: data.unit_id,
-      unitName: data.units?.name
-    };
-  }
-
-  /**
-   * Mapeia dados do usuário com permissões do formato do DB para o formato da aplicação
-   */
-  private mapUserWithPermissionsFromDb(data: any): SystemUser {
-    const user = this.mapUserFromDb(data);
-    
-    const permissions = data.system_user_permissions?.[0];
-    
-    if (permissions) {
-      user.permissions = {
-        canViewVehicles: permissions.can_view_vehicles,
-        canEditVehicles: permissions.can_edit_vehicles,
-        canViewUnits: permissions.can_view_units,
-        canEditUnits: permissions.can_edit_units,
-        canViewUsers: permissions.can_view_users,
-        canEditUsers: permissions.can_edit_users,
-        canViewMovements: permissions.can_view_movements,
-        canEditMovements: permissions.can_edit_movements
-      };
-    }
-    
-    return user;
+    return UserMapper.mapPermissionsFromDb(data);
   }
 }
 
+/**
+ * Instância singleton do repositório
+ */
 export const userRepository = new UserRepository();
