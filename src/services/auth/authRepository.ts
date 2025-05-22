@@ -22,13 +22,18 @@ export class AuthRepository implements IAuthRepository {
    * Realiza login com credenciais
    */
   async login(credentials: LoginCredentials): Promise<string | null> {
-    return handleSupabaseRequest(
+    console.log(`Tentando login com usuário: ${credentials.username}`);
+    
+    const result = await handleSupabaseRequest(
       async () => await supabase.rpc('verify_password', {
         username_input: credentials.username,
         password_attempt: credentials.password
       }),
       'Erro ao realizar login'
     );
+    
+    console.log('Resultado do login:', result);
+    return result;
   }
 
   /**

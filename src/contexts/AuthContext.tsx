@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+
+import React, { createContext, useState, useEffect } from 'react';
 
 import { SystemUser, LoginCredentials } from '@/types';
 import { authService } from '@/services/auth/authService';
@@ -21,8 +22,6 @@ export const AuthContext = createContext<AuthContextValue>({
   logout: () => {},
   switchUnit: async () => false
 });
-
-export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SystemUser | null>(null);
@@ -49,16 +48,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
+      console.log('Iniciando processo de login para:', credentials.username);
       const userData = await authService.login(credentials);
       
       if (userData) {
+        console.log('Login bem-sucedido, dados do usuário:', userData);
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
         return true;
       }
+      
+      console.error('Login falhou: credenciais inválidas ou usuário inativo');
       setError('Credenciais inválidas');
       return false;
     } catch (err: any) {
+      console.error('Erro no processo de login:', err);
       setError(err.message || 'Erro ao fazer login');
       return false;
     } finally {

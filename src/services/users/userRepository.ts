@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { SystemUser, UserPermissions, UserRole, UserShift, UserStatus } from '@/types/entities';
 import { UserDTO } from '@/types/dto';
@@ -108,18 +109,18 @@ export class UserRepository implements IUserRepository {
    * Criar um novo usuário
    */
   async create(userData: UserDTO, createdBy: string): Promise<SystemUser | null> {
-    // Usar a função verify_password2 para criar a senha
-    const hashResult = await handleSupabaseRequest(
-      async () => await supabase.rpc('verify_password2', {
-        username: userData.username,
-        password_attempt: userData.password
-      }),
-      'Erro ao criar hash da senha'
-    );
-
-    if (!hashResult) return null;
-
     try {
+      // Gerar um hash da senha usando a função do banco de dados
+      const hashResult = await handleSupabaseRequest(
+        async () => await supabase.rpc('verify_password2', {
+          username: userData.username,
+          password_attempt: userData.password
+        }),
+        'Erro ao criar hash da senha'
+      );
+
+      if (!hashResult) return null;
+
       // Criar o usuário com o hash da senha
       const { data, error } = await supabase
         .from('system_users')
@@ -127,7 +128,7 @@ export class UserRepository implements IUserRepository {
           name: userData.name,
           username: userData.username,
           email: userData.email,
-          password_hash: String(userData.password), // Usar a senha diretamente, já que nossa função foi ajustada
+          password_hash: String(hashResult), // Usar o hash gerado pela função
           role: userData.role,
           shift: userData.shift,
           status: userData.status || 'active',
@@ -136,6 +137,11 @@ export class UserRepository implements IUserRepository {
         })
         .select('*')
         .single();
+
+      if (error) {
+        console.error('Erro ao criar usuário:', error);
+        return null;
+      }
 
       if (!data) return null;
 
@@ -185,9 +191,21 @@ export class UserRepository implements IUserRepository {
     if (userData.status) updateData.status = userData.status;
     if (userData.unitId) updateData.unit_id = userData.unitId;
 
-    // Se houver senha, atualizar diretamente (nossa função foi ajustada)
+    // Se houver senha, criar um novo hash
     if (userData.password) {
-      updateData.password_hash = userData.password;
+      const hashResult = await handleSupabaseRequest(
+        async () => await supabase.rpc('verify_password2', {
+          username: userData.username || '',
+          password_attempt: userData.password
+        }),
+        'Erro ao criar hash da senha'
+      );
+      
+      if (hashResult) {
+        updateData.password_hash = hashResult;
+      } else {
+        return false;
+      }
     }
 
     const result = await handleSupabaseRequest(
@@ -211,12 +229,32 @@ export class UserRepository implements IUserRepository {
    * Atualiza a senha de um usuário
    */
   async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
-    // Atualizar o hash da senha no banco de dados (agora é direta)
+    // Buscar o username do usuário para gerar o hash
+    const { data: userData } = await supabase
+      .from('system_users')
+      .select('username')
+      .eq('id', userId)
+      .single();
+      
+    if (!userData) return false;
+    
+    // Criar um novo hash para a senha
+    const hashResult = await handleSupabaseRequest(
+      async () => await supabase.rpc('verify_password2', {
+        username: userData.username,
+        password_attempt: newPassword
+      }),
+      'Erro ao criar hash da senha'
+    );
+    
+    if (!hashResult) return false;
+
+    // Atualizar o hash da senha no banco de dados
     const result = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
         .update({
-          password_hash: newPassword,
+          password_hash: hashResult,
           updated_at: new Date().toISOString()
         })
         .eq('id', userId),
