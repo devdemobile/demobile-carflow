@@ -19,6 +19,3 @@ export interface IUserRepository {
   verifyPassword(username: string, password: string): Promise<string | null>;
   getUserPermissions(userId: string): Promise<UserPermissions | null>;
 }
-
-// Export the interface explicitly
-export { IUserRepository };
