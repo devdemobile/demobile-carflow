@@ -31,11 +31,16 @@ export async function handleSupabaseRequest<T>(
 }
 
 /**
+ * Tipos de funções RPC disponíveis
+ */
+type RPCFunctionName = 'verify_password' | 'verify_password2' | 'count_vehicles_by_unit' | 'count_users_by_unit';
+
+/**
  * Cria uma função RPC no Supabase com parâmetros tipados
  * @param functionName Nome da função RPC no Supabase
  */
 export async function callRPC<T, R>(
-  functionName: 'verify_password' | 'verify_password2', 
+  functionName: RPCFunctionName, 
   params: T, 
   errorMessage: string = `Erro ao chamar ${functionName}`
 ): Promise<R | null> {

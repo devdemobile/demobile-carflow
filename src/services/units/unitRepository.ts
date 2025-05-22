@@ -212,38 +212,58 @@ export class UnitRepository implements IUnitRepository {
    * Busca contagem de veículos por unidade
    */
   async fetchVehicleCountByUnit(): Promise<Record<string, number>> {
-    const counts = await handleSupabaseRequest(
-      async () => await supabase.rpc('count_vehicles_by_unit'),
-      'Erro ao buscar contagem de veículos por unidade'
-    ) || [];
-
-    const result: Record<string, number> = {};
-    counts.forEach((item: any) => {
-      if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
-        result[item.unit_id] = Number(item.count);
+    try {
+      const { data: counts, error } = await supabase.rpc('count_vehicles_by_unit');
+      
+      if (error) {
+        console.error('Erro ao buscar contagem de veículos por unidade:', error);
+        return {};
       }
-    });
-    
-    return result;
+      
+      const result: Record<string, number> = {};
+      
+      if (Array.isArray(counts)) {
+        counts.forEach((item: any) => {
+          if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
+            result[item.unit_id] = Number(item.count);
+          }
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Erro ao buscar contagem de veículos por unidade:', error);
+      return {};
+    }
   }
 
   /**
    * Busca contagem de usuários por unidade
    */
   async fetchUserCountByUnit(): Promise<Record<string, number>> {
-    const counts = await handleSupabaseRequest(
-      async () => await supabase.rpc('count_users_by_unit'),
-      'Erro ao buscar contagem de usuários por unidade'
-    ) || [];
-
-    const result: Record<string, number> = {};
-    counts.forEach((item: any) => {
-      if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
-        result[item.unit_id] = Number(item.count);
+    try {
+      const { data: counts, error } = await supabase.rpc('count_users_by_unit');
+      
+      if (error) {
+        console.error('Erro ao buscar contagem de usuários por unidade:', error);
+        return {};
       }
-    });
-    
-    return result;
+      
+      const result: Record<string, number> = {};
+      
+      if (Array.isArray(counts)) {
+        counts.forEach((item: any) => {
+          if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
+            result[item.unit_id] = Number(item.count);
+          }
+        });
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Erro ao buscar contagem de usuários por unidade:', error);
+      return {};
+    }
   }
 
   /**

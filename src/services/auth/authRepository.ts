@@ -1,6 +1,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { LoginCredentials, SystemUser } from '@/types/entities';
+import { SystemUser } from '@/types/entities';
+import { LoginCredentials } from '@/types/dto';
 import { toast } from 'sonner';
 import { callRPC } from '../api/supabase';
 
