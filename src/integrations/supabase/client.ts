@@ -14,14 +14,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export function createTypedSupabaseClient<T extends keyof Database['public']['Tables']>(
   table: T
 ) {
-  type TableRow = Database['public']['Tables'][T]['Row'];
-  type TableInsert = Database['public']['Tables'][T]['Insert'];
-  type TableUpdate = Database['public']['Tables'][T]['Update'];
-
   return {
     select: () => supabase.from(table).select(),
-    insert: (data: TableInsert) => supabase.from(table).insert(data),
-    update: (data: TableUpdate) => supabase.from(table).update(data),
+    insert: (data: any) => supabase.from(table).insert(data),
+    update: (data: any) => supabase.from(table).update(data),
     delete: () => supabase.from(table).delete(),
   };
 }

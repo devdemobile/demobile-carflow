@@ -6,7 +6,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { SystemUser, UserPermissions, UserStatus } from '@/types/entities';
 import { handleSupabaseRequest } from '@/services/api/supabase';
 import { toast } from 'sonner';
-import { UserDTO } from '@/types/user.types';
+import { UserDTO, UserPermissionsResponse } from '@/types/user.types';
+import { UserMapper } from './userMapper';
 
 /**
  * Interface para o repositório de usuários
@@ -78,6 +79,7 @@ export class UserRepository implements IUserRepository {
 
   /**
    * Atualiza as permissões de um usuário
+   * Recebe um objeto com as permissões em snake_case para compatibilidade com o BD
    */
   async updateUserPermissions(userId: string, permissions: any): Promise<boolean> {
     try {

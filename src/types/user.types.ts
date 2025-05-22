@@ -17,7 +17,7 @@ export interface UserDTO {
 }
 
 /**
- * Response data for user permissions
+ * Response data for user permissions in snake_case (from database)
  */
 export interface UserPermissionsResponse {
   can_view_vehicles: boolean;

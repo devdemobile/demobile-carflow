@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { userRepository } from '@/services/users/userRepository';
 import { supabase } from '@/integrations/supabase/client';
 import { Skeleton } from '@/components/ui/skeleton';
+import { UserPermissionsResponse } from '@/types/user.types';
 
 type UserPermissionsDialogProps = {
   isOpen: boolean;
@@ -29,14 +30,14 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
   onSaved,
 }) => {
   const [permissions, setPermissions] = useState<UserPermissions>({
-    can_view_vehicles: false,
-    can_edit_vehicles: false,
-    can_view_units: false,
-    can_edit_units: false,
-    can_view_users: false,
-    can_edit_users: false,
-    can_view_movements: false,
-    can_edit_movements: false,
+    canViewVehicles: false,
+    canEditVehicles: false,
+    canViewUnits: false,
+    canEditUnits: false,
+    canViewUsers: false,
+    canEditUsers: false,
+    canViewMovements: false,
+    canEditMovements: false,
   });
   
   const [loading, setLoading] = useState(false);
@@ -62,14 +63,14 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
         
         if (data) {
           setPermissions({
-            can_view_vehicles: data.can_view_vehicles || false,
-            can_edit_vehicles: data.can_edit_vehicles || false,
-            can_view_units: data.can_view_units || false,
-            can_edit_units: data.can_edit_units || false,
-            can_view_users: data.can_view_users || false,
-            can_edit_users: data.can_edit_users || false,
-            can_view_movements: data.can_view_movements || false,
-            can_edit_movements: data.can_edit_movements || false,
+            canViewVehicles: data.can_view_vehicles || false,
+            canEditVehicles: data.can_edit_vehicles || false,
+            canViewUnits: data.can_view_units || false,
+            canEditUnits: data.can_edit_units || false,
+            canViewUsers: data.can_view_users || false,
+            canEditUsers: data.can_edit_users || false,
+            canViewMovements: data.can_view_movements || false,
+            canEditMovements: data.can_edit_movements || false,
           });
         }
       } catch (err) {
@@ -89,7 +90,19 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
     setSaving(true);
     
     try {
-      const success = await userRepository.updateUserPermissions(user.id, permissions);
+      // Converter de camelCase para snake_case para o banco de dados
+      const dbPermissions = {
+        can_view_vehicles: permissions.canViewVehicles,
+        can_edit_vehicles: permissions.canEditVehicles,
+        can_view_units: permissions.canViewUnits,
+        can_edit_units: permissions.canEditUnits,
+        can_view_users: permissions.canViewUsers,
+        can_edit_users: permissions.canEditUsers,
+        can_view_movements: permissions.canViewMovements,
+        can_edit_movements: permissions.canEditMovements,
+      };
+      
+      const success = await userRepository.updateUserPermissions(user.id, dbPermissions);
       
       if (success) {
         toast.success('Permissões atualizadas com sucesso');
@@ -136,23 +149,23 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_view_vehicles" 
-                  checked={permissions.can_view_vehicles}
+                  id="canViewVehicles" 
+                  checked={permissions.canViewVehicles}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_view_vehicles', checked === true)
+                    updatePermission('canViewVehicles', checked === true)
                   }
                 />
-                <label htmlFor="can_view_vehicles">Visualizar veículos</label>
+                <label htmlFor="canViewVehicles">Visualizar veículos</label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_edit_vehicles" 
-                  checked={permissions.can_edit_vehicles}
+                  id="canEditVehicles" 
+                  checked={permissions.canEditVehicles}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_edit_vehicles', checked === true)
+                    updatePermission('canEditVehicles', checked === true)
                   }
                 />
-                <label htmlFor="can_edit_vehicles">Editar veículos</label>
+                <label htmlFor="canEditVehicles">Editar veículos</label>
               </div>
             </div>
 
@@ -160,23 +173,23 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_view_units" 
-                  checked={permissions.can_view_units}
+                  id="canViewUnits" 
+                  checked={permissions.canViewUnits}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_view_units', checked === true)
+                    updatePermission('canViewUnits', checked === true)
                   }
                 />
-                <label htmlFor="can_view_units">Visualizar unidades</label>
+                <label htmlFor="canViewUnits">Visualizar unidades</label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_edit_units" 
-                  checked={permissions.can_edit_units}
+                  id="canEditUnits" 
+                  checked={permissions.canEditUnits}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_edit_units', checked === true)
+                    updatePermission('canEditUnits', checked === true)
                   }
                 />
-                <label htmlFor="can_edit_units">Editar unidades</label>
+                <label htmlFor="canEditUnits">Editar unidades</label>
               </div>
             </div>
 
@@ -184,23 +197,23 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_view_users" 
-                  checked={permissions.can_view_users}
+                  id="canViewUsers" 
+                  checked={permissions.canViewUsers}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_view_users', checked === true)
+                    updatePermission('canViewUsers', checked === true)
                   }
                 />
-                <label htmlFor="can_view_users">Visualizar usuários</label>
+                <label htmlFor="canViewUsers">Visualizar usuários</label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_edit_users" 
-                  checked={permissions.can_edit_users}
+                  id="canEditUsers" 
+                  checked={permissions.canEditUsers}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_edit_users', checked === true)
+                    updatePermission('canEditUsers', checked === true)
                   }
                 />
-                <label htmlFor="can_edit_users">Editar usuários</label>
+                <label htmlFor="canEditUsers">Editar usuários</label>
               </div>
             </div>
 
@@ -208,23 +221,23 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_view_movements" 
-                  checked={permissions.can_view_movements}
+                  id="canViewMovements" 
+                  checked={permissions.canViewMovements}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_view_movements', checked === true)
+                    updatePermission('canViewMovements', checked === true)
                   }
                 />
-                <label htmlFor="can_view_movements">Visualizar movimentações</label>
+                <label htmlFor="canViewMovements">Visualizar movimentações</label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox 
-                  id="can_edit_movements" 
-                  checked={permissions.can_edit_movements}
+                  id="canEditMovements" 
+                  checked={permissions.canEditMovements}
                   onCheckedChange={(checked) => 
-                    updatePermission('can_edit_movements', checked === true)
+                    updatePermission('canEditMovements', checked === true)
                   }
                 />
-                <label htmlFor="can_edit_movements">Editar movimentações</label>
+                <label htmlFor="canEditMovements">Editar movimentações</label>
               </div>
             </div>
           </div>
