@@ -1,10 +1,9 @@
-
 /**
  * Repositório de acesso a dados de Unidades
  */
 import { supabase } from '@/integrations/supabase/client';
 import { Unit, UnitDTO } from '@/types';
-import { handleSupabaseRequest } from '@/services/api/supabase';
+import { handleSupabaseRequest, callRPC } from '@/services/api/supabase';
 
 /**
  * Interface do repositório de unidades
@@ -213,16 +212,15 @@ export class UnitRepository implements IUnitRepository {
    */
   async fetchVehicleCountByUnit(): Promise<Record<string, number>> {
     try {
-      const { data: counts, error } = await supabase.rpc('count_vehicles_by_unit');
-      
-      if (error) {
-        console.error('Erro ao buscar contagem de veículos por unidade:', error);
-        return {};
-      }
+      const counts = await callRPC<{}, any[]>(
+        'count_vehicles_by_unit',
+        {},
+        'Erro ao buscar contagem de veículos por unidade'
+      );
       
       const result: Record<string, number> = {};
       
-      if (Array.isArray(counts)) {
+      if (counts && Array.isArray(counts)) {
         counts.forEach((item: any) => {
           if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
             result[item.unit_id] = Number(item.count);
@@ -242,16 +240,15 @@ export class UnitRepository implements IUnitRepository {
    */
   async fetchUserCountByUnit(): Promise<Record<string, number>> {
     try {
-      const { data: counts, error } = await supabase.rpc('count_users_by_unit');
-      
-      if (error) {
-        console.error('Erro ao buscar contagem de usuários por unidade:', error);
-        return {};
-      }
+      const counts = await callRPC<{}, any[]>(
+        'count_users_by_unit',
+        {},
+        'Erro ao buscar contagem de usuários por unidade'
+      );
       
       const result: Record<string, number> = {};
       
-      if (Array.isArray(counts)) {
+      if (counts && Array.isArray(counts)) {
         counts.forEach((item: any) => {
           if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
             result[item.unit_id] = Number(item.count);
