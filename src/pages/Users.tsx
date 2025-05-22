@@ -3,29 +3,18 @@ import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogDescription
-} from '@/components/ui/dialog';
-import { Skeleton } from '@/components/ui/skeleton';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus } from 'lucide-react';
-import ChangePasswordDialog from '@/components/users/ChangePasswordDialog';
-import UserPermissionsDialog from '@/components/users/UserPermissionsDialog';
-import UsersFilter from '@/components/users/UsersFilter';
 import { SystemUser } from '@/types/entities';
-import UserTable from '@/components/users/UserTable';
-import UserCard from '@/components/users/UserCard';
-import UserForm, { UserFormValues } from '@/components/users/UserForm';
 import useUsers from '@/hooks/useUsers';
-import { cn } from '@/lib/utils';
 import { useMediaQuery } from '@/hooks/use-mobile';
+
+// Componentes refatorados
+import UsersFilter from '@/components/users/UsersFilter';
+import UsersHeader from '@/components/users/UsersHeader';
+import UserListView from '@/components/users/UserListView';
+import UserDialogs from '@/components/users/UserDialogs';
+import { UserFormValues } from '@/components/users/UserForm';
 
 const Users = () => {
   const { user } = useAuth();
@@ -44,37 +33,32 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState<string | null>(null);
   const isMobile = useMediaQuery('(max-width: 768px)');
   
-  // Abrir o modal para editar usuário
+  // Handlers
   const handleEditUser = (user: SystemUser) => {
     setEditingUser(user);
     setIsDialogOpen(true);
   };
 
-  // Abrir o diálogo para criar novo usuário
   const handleNewUser = () => {
     setEditingUser(null);
     setIsDialogOpen(true);
   };
 
-  // Abrir diálogo de alteração de senha
   const handleChangePassword = (user: SystemUser) => {
     setSelectedUser(user);
     setIsPasswordDialogOpen(true);
   };
 
-  // Abrir diálogo de edição de permissões
   const handleEditPermissions = (user: SystemUser) => {
     setSelectedUser(user);
     setIsPermissionsDialogOpen(true);
   };
 
-  // Confirmar exclusão de usuário
   const confirmDelete = (userId: string) => {
     setUserToDelete(userId);
     setDeleteConfirmOpen(true);
   };
 
-  // Excluir usuário
   const handleDeleteUser = async () => {
     if (!userToDelete) return;
     
@@ -84,7 +68,12 @@ const Users = () => {
       setUserToDelete(null);
     }
   };
+  
+  const toggleActiveUsers = () => {
+    setShowInactiveUsers(!showInactiveUsers);
+  };
 
+  // Form submission
   const onSubmit = async (values: UserFormValues) => {
     try {
       if (editingUser) {
@@ -100,7 +89,6 @@ const Users = () => {
         
         // Atualizar senha apenas se fornecida
         if (values.password && values.password.length > 0) {
-          // Agora usamos a senha diretamente como password_hash
           updateData.password_hash = values.password;
         }
         
@@ -113,7 +101,7 @@ const Users = () => {
         
         if (updateError) throw updateError;
         
-        // Atualizar lista de usuários com o formato correto
+        // Atualizar lista de usuários
         const mappedUpdatedUser: SystemUser = {
           id: updatedUser.id,
           name: updatedUser.name,
@@ -133,7 +121,6 @@ const Users = () => {
         toast.success('Usuário atualizado com sucesso');
       } else {
         // Criar novo usuário
-        // Agora usamos a senha diretamente como password_hash
         const { data: userData, error: insertError } = await supabase
           .from('system_users')
           .insert({
@@ -219,28 +206,12 @@ const Users = () => {
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold">Usuários</h1>
-          
-          <div className="flex gap-2 items-center">
-            {user?.role === 'admin' && (
-              <>
-                <Button
-                  onClick={() => setShowInactiveUsers(!showInactiveUsers)}
-                  className={`transition-colors ${
-                    !showInactiveUsers ? 'bg-green-500 hover:bg-green-600' : 'bg-red-500 hover:bg-red-600'
-                  } text-white`}
-                >
-                  {!showInactiveUsers ? 'Ativos' : 'Inativos'}
-                </Button>
-                <Button onClick={() => handleNewUser()}>
-                  <Plus className="h-4 w-4 md:mr-2" />
-                  {!isMobile && <span>Novo Usuário</span>}
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
+        <UsersHeader 
+          onNewUser={handleNewUser}
+          showInactiveUsers={showInactiveUsers}
+          onToggleActiveUsers={toggleActiveUsers}
+          isAdmin={user?.role === 'admin'}
+        />
         
         <UsersFilter
           viewMode={viewMode}
@@ -256,101 +227,34 @@ const Users = () => {
           showViewToggle={!isMobile}
         />
         
-        {loading ? (
-          <div className="space-y-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="w-full h-16 flex items-center gap-4">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-4 w-24" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : filteredUsers.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">Nenhum usuário encontrado</p>
-          </div>
-        ) : viewMode === 'table' ? (
-          <UserTable 
-            users={filteredUsers}
-            currentUserId={user?.id || ''}
-            onEdit={handleEditUser}
-            onChangePassword={handleChangePassword}
-            onEditPermissions={handleEditPermissions}
-            onToggleStatus={toggleUserStatus}
-            onDelete={confirmDelete}
-            isAdmin={user?.role === 'admin'}
-          />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredUsers.map((userItem) => (
-              <UserCard
-                key={userItem.id}
-                user={userItem}
-                currentUserId={user?.id || ''}
-                onEdit={handleEditUser}
-                onChangePassword={handleChangePassword}
-                onEditPermissions={handleEditPermissions}
-                onToggleStatus={toggleUserStatus}
-                onDelete={confirmDelete}
-                isAdmin={user?.role === 'admin'}
-              />
-            ))}
-          </div>
-        )}
-        
-        {/* Diálogos */}
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[525px]">
-            <DialogHeader>
-              <DialogTitle>
-                {editingUser ? 'Editar Usuário' : 'Novo Usuário'}
-              </DialogTitle>
-              {editingUser && (
-                <DialogDescription>
-                  Edite os detalhes do usuário. Deixe o campo de senha em branco para manter a senha atual.
-                </DialogDescription>
-              )}
-            </DialogHeader>
-            <UserForm 
-              user={editingUser}
-              units={units}
-              onSubmit={onSubmit}
-            />
-          </DialogContent>
-        </Dialog>
-        
-        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-              <AlertDialogDescription>
-                Tem certeza de que deseja excluir este usuário? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteUser} className="bg-red-500 text-white hover:bg-red-600">
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        
-        {/* Diálogos adicionados */}
-        <ChangePasswordDialog
-          isOpen={isPasswordDialogOpen}
-          onClose={() => setIsPasswordDialogOpen(false)}
-          user={selectedUser}
+        <UserListView 
+          loading={loading}
+          viewMode={viewMode}
+          filteredUsers={filteredUsers}
+          currentUserId={user?.id || ''}
+          onEdit={handleEditUser}
+          onChangePassword={handleChangePassword}
+          onEditPermissions={handleEditPermissions}
+          onToggleStatus={toggleUserStatus}
+          onDelete={confirmDelete}
+          isAdmin={user?.role === 'admin'}
         />
         
-        <UserPermissionsDialog
-          isOpen={isPermissionsDialogOpen}
-          onClose={() => setIsPermissionsDialogOpen(false)}
-          user={selectedUser}
-          onSaved={refreshUsers}
+        <UserDialogs
+          editingUser={editingUser}
+          isDialogOpen={isDialogOpen}
+          setIsDialogOpen={setIsDialogOpen}
+          onSubmit={onSubmit}
+          units={units}
+          deleteConfirmOpen={deleteConfirmOpen}
+          setDeleteConfirmOpen={setDeleteConfirmOpen}
+          handleDeleteUser={handleDeleteUser}
+          isPasswordDialogOpen={isPasswordDialogOpen}
+          setIsPasswordDialogOpen={setIsPasswordDialogOpen}
+          isPermissionsDialogOpen={isPermissionsDialogOpen}
+          setIsPermissionsDialogOpen={setIsPermissionsDialogOpen}
+          selectedUser={selectedUser}
+          refreshUsers={refreshUsers}
         />
       </div>
     </Layout>
