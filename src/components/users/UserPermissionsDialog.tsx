@@ -1,65 +1,95 @@
 
-import React, { useEffect } from 'react';
-import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogFooter } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormDescription } from '@/components/ui/form';
+import React, { useEffect, useState } from 'react';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle,
+  DialogFooter
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { SystemUser, UserPermissions } from '@/types/entities';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { UserPermissions, SystemUser } from '@/types/entities';
 import { userRepository } from '@/services/users/userRepository';
+import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
-interface UserPermissionsDialogProps {
+type UserPermissionsDialogProps = {
   isOpen: boolean;
   onClose: () => void;
   user: SystemUser | null;
-  onSaved: () => void;
-}
-
-const permissionsSchema = z.object({
-  canViewVehicles: z.boolean().default(false),
-  canEditVehicles: z.boolean().default(false),
-  canViewUnits: z.boolean().default(false),
-  canEditUnits: z.boolean().default(false),
-  canViewUsers: z.boolean().default(false),
-  canEditUsers: z.boolean().default(false),
-  canViewMovements: z.boolean().default(true),
-  canEditMovements: z.boolean().default(false),
-});
+  onSaved: () => Promise<void>;
+};
 
 const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
   isOpen,
   onClose,
   user,
-  onSaved
+  onSaved,
 }) => {
-  const form = useForm<z.infer<typeof permissionsSchema>>({
-    resolver: zodResolver(permissionsSchema),
-    defaultValues: {
-      canViewVehicles: false,
-      canEditVehicles: false,
-      canViewUnits: false,
-      canEditUnits: false,
-      canViewUsers: false,
-      canEditUsers: false,
-      canViewMovements: true,
-      canEditMovements: false,
-    }
+  const [permissions, setPermissions] = useState<UserPermissions>({
+    can_view_vehicles: false,
+    can_edit_vehicles: false,
+    can_view_units: false,
+    can_edit_units: false,
+    can_view_users: false,
+    can_edit_users: false,
+    can_view_movements: false,
+    can_edit_movements: false,
   });
+  
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (user?.permissions) {
-      form.reset(user.permissions);
-    }
-  }, [user, form]);
-
-  const onSubmit = async (data: z.infer<typeof permissionsSchema>) => {
-    try {
-      if (!user) return;
+    const fetchPermissions = async () => {
+      if (!user?.id || !isOpen) return;
       
-      const success = await userRepository.updatePermissions(user.id, data);
+      setLoading(true);
+      
+      try {
+        const { data, error } = await supabase
+          .from('system_user_permissions')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (error && error.code !== 'PGRST116') {
+          console.error('Erro ao buscar permissões:', error);
+          toast.error('Não foi possível carregar as permissões');
+        }
+        
+        if (data) {
+          setPermissions({
+            can_view_vehicles: data.can_view_vehicles || false,
+            can_edit_vehicles: data.can_edit_vehicles || false,
+            can_view_units: data.can_view_units || false,
+            can_edit_units: data.can_edit_units || false,
+            can_view_users: data.can_view_users || false,
+            can_edit_users: data.can_edit_users || false,
+            can_view_movements: data.can_view_movements || false,
+            can_edit_movements: data.can_edit_movements || false,
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao carregar permissões:', err);
+        toast.error('Erro ao carregar permissões');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPermissions();
+  }, [user?.id, isOpen]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    
+    setSaving(true);
+    
+    try {
+      const success = await userRepository.updateUserPermissions(user.id, permissions);
       
       if (success) {
         toast.success('Permissões atualizadas com sucesso');
@@ -68,206 +98,149 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
       } else {
         toast.error('Erro ao atualizar permissões');
       }
-    } catch (error: any) {
-      toast.error(`Erro: ${error.message}`);
+    } catch (error) {
+      console.error('Erro ao salvar permissões:', error);
+      toast.error('Erro ao salvar permissões');
+    } finally {
+      setSaving(false);
     }
+  };
+
+  // Helper para atualizar permissões individuais
+  const updatePermission = (key: keyof UserPermissions, value: boolean) => {
+    setPermissions(prev => ({ ...prev, [key]: value }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
-          <DialogTitle>Permissões do Usuário</DialogTitle>
+          <DialogTitle>
+            Permissões do Usuário
+            {user && ` - ${user.name}`}
+          </DialogTitle>
         </DialogHeader>
-        
-        {user && (
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid gap-6">
-                <div className="space-y-4">
-                  <h3 className="font-medium border-b pb-1">Veículos</h3>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="canViewVehicles"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Visualizar veículos</FormLabel>
-                            <FormDescription>Permite visualizar a lista de veículos</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="canEditVehicles"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Editar veículos</FormLabel>
-                            <FormDescription>Permite adicionar, editar e excluir veículos</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <h3 className="font-medium border-b pb-1">Unidades</h3>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="canViewUnits"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Visualizar unidades</FormLabel>
-                            <FormDescription>Permite visualizar a lista de unidades</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="canEditUnits"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Editar unidades</FormLabel>
-                            <FormDescription>Permite adicionar, editar e excluir unidades</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <h3 className="font-medium border-b pb-1">Usuários</h3>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="canViewUsers"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Visualizar usuários</FormLabel>
-                            <FormDescription>Permite visualizar a lista de usuários</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="canEditUsers"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Editar usuários</FormLabel>
-                            <FormDescription>Permite adicionar, editar e excluir usuários</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-4">
-                  <h3 className="font-medium border-b pb-1">Movimentações</h3>
-                  <div className="space-y-3">
-                    <FormField
-                      control={form.control}
-                      name="canViewMovements"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Visualizar movimentações</FormLabel>
-                            <FormDescription>Permite visualizar a lista de movimentações</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="canEditMovements"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between">
-                          <div>
-                            <FormLabel>Editar movimentações</FormLabel>
-                            <FormDescription>Permite editar e excluir movimentações</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
+
+        {loading ? (
+          <div className="space-y-3">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="flex items-center space-x-2">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-4 w-32" />
               </div>
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  Salvar permissões
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 py-4">
+            <h3 className="text-md font-medium">Veículos</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_view_vehicles" 
+                  checked={permissions.can_view_vehicles}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_view_vehicles', checked === true)
+                  }
+                />
+                <label htmlFor="can_view_vehicles">Visualizar veículos</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_edit_vehicles" 
+                  checked={permissions.can_edit_vehicles}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_edit_vehicles', checked === true)
+                  }
+                />
+                <label htmlFor="can_edit_vehicles">Editar veículos</label>
+              </div>
+            </div>
+
+            <h3 className="text-md font-medium">Unidades</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_view_units" 
+                  checked={permissions.can_view_units}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_view_units', checked === true)
+                  }
+                />
+                <label htmlFor="can_view_units">Visualizar unidades</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_edit_units" 
+                  checked={permissions.can_edit_units}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_edit_units', checked === true)
+                  }
+                />
+                <label htmlFor="can_edit_units">Editar unidades</label>
+              </div>
+            </div>
+
+            <h3 className="text-md font-medium">Usuários</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_view_users" 
+                  checked={permissions.can_view_users}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_view_users', checked === true)
+                  }
+                />
+                <label htmlFor="can_view_users">Visualizar usuários</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_edit_users" 
+                  checked={permissions.can_edit_users}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_edit_users', checked === true)
+                  }
+                />
+                <label htmlFor="can_edit_users">Editar usuários</label>
+              </div>
+            </div>
+
+            <h3 className="text-md font-medium">Movimentações</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_view_movements" 
+                  checked={permissions.can_view_movements}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_view_movements', checked === true)
+                  }
+                />
+                <label htmlFor="can_view_movements">Visualizar movimentações</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="can_edit_movements" 
+                  checked={permissions.can_edit_movements}
+                  onCheckedChange={(checked) => 
+                    updatePermission('can_edit_movements', checked === true)
+                  }
+                />
+                <label htmlFor="can_edit_movements">Editar movimentações</label>
+              </div>
+            </div>
+          </div>
         )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSave} 
+            disabled={loading || saving}
+          >
+            {saving ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

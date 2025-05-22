@@ -106,17 +106,17 @@ const UsersContainer: React.FC<UsersContainerProps> = ({
           updateData.password_hash = values.password;
         }
         
-        const { data: updatedUser, error: updateError } = await handleSupabaseRequest(
-          async () => await supabase
-            .from('system_users')
-            .update(updateData)
-            .eq('id', editingUser.id)
-            .select('*, units(name)')
-            .single(),
-          'Erro ao atualizar usuário'
-        );
+        const { data: updatedUser, error: updateError } = await supabase
+          .from('system_users')
+          .update(updateData)
+          .eq('id', editingUser.id)
+          .select('*, units(name)')
+          .single();
         
-        if (updateError) throw updateError;
+        if (updateError) {
+          toast.error(`Erro ao atualizar usuário: ${updateError.message}`);
+          return;
+        }
         
         if (updatedUser) {
           // Atualizar lista de usuários
@@ -140,44 +140,43 @@ const UsersContainer: React.FC<UsersContainerProps> = ({
         }
       } else {
         // Criar novo usuário
-        const { data: userData, error: insertError } = await handleSupabaseRequest(
-          async () => await supabase
-            .from('system_users')
-            .insert({
-              name: values.name,
-              username: values.username,
-              password_hash: values.password,
-              role: values.role,
-              shift: values.shift,
-              unit_id: values.unit_id,
-              email: values.email || null,
-              created_by: user?.id,
-            })
-            .select('*, units(name)')
-            .single(),
-          'Erro ao criar usuário'
-        );
+        const { data: userData, error: insertError } = await supabase
+          .from('system_users')
+          .insert({
+            name: values.name,
+            username: values.username,
+            password_hash: values.password,
+            role: values.role,
+            shift: values.shift,
+            unit_id: values.unit_id,
+            email: values.email || null,
+            created_by: user?.id,
+          })
+          .select('*, units(name)')
+          .single();
         
         if (insertError) {
           if (insertError.message.includes('unique constraint')) {
             toast.error('Este nome de usuário já existe');
           } else {
-            throw insertError;
+            toast.error(`Erro ao criar usuário: ${insertError.message}`);
           }
           return;
         }
         
         if (userData) {
           // Adicionar permissões padrão
-          await handleSupabaseRequest(
-            async () => await supabase
-              .from('system_user_permissions')
-              .insert({
-                user_id: userData.id,
-                can_view_movements: true,
-              }),
-            'Erro ao adicionar permissões'
-          );
+          const { error: permError } = await supabase
+            .from('system_user_permissions')
+            .insert({
+              user_id: userData.id,
+              can_view_movements: true,
+            });
+          
+          if (permError) {
+            toast.error(`Erro ao adicionar permissões: ${permError.message}`);
+            // Continue mesmo com erro nas permissões
+          }
           
           // Mapear e adicionar o novo usuário à lista
           const mappedNewUser: SystemUser = {

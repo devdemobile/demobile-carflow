@@ -19,28 +19,26 @@ export const useUsers = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const usersResponse = await handleSupabaseRequest(
-          async () => await supabase
-            .from('system_users')
-            .select('*, units(name)')
-            .order('created_at', { ascending: false }),
-          'Erro ao carregar usuários'
-        );
+        const { data: usersData, error: usersError } = await supabase
+          .from('system_users')
+          .select('*, units(name)')
+          .order('created_at', { ascending: false });
         
-        const unitsResponse = await handleSupabaseRequest(
-          async () => await supabase
-            .from('units')
-            .select('id, name')
-            .order('name'),
-          'Erro ao carregar unidades'
-        );
+        const { data: unitsData, error: unitsError } = await supabase
+          .from('units')
+          .select('id, name')
+          .order('name');
 
-        if (!usersResponse || !unitsResponse) {
-          throw new Error('Erro ao buscar dados');
+        if (usersError) {
+          throw new Error(`Erro ao buscar usuários: ${usersError.message}`);
+        }
+
+        if (unitsError) {
+          throw new Error(`Erro ao buscar unidades: ${unitsError.message}`);
         }
 
         // Map database users to SystemUser type
-        const mappedUsers: SystemUser[] = usersResponse.map((dbUser: any) => ({
+        const mappedUsers: SystemUser[] = usersData ? usersData.map((dbUser: any) => ({
           id: dbUser.id,
           name: dbUser.name,
           username: dbUser.username,
@@ -52,10 +50,10 @@ export const useUsers = () => {
           unit_id: dbUser.unit_id, // Keep for compatibility
           unitName: dbUser.units?.name,
           units: dbUser.units // Keep for compatibility
-        }));
+        })) : [];
 
         setUsers(mappedUsers);
-        setUnits(unitsResponse);
+        setUnits(unitsData || []);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         toast.error('Não foi possível carregar os usuários');

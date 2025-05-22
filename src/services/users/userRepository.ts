@@ -3,9 +3,10 @@
  * Repositório para gerenciamento de usuários
  */
 import { supabase } from '@/integrations/supabase/client';
-import { SystemUser, UserStatus } from '@/types/entities';
+import { SystemUser, UserPermissions, UserStatus } from '@/types/entities';
 import { handleSupabaseRequest } from '@/services/api/supabase';
 import { toast } from 'sonner';
+import { UserDTO } from '@/types/user.types';
 
 /**
  * Interface para o repositório de usuários
@@ -24,16 +25,16 @@ export class UserRepository implements IUserRepository {
    * Busca um usuário pelo ID
    */
   async getUserById(id: string): Promise<SystemUser | null> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .select('*, units(name)')
-        .eq('id', id)
-        .single(),
-      'Erro ao buscar usuário'
-    );
+    const { data, error } = await supabase
+      .from('system_users')
+      .select('*, units(name)')
+      .eq('id', id)
+      .single();
     
-    if (!data) return null;
+    if (error || !data) {
+      console.error('Erro ao buscar usuário:', error);
+      return null;
+    }
     
     return {
       id: data.id,
@@ -81,11 +82,17 @@ export class UserRepository implements IUserRepository {
   async updateUserPermissions(userId: string, permissions: any): Promise<boolean> {
     try {
       // Verificar se já existe registro de permissões
-      const { data: existingPermissions } = await supabase
+      const { data: existingPermissions, error: checkError } = await supabase
         .from('system_user_permissions')
         .select('user_id')
         .eq('user_id', userId)
         .single();
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = not found
+        console.error('Erro ao verificar permissões existentes:', checkError);
+        toast.error('Erro ao verificar permissões existentes');
+        return false;
+      }
       
       let result;
       

@@ -4,12 +4,13 @@
  */
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { PostgrestError } from '@supabase/supabase-js';
 
 /**
  * Abstração para facilitar o tratamento de erros nas chamadas ao Supabase
  */
 export async function handleSupabaseRequest<T>(
-  requestFn: () => Promise<{ data: T | null; error: any }>,
+  requestFn: () => Promise<{ data: T | null; error: PostgrestError | null }>,
   errorMessage: string = 'Ocorreu um erro na operação'
 ): Promise<T | null> {
   try {
@@ -34,7 +35,7 @@ export async function handleSupabaseRequest<T>(
  * @param functionName Nome da função RPC no Supabase
  */
 export async function callRPC<T, R>(
-  functionName: string, 
+  functionName: 'verify_password' | 'verify_password2', 
   params: T, 
   errorMessage: string = `Erro ao chamar ${functionName}`
 ): Promise<R | null> {
