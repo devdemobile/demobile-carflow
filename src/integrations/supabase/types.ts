@@ -9,16 +9,467 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      activity_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json
+          id: string
+          record_id: string
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details: Json
+          id?: string
+          record_id: string
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json
+          id?: string
+          record_id?: string
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movement_logs: {
+        Row: {
+          action_details: string
+          action_type: Database["public"]["Enums"]["log_action_type"]
+          created_at: string
+          id: string
+          movement_id: string
+          user_id: string
+        }
+        Insert: {
+          action_details: string
+          action_type: Database["public"]["Enums"]["log_action_type"]
+          created_at?: string
+          id?: string
+          movement_id: string
+          user_id: string
+        }
+        Update: {
+          action_details?: string
+          action_type?: Database["public"]["Enums"]["log_action_type"]
+          created_at?: string
+          id?: string
+          movement_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movement_logs_movement_id_fkey"
+            columns: ["movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movement_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      movements: {
+        Row: {
+          arrival_date: string | null
+          arrival_time: string | null
+          arrival_unit_id: string | null
+          created_at: string
+          created_by: string | null
+          departure_date: string
+          departure_time: string
+          departure_unit_id: string
+          destination: string | null
+          driver: string
+          duration: string | null
+          final_mileage: number | null
+          id: string
+          initial_mileage: number
+          mileage_run: number | null
+          notes: string | null
+          status: Database["public"]["Enums"]["vehicle_location"]
+          type: Database["public"]["Enums"]["movement_type"]
+          updated_at: string
+          vehicle_id: string
+        }
+        Insert: {
+          arrival_date?: string | null
+          arrival_time?: string | null
+          arrival_unit_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          departure_date: string
+          departure_time: string
+          departure_unit_id: string
+          destination?: string | null
+          driver: string
+          duration?: string | null
+          final_mileage?: number | null
+          id?: string
+          initial_mileage: number
+          mileage_run?: number | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["vehicle_location"]
+          type: Database["public"]["Enums"]["movement_type"]
+          updated_at?: string
+          vehicle_id: string
+        }
+        Update: {
+          arrival_date?: string | null
+          arrival_time?: string | null
+          arrival_unit_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          departure_date?: string
+          departure_time?: string
+          departure_unit_id?: string
+          destination?: string | null
+          driver?: string
+          duration?: string | null
+          final_mileage?: number | null
+          id?: string
+          initial_mileage?: number
+          mileage_run?: number | null
+          notes?: string | null
+          status?: Database["public"]["Enums"]["vehicle_location"]
+          type?: Database["public"]["Enums"]["movement_type"]
+          updated_at?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movements_arrival_unit_id_fkey"
+            columns: ["arrival_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_departure_unit_id_fkey"
+            columns: ["departure_unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_user_permissions: {
+        Row: {
+          can_edit_movements: boolean
+          can_edit_units: boolean
+          can_edit_users: boolean
+          can_edit_vehicles: boolean
+          can_view_movements: boolean
+          can_view_units: boolean
+          can_view_users: boolean
+          can_view_vehicles: boolean
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          can_edit_movements?: boolean
+          can_edit_units?: boolean
+          can_edit_users?: boolean
+          can_edit_vehicles?: boolean
+          can_view_movements?: boolean
+          can_view_units?: boolean
+          can_view_users?: boolean
+          can_view_vehicles?: boolean
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          can_edit_movements?: boolean
+          can_edit_units?: boolean
+          can_edit_users?: boolean
+          can_edit_vehicles?: boolean
+          can_view_movements?: boolean
+          can_view_units?: boolean
+          can_view_users?: boolean
+          can_view_vehicles?: boolean
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_user_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "system_users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_users: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string | null
+          id: string
+          name: string
+          password_hash: string
+          role: Database["public"]["Enums"]["user_role"]
+          shift: Database["public"]["Enums"]["user_shift"]
+          status: Database["public"]["Enums"]["user_status"]
+          unit_id: string | null
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name: string
+          password_hash: string
+          role?: Database["public"]["Enums"]["user_role"]
+          shift?: Database["public"]["Enums"]["user_shift"]
+          status?: Database["public"]["Enums"]["user_status"]
+          unit_id?: string | null
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          id?: string
+          name?: string
+          password_hash?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          shift?: Database["public"]["Enums"]["user_shift"]
+          status?: Database["public"]["Enums"]["user_status"]
+          unit_id?: string | null
+          updated_at?: string
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_users_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      units: {
+        Row: {
+          address: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vehicle_makes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      vehicle_models: {
+        Row: {
+          created_at: string
+          id: string
+          make_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          make_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          make_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_models_make_id_fkey"
+            columns: ["make_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_makes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vehicles: {
+        Row: {
+          color: string
+          created_at: string
+          destination: string | null
+          id: string
+          location: Database["public"]["Enums"]["vehicle_location"]
+          make: string
+          make_id: string | null
+          mileage: number
+          model: string
+          model_id: string | null
+          photo_url: string | null
+          plate: string
+          unit_id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          color: string
+          created_at?: string
+          destination?: string | null
+          id?: string
+          location?: Database["public"]["Enums"]["vehicle_location"]
+          make: string
+          make_id?: string | null
+          mileage?: number
+          model: string
+          model_id?: string | null
+          photo_url?: string | null
+          plate: string
+          unit_id: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          destination?: string | null
+          id?: string
+          location?: Database["public"]["Enums"]["vehicle_location"]
+          make?: string
+          make_id?: string | null
+          mileage?: number
+          model?: string
+          model_id?: string | null
+          photo_url?: string | null
+          plate?: string
+          unit_id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_make_id_fkey"
+            columns: ["make_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_makes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "vehicle_models"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vehicles_unit_id_fkey"
+            columns: ["unit_id"]
+            isOneToOne: false
+            referencedRelation: "units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      verify_password: {
+        Args: { username_input: string; password_attempt: string }
+        Returns: string
+      }
+      verify_password2: {
+        Args: { username: string; password_attempt: string }
+        Returns: string
+      }
     }
     Enums: {
-      [_ in never]: never
+      log_action_type: "edit" | "delete"
+      movement_type: "entry" | "exit" | "initial"
+      user_role: "admin" | "operator"
+      user_shift: "day" | "night"
+      user_status: "active" | "inactive"
+      vehicle_location: "yard" | "out"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +584,13 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      log_action_type: ["edit", "delete"],
+      movement_type: ["entry", "exit", "initial"],
+      user_role: ["admin", "operator"],
+      user_shift: ["day", "night"],
+      user_status: ["active", "inactive"],
+      vehicle_location: ["yard", "out"],
+    },
   },
 } as const

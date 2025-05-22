@@ -5,15 +5,7 @@
 import { LoginCredentials, SystemUser } from '@/types';
 import { IAuthRepository, authRepository } from './authRepository';
 import { toast } from 'sonner';
-
-/**
- * Interface para o serviço de autenticação
- */
-export interface IAuthService {
-  login(credentials: LoginCredentials): Promise<SystemUser | null>;
-  validateUserStatus(user: SystemUser): boolean;
-  verifyPassword(username: string, password: string): Promise<boolean>;
-}
+import { IAuthService } from './authService.interface';
 
 /**
  * Implementação do serviço de autenticação

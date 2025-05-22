@@ -28,3 +28,29 @@ export async function handleSupabaseRequest<T>(
     return null;
   }
 }
+
+/**
+ * Cria uma função RPC no Supabase com parâmetros tipados
+ * @param functionName Nome da função RPC no Supabase
+ */
+export async function callRPC<T, R>(
+  functionName: string, 
+  params: T, 
+  errorMessage: string = `Erro ao chamar ${functionName}`
+): Promise<R | null> {
+  try {
+    const { data, error } = await supabase.rpc(functionName, params as any);
+    
+    if (error) {
+      console.error(`Erro ao chamar ${functionName}: ${error.message}`, error);
+      toast.error(`${errorMessage}: ${error.message}`);
+      return null;
+    }
+    
+    return data as R;
+  } catch (error: any) {
+    console.error(`Exceção ao chamar ${functionName}: ${error.message}`, error);
+    toast.error(`${errorMessage}`);
+    return null;
+  }
+}

@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { useMediaQuery } from '@/hooks/use-mobile';
 import { UserFormValues } from './UserForm';
 import { supabase } from '@/integrations/supabase/client';
+import { handleSupabaseRequest } from '@/services/api/supabase';
 
 // Componentes refatorados
 import UsersFilter from './UsersFilter';
@@ -105,49 +106,57 @@ const UsersContainer: React.FC<UsersContainerProps> = ({
           updateData.password_hash = values.password;
         }
         
-        const { data: updatedUser, error: updateError } = await supabase
-          .from('system_users')
-          .update(updateData)
-          .eq('id', editingUser.id)
-          .select('*, units(name)')
-          .single();
+        const { data: updatedUser, error: updateError } = await handleSupabaseRequest(
+          async () => await supabase
+            .from('system_users')
+            .update(updateData)
+            .eq('id', editingUser.id)
+            .select('*, units(name)')
+            .single(),
+          'Erro ao atualizar usuário'
+        );
         
         if (updateError) throw updateError;
         
-        // Atualizar lista de usuários
-        const mappedUpdatedUser: SystemUser = {
-          id: updatedUser.id,
-          name: updatedUser.name,
-          username: updatedUser.username,
-          email: updatedUser.email || undefined,
-          role: updatedUser.role,
-          shift: updatedUser.shift,
-          status: updatedUser.status,
-          unitId: updatedUser.unit_id,
-          unit_id: updatedUser.unit_id,
-          unitName: updatedUser.units?.name,
-          units: updatedUser.units
-        };
-        
-        setUsers(prev => prev.map(u => u.id === mappedUpdatedUser.id ? mappedUpdatedUser : u));
-        
-        toast.success('Usuário atualizado com sucesso');
+        if (updatedUser) {
+          // Atualizar lista de usuários
+          const mappedUpdatedUser: SystemUser = {
+            id: updatedUser.id,
+            name: updatedUser.name,
+            username: updatedUser.username,
+            email: updatedUser.email || undefined,
+            role: updatedUser.role,
+            shift: updatedUser.shift,
+            status: updatedUser.status,
+            unitId: updatedUser.unit_id,
+            unit_id: updatedUser.unit_id,
+            unitName: updatedUser.units?.name,
+            units: updatedUser.units
+          };
+          
+          setUsers(prev => prev.map(u => u.id === mappedUpdatedUser.id ? mappedUpdatedUser : u));
+          
+          toast.success('Usuário atualizado com sucesso');
+        }
       } else {
         // Criar novo usuário
-        const { data: userData, error: insertError } = await supabase
-          .from('system_users')
-          .insert({
-            name: values.name,
-            username: values.username,
-            password_hash: values.password,
-            role: values.role,
-            shift: values.shift,
-            unit_id: values.unit_id,
-            email: values.email || null,
-            created_by: user?.id,
-          })
-          .select('*, units(name)')
-          .single();
+        const { data: userData, error: insertError } = await handleSupabaseRequest(
+          async () => await supabase
+            .from('system_users')
+            .insert({
+              name: values.name,
+              username: values.username,
+              password_hash: values.password,
+              role: values.role,
+              shift: values.shift,
+              unit_id: values.unit_id,
+              email: values.email || null,
+              created_by: user?.id,
+            })
+            .select('*, units(name)')
+            .single(),
+          'Erro ao criar usuário'
+        );
         
         if (insertError) {
           if (insertError.message.includes('unique constraint')) {
@@ -158,32 +167,37 @@ const UsersContainer: React.FC<UsersContainerProps> = ({
           return;
         }
         
-        // Adicionar permissões padrão
-        await supabase
-          .from('system_user_permissions')
-          .insert({
-            user_id: userData.id,
-            can_view_movements: true,
-          });
-        
-        // Mapear e adicionar o novo usuário à lista
-        const mappedNewUser: SystemUser = {
-          id: userData.id,
-          name: userData.name,
-          username: userData.username,
-          email: userData.email || undefined,
-          role: userData.role,
-          shift: userData.shift,
-          status: userData.status,
-          unitId: userData.unit_id,
-          unit_id: userData.unit_id,
-          unitName: userData.units?.name,
-          units: userData.units
-        };
-        
-        setUsers(prev => [mappedNewUser, ...prev]);
-        
-        toast.success('Usuário criado com sucesso');
+        if (userData) {
+          // Adicionar permissões padrão
+          await handleSupabaseRequest(
+            async () => await supabase
+              .from('system_user_permissions')
+              .insert({
+                user_id: userData.id,
+                can_view_movements: true,
+              }),
+            'Erro ao adicionar permissões'
+          );
+          
+          // Mapear e adicionar o novo usuário à lista
+          const mappedNewUser: SystemUser = {
+            id: userData.id,
+            name: userData.name,
+            username: userData.username,
+            email: userData.email || undefined,
+            role: userData.role,
+            shift: userData.shift,
+            status: userData.status,
+            unitId: userData.unit_id,
+            unit_id: userData.unit_id,
+            unitName: userData.units?.name,
+            units: userData.units
+          };
+          
+          setUsers(prev => [mappedNewUser, ...prev]);
+          
+          toast.success('Usuário criado com sucesso');
+        }
       }
       
       // Fechar diálogo e resetar form

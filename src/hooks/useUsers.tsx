@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SystemUser, UserStatus } from '@/types/entities';
 import { toast } from 'sonner';
+import { handleSupabaseRequest } from '@/services/api/supabase';
 
 export interface Unit {
   id: string;
@@ -17,22 +19,28 @@ export const useUsers = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersResponse, unitsResponse] = await Promise.all([
-          supabase
+        const usersResponse = await handleSupabaseRequest(
+          async () => await supabase
             .from('system_users')
             .select('*, units(name)')
             .order('created_at', { ascending: false }),
-          supabase
+          'Erro ao carregar usuários'
+        );
+        
+        const unitsResponse = await handleSupabaseRequest(
+          async () => await supabase
             .from('units')
             .select('id, name')
-            .order('name')
-        ]);
+            .order('name'),
+          'Erro ao carregar unidades'
+        );
 
-        if (usersResponse.error) throw usersResponse.error;
-        if (unitsResponse.error) throw unitsResponse.error;
+        if (!usersResponse || !unitsResponse) {
+          throw new Error('Erro ao buscar dados');
+        }
 
         // Map database users to SystemUser type
-        const mappedUsers: SystemUser[] = usersResponse.data.map(dbUser => ({
+        const mappedUsers: SystemUser[] = usersResponse.map((dbUser: any) => ({
           id: dbUser.id,
           name: dbUser.name,
           username: dbUser.username,
@@ -47,7 +55,7 @@ export const useUsers = () => {
         }));
 
         setUsers(mappedUsers);
-        setUnits(unitsResponse.data);
+        setUnits(unitsResponse);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         toast.error('Não foi possível carregar os usuários');
@@ -124,22 +132,24 @@ export const useUsers = () => {
         
       if (error) throw error;
       
-      // Map to SystemUser type
-      const mappedUsers: SystemUser[] = data.map(dbUser => ({
-        id: dbUser.id,
-        name: dbUser.name,
-        username: dbUser.username,
-        email: dbUser.email || undefined,
-        role: dbUser.role,
-        shift: dbUser.shift,
-        status: dbUser.status,
-        unitId: dbUser.unit_id,
-        unit_id: dbUser.unit_id,
-        unitName: dbUser.units?.name,
-        units: dbUser.units
-      }));
-      
-      setUsers(mappedUsers);
+      if (data) {
+        // Map to SystemUser type
+        const mappedUsers: SystemUser[] = data.map((dbUser: any) => ({
+          id: dbUser.id,
+          name: dbUser.name,
+          username: dbUser.username,
+          email: dbUser.email || undefined,
+          role: dbUser.role,
+          shift: dbUser.shift,
+          status: dbUser.status,
+          unitId: dbUser.unit_id,
+          unit_id: dbUser.unit_id,
+          unitName: dbUser.units?.name,
+          units: dbUser.units
+        }));
+        
+        setUsers(mappedUsers);
+      }
     } catch (error) {
       console.error('Erro ao recarregar usuários:', error);
       toast.error('Não foi possível atualizar a lista de usuários');

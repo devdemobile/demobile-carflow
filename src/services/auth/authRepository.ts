@@ -4,7 +4,7 @@
  */
 import { supabase } from '@/integrations/supabase/client';
 import { LoginCredentials, SystemUser } from '@/types';
-import { handleSupabaseRequest } from '@/services/api/supabase';
+import { handleSupabaseRequest, callRPC } from '@/services/api/supabase';
 
 /**
  * Interface para o repositório de autenticação
@@ -24,11 +24,12 @@ export class AuthRepository implements IAuthRepository {
   async login(credentials: LoginCredentials): Promise<string | null> {
     console.log(`Tentando login com usuário: ${credentials.username}`);
     
-    const result = await handleSupabaseRequest(
-      async () => await supabase.rpc('verify_password', {
+    const result = await callRPC<LoginCredentials, string>(
+      'verify_password',
+      {
         username_input: credentials.username,
         password_attempt: credentials.password
-      }),
+      },
       'Erro ao realizar login'
     );
     

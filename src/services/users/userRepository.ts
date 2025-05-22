@@ -1,351 +1,125 @@
 
+/**
+ * Repositório para gerenciamento de usuários
+ */
 import { supabase } from '@/integrations/supabase/client';
-import { SystemUser, UserPermissions, UserStatus } from '@/types/entities';
-import { UserDTO } from '@/types/user.types';
+import { SystemUser, UserStatus } from '@/types/entities';
 import { handleSupabaseRequest } from '@/services/api/supabase';
-import { IUserRepository } from './userRepository.interface';
-import { UserMapper } from './userMapper';
+import { toast } from 'sonner';
 
 /**
- * Implementation of user repository using Supabase
+ * Interface para o repositório de usuários
+ */
+export interface IUserRepository {
+  getUserById(id: string): Promise<SystemUser | null>;
+  updateUserPassword(userId: string, newPassword: string): Promise<boolean>;
+  updateUserPermissions(userId: string, permissions: any): Promise<boolean>;
+}
+
+/**
+ * Implementação do repositório de usuários
  */
 export class UserRepository implements IUserRepository {
   /**
-   * Busca todos os usuários
-   */
-  async findAll(): Promise<SystemUser[]> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .select(`
-          *,
-          units(id, name)
-        `)
-        .order('name'),
-      'Erro ao buscar usuários'
-    );
-
-    if (!data) return [];
-
-    return data.map(UserMapper.mapUserFromDb);
-  }
-
-  /**
    * Busca um usuário pelo ID
    */
-  async findById(id: string): Promise<SystemUser | null> {
+  async getUserById(id: string): Promise<SystemUser | null> {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('system_users')
-        .select(`
-          *,
-          units(id, name),
-          system_user_permissions!system_user_permissions_user_id_fkey(*)
-        `)
+        .select('*, units(name)')
         .eq('id', id)
         .single(),
       'Erro ao buscar usuário'
     );
-
+    
     if (!data) return null;
-
-    return UserMapper.mapUserWithPermissionsFromDb(data);
-  }
-
-  /**
-   * Busca um usuário pelo username
-   */
-  async findByUsername(username: string): Promise<SystemUser | null> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .select(`
-          *,
-          units(id, name),
-          system_user_permissions!system_user_permissions_user_id_fkey(*)
-        `)
-        .eq('username', username)
-        .single(),
-      'Erro ao buscar usuário por username'
-    );
-
-    if (!data) return null;
-
-    return UserMapper.mapUserWithPermissionsFromDb(data);
-  }
-
-  /**
-   * Busca usuários por unidade
-   */
-  async findByUnitId(unitId: string): Promise<SystemUser[]> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .select(`
-          *,
-          units(id, name)
-        `)
-        .eq('unit_id', unitId)
-        .order('name'),
-      'Erro ao buscar usuários da unidade'
-    );
-
-    if (!data) return [];
-
-    return data.map(UserMapper.mapUserFromDb);
-  }
-
-  /**
-   * Criar um novo usuário
-   */
-  async create(userData: UserDTO, createdBy: string): Promise<SystemUser | null> {
-    try {
-      // Gerar um hash da senha usando a função do banco de dados
-      const hashResult = await handleSupabaseRequest(
-        async () => await supabase.rpc('verify_password2', {
-          username: userData.username || '',
-          password_attempt: userData.password || ''
-        }),
-        'Erro ao criar hash da senha'
-      );
-
-      if (!hashResult) return null;
-
-      // Criar o usuário com o hash da senha
-      const { data, error } = await supabase
-        .from('system_users')
-        .insert({
-          name: userData.name,
-          username: userData.username,
-          email: userData.email,
-          password_hash: String(hashResult), // Usar o hash gerado pela função
-          role: userData.role,
-          shift: userData.shift,
-          status: userData.status || 'active',
-          unit_id: userData.unitId,
-          created_by: createdBy,
-        })
-        .select('*')
-        .single();
-
-      if (error) {
-        console.error('Erro ao criar usuário:', error);
-        return null;
-      }
-
-      if (!data) return null;
-
-      // Criar permissões para o usuário
-      const permissionsInsert = await handleSupabaseRequest(
-        async () => await supabase
-          .from('system_user_permissions')
-          .insert({
-            user_id: data.id,
-            can_view_vehicles: userData.permissions?.canViewVehicles || false,
-            can_edit_vehicles: userData.permissions?.canEditVehicles || false,
-            can_view_units: userData.permissions?.canViewUnits || false,
-            can_edit_units: userData.permissions?.canEditUnits || false,
-            can_view_users: userData.permissions?.canViewUsers || false,
-            can_edit_users: userData.permissions?.canEditUsers || false,
-            can_view_movements: userData.permissions?.canViewMovements || true,
-            can_edit_movements: userData.permissions?.canEditMovements || false
-          }),
-        'Erro ao criar permissões do usuário'
-      );
-
-      if (!permissionsInsert) {
-        // Se falhou ao criar permissões, remover o usuário criado
-        await supabase.from('system_users').delete().eq('id', data.id);
-        return null;
-      }
-
-      return this.findById(data.id);
-    } catch (error) {
-      console.error('Erro ao criar usuário:', error);
-      return null;
-    }
-  }
-
-  /**
-   * Atualizar um usuário existente
-   */
-  async update(userId: string, userData: Partial<UserDTO>): Promise<boolean> {
-    const updateData: Record<string, any> = {
-      updated_at: new Date().toISOString()
+    
+    return {
+      id: data.id,
+      name: data.name,
+      username: data.username,
+      email: data.email || undefined,
+      role: data.role,
+      shift: data.shift,
+      status: data.status,
+      unitId: data.unit_id,
+      unitName: data.units?.name,
     };
-
-    if (userData.name) updateData.name = userData.name;
-    if (userData.email !== undefined) updateData.email = userData.email;
-    if (userData.role) updateData.role = userData.role;
-    if (userData.shift) updateData.shift = userData.shift;
-    if (userData.status) updateData.status = userData.status;
-    if (userData.unitId) updateData.unit_id = userData.unitId;
-
-    // Se houver senha, criar um novo hash
-    if (userData.password) {
-      const hashResult = await handleSupabaseRequest(
-        async () => await supabase.rpc('verify_password2', {
-          username: userData.username || '',
-          password_attempt: userData.password
-        }),
-        'Erro ao criar hash da senha'
-      );
-      
-      if (hashResult) {
-        updateData.password_hash = hashResult;
-      } else {
-        return false;
-      }
-    }
-
-    const result = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .update(updateData)
-        .eq('id', userId),
-      'Erro ao atualizar usuário'
-    );
-
-    // Atualizar permissões se fornecidas
-    if (userData.permissions) {
-      const success = await this.updatePermissions(userId, userData.permissions);
-      if (!success) return false;
-    }
-
-    return result !== null;
   }
 
   /**
    * Atualiza a senha de um usuário
    */
   async updateUserPassword(userId: string, newPassword: string): Promise<boolean> {
-    // Buscar o username do usuário para gerar o hash
-    const { data: userData } = await supabase
-      .from('system_users')
-      .select('username')
-      .eq('id', userId)
-      .single();
+    try {
+      const { error } = await supabase
+        .from('system_users')
+        .update({ 
+          password_hash: newPassword,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', userId);
       
-    if (!userData) return false;
-    
-    // Criar um novo hash para a senha
-    const hashResult = await handleSupabaseRequest(
-      async () => await supabase.rpc('verify_password2', {
-        username: userData.username,
-        password_attempt: newPassword
-      }),
-      'Erro ao criar hash da senha'
-    );
-    
-    if (!hashResult) return false;
-
-    // Atualizar o hash da senha no banco de dados
-    const result = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .update({
-          password_hash: hashResult,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId),
-      'Erro ao atualizar senha'
-    );
-
-    return !!result;
+      if (error) {
+        console.error('Erro ao atualizar senha:', error);
+        toast.error('Não foi possível atualizar a senha');
+        return false;
+      }
+      
+      return true;
+    } catch (error: any) {
+      console.error('Exceção ao atualizar senha:', error.message);
+      toast.error('Erro ao processar a solicitação');
+      return false;
+    }
   }
 
   /**
-   * Atualiza permissões de um usuário
+   * Atualiza as permissões de um usuário
    */
-  async updatePermissions(userId: string, permissions: Partial<UserPermissions>): Promise<boolean> {
-    const updateData: Record<string, any> = {
-      updated_at: new Date().toISOString()
-    };
-
-    if (permissions.canViewVehicles !== undefined) updateData.can_view_vehicles = permissions.canViewVehicles;
-    if (permissions.canEditVehicles !== undefined) updateData.can_edit_vehicles = permissions.canEditVehicles;
-    if (permissions.canViewUnits !== undefined) updateData.can_view_units = permissions.canViewUnits;
-    if (permissions.canEditUnits !== undefined) updateData.can_edit_units = permissions.canEditUnits;
-    if (permissions.canViewUsers !== undefined) updateData.can_view_users = permissions.canViewUsers;
-    if (permissions.canEditUsers !== undefined) updateData.can_edit_users = permissions.canEditUsers;
-    if (permissions.canViewMovements !== undefined) updateData.can_view_movements = permissions.canViewMovements;
-    if (permissions.canEditMovements !== undefined) updateData.can_edit_movements = permissions.canEditMovements;
-
-    const result = await handleSupabaseRequest(
-      async () => await supabase
+  async updateUserPermissions(userId: string, permissions: any): Promise<boolean> {
+    try {
+      // Verificar se já existe registro de permissões
+      const { data: existingPermissions } = await supabase
         .from('system_user_permissions')
-        .update(updateData)
-        .eq('user_id', userId),
-      'Erro ao atualizar permissões do usuário'
-    );
-
-    return result !== null;
-  }
-
-  /**
-   * Atualiza o status de um usuário
-   */
-  async updateStatus(userId: string, status: UserStatus): Promise<boolean> {
-    const result = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .update({
-          status,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userId),
-      'Erro ao atualizar status do usuário'
-    );
-
-    return result !== null;
-  }
-
-  /**
-   * Remove um usuário
-   */
-  async delete(id: string): Promise<boolean> {
-    const result = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .delete()
-        .eq('id', id),
-      'Erro ao excluir usuário'
-    );
-
-    return result !== null;
-  }
-
-  /**
-   * Verifica a senha de um usuário
-   */
-  async verifyPassword(username: string, password: string): Promise<string | null> {
-    const result = await handleSupabaseRequest(
-      async () => await supabase.rpc('verify_password', {
-        username_input: username,
-        password_attempt: password
-      }),
-      'Erro ao verificar credenciais'
-    );
-
-    return result;
-  }
-
-  /**
-   * Obtém as permissões de um usuário
-   */
-  async getUserPermissions(userId: string): Promise<UserPermissions | null> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_user_permissions')
-        .select('*')
+        .select('user_id')
         .eq('user_id', userId)
-        .single(),
-      'Erro ao buscar permissões do usuário'
-    );
-
-    if (!data) return null;
-
-    return UserMapper.mapPermissionsFromDb(data);
+        .single();
+      
+      let result;
+      
+      // Se já existe registro, atualize
+      if (existingPermissions) {
+        result = await supabase
+          .from('system_user_permissions')
+          .update({
+            ...permissions,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', userId);
+      } else {
+        // Caso contrário, insira novo registro
+        result = await supabase
+          .from('system_user_permissions')
+          .insert({
+            user_id: userId,
+            ...permissions
+          });
+      }
+      
+      if (result.error) {
+        console.error('Erro ao atualizar permissões:', result.error);
+        toast.error('Não foi possível atualizar as permissões');
+        return false;
+      }
+      
+      return true;
+    } catch (error: any) {
+      console.error('Exceção ao atualizar permissões:', error.message);
+      toast.error('Erro ao processar a solicitação');
+      return false;
+    }
   }
 }
 
