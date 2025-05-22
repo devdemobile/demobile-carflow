@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { SystemUser, UserStatus } from '@/types/entities';
@@ -60,7 +59,7 @@ export const useUsers = () => {
     fetchData();
   }, []);
 
-  const toggleUserStatus = async (userId: string, currentStatus: UserStatus) => {
+  const toggleUserStatus = async (userId: string, currentStatus: UserStatus): Promise<boolean> => {
     try {
       const newStatus: UserStatus = currentStatus === 'active' ? 'inactive' : 'active';
       
@@ -85,9 +84,11 @@ export const useUsers = () => {
           : 'Usuário desativado com sucesso'
       );
       
+      return true;
     } catch (error: any) {
       console.error('Erro ao alternar status:', error);
       toast.error('Não foi possível alterar o status do usuário');
+      return false;
     }
   };
 

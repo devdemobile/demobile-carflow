@@ -1,8 +1,10 @@
+
 /**
  * Serviço de negócios para Movimentações
  */
 import { Movement, MovementDTO, VehicleLocation } from '@/types';
-import { IMovementRepository, movementRepository } from './movementRepository';
+import { movementRepository } from './movementRepository';
+import { IMovementRepository } from './movementRepository.interface';
 import { vehicleService } from '../vehicles/vehicleService';
 
 /**

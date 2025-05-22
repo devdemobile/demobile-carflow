@@ -15,3 +15,6 @@ export interface IMovementRepository {
   updateWithReturn(id: string, data: Partial<Movement>): Promise<Movement | null>;
   delete(id: string): Promise<boolean>;
 }
+
+// Export the interface directly
+export { IMovementRepository };

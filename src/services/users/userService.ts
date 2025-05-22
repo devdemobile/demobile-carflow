@@ -1,8 +1,8 @@
-
 import { toast } from 'sonner';
 import { SystemUser, UserPermissions, UserRole, UserStatus } from '@/types';
 import { UserDTO, LoginCredentials } from '@/types/dto';
-import { userRepository, IUserRepository } from './userRepository';
+import { userRepository } from './userRepository';
+import { IUserRepository } from './userRepository.interface';
 
 /**
  * Interface para o serviço de usuários

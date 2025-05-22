@@ -44,9 +44,14 @@ export const verifyDatabaseTriggers = async (): Promise<{ success: boolean; miss
   
   try {
     for (const triggerName of requiredTriggers) {
-      const { data, error } = await supabase.rpc('check_trigger_exists', { trigger_name: triggerName });
+      // Use a direct database query instead of an RPC function
+      const { data, error } = await supabase
+        .from('pg_trigger')
+        .select('*')
+        .eq('trigger_name', triggerName)
+        .limit(1);
       
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
         missingTriggers.push(triggerName);
       }
     }
