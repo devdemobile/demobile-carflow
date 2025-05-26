@@ -179,6 +179,21 @@ export class MovementRepository implements IMovementRepository {
    * Cria uma nova movimentação
    */
   async create(movementData: MovementDTO, userId: string): Promise<Movement | null> {
+    // Obter o usuário admin se userId estiver vazio
+    let createdBy = userId;
+    
+    if (!userId) {
+      const { data: adminUser, error: adminError } = await supabase
+        .from('system_users')
+        .select('id')
+        .eq('username', 'admin')
+        .maybeSingle();
+      
+      if (adminUser && !adminError) {
+        createdBy = adminUser.id;
+      }
+    }
+
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('movements')
@@ -196,7 +211,7 @@ export class MovementRepository implements IMovementRepository {
           arrival_time: movementData.arrivalTime || null,
           type: movementData.type,
           status: movementData.type === 'exit' ? 'out' : 'yard',
-          created_by: userId
+          created_by: createdBy
         }])
         .select()
         .single(),

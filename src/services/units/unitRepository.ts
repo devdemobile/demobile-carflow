@@ -1,30 +1,19 @@
-/**
- * Repositório de acesso a dados de Unidades
- */
+
 import { supabase } from '@/integrations/supabase/client';
 import { Unit, UnitDTO } from '@/types';
 import { handleSupabaseRequest, callRPC } from '@/services/api/supabase';
 
-/**
- * Interface do repositório de unidades
- */
 export interface IUnitRepository {
   findAll(): Promise<Unit[]>;
   findById(id: string): Promise<Unit | null>;
-  findByCode(code: string): Promise<Unit | null>;
   create(unitData: UnitDTO): Promise<Unit | null>;
   update(id: string, unitData: UnitDTO): Promise<boolean>;
   delete(id: string): Promise<boolean>;
-  getVehicleCount(unitId: string): Promise<number>;
-  getUsersCount(unitId: string): Promise<number>;
+  canDeleteUnit(id: string): Promise<{canDelete: boolean, vehicleCount?: number, usersCount?: number}>;
   fetchVehicleCountByUnit(): Promise<Record<string, number>>;
   fetchUserCountByUnit(): Promise<Record<string, number>>;
-  canDeleteUnit(id: string): Promise<{ canDelete: boolean; vehicleCount?: number; usersCount?: number }>;
 }
 
-/**
- * Implementação do repositório de unidades usando Supabase
- */
 export class UnitRepository implements IUnitRepository {
   /**
    * Busca todas as unidades
@@ -36,20 +25,11 @@ export class UnitRepository implements IUnitRepository {
         .select('*')
         .order('name'),
       'Erro ao buscar unidades'
-    ) || [];
+    );
     
-    // Mapear os dados do banco para o formato da interface Unit
-    return data.map((unit: any) => ({
-      id: unit.id,
-      name: unit.name,
-      code: unit.code,
-      address: unit.address || '',
-      vehicleCount: 0,
-      usersCount: 0,
-      createdAt: unit.created_at,
-      updatedAt: unit.updated_at,
-      createdBy: unit.created_by || null // Garantir que não é undefined
-    }));
+    if (!data) return [];
+    
+    return data.map(this.mapUnitFromDb);
   }
 
   /**
@@ -61,53 +41,13 @@ export class UnitRepository implements IUnitRepository {
         .from('units')
         .select('*')
         .eq('id', id)
-        .single(),
+        .maybeSingle(),
       'Erro ao buscar unidade'
     );
     
     if (!data) return null;
     
-    return {
-      id: data.id,
-      name: data.name,
-      code: data.code,
-      address: data.address || '',
-      vehicleCount: 0,
-      usersCount: 0,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      // Usar acesso seguro para created_by, já que pode não existir no tipo retornado
-      createdBy: (data as any).created_by || null
-    };
-  }
-
-  /**
-   * Busca uma unidade pelo código
-   */
-  async findByCode(code: string): Promise<Unit | null> {
-    const data = await handleSupabaseRequest(
-      async () => await supabase
-        .from('units')
-        .select('*')
-        .eq('code', code)
-        .single(),
-      'Erro ao buscar unidade pelo código'
-    );
-    
-    if (!data) return null;
-
-    return {
-      id: data.id,
-      name: data.name,
-      code: data.code,
-      address: data.address || '',
-      vehicleCount: 0,
-      usersCount: 0,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      // Usar acesso seguro para created_by, já que pode não existir no tipo retornado
-      createdBy: (data as any).created_by || null
-    };
+    return this.mapUnitFromDb(data);
   }
 
   /**
@@ -117,21 +57,23 @@ export class UnitRepository implements IUnitRepository {
     const data = await handleSupabaseRequest(
       async () => await supabase
         .from('units')
-        .insert([{
+        .insert({
           name: unitData.name,
           code: unitData.code,
-          address: unitData.address || null
-        }])
+          address: unitData.address
+        })
         .select()
         .single(),
       'Erro ao criar unidade'
     );
     
-    return data as Unit | null;
+    if (!data) return null;
+    
+    return this.mapUnitFromDb(data);
   }
 
   /**
-   * Atualiza uma unidade existente
+   * Atualiza uma unidade
    */
   async update(id: string, unitData: UnitDTO): Promise<boolean> {
     const result = await handleSupabaseRequest(
@@ -140,7 +82,7 @@ export class UnitRepository implements IUnitRepository {
         .update({
           name: unitData.name,
           code: unitData.code,
-          address: unitData.address || null,
+          address: unitData.address,
           updated_at: new Date().toISOString()
         })
         .eq('id', id),
@@ -166,117 +108,106 @@ export class UnitRepository implements IUnitRepository {
   }
 
   /**
-   * Obtém a contagem de veículos por unidade
+   * Verifica se uma unidade pode ser excluída
    */
-  async getVehicleCount(unitId: string): Promise<number> {
-    const result = await handleSupabaseRequest(
-      async () => await supabase
-        .from('vehicles')
-        .select('id', { count: 'exact', head: true })
-        .eq('unit_id', unitId),
-      'Erro ao contar veículos da unidade'
-    );
+  async canDeleteUnit(id: string): Promise<{canDelete: boolean, vehicleCount?: number, usersCount?: number}> {
+    // Verificar veículos
+    const { count: vehicleCount, error: vehicleError } = await supabase
+      .from('vehicles')
+      .select('*', { count: 'exact', head: true })
+      .eq('unit_id', id);
     
-    // Corrigir o acesso ao count, garantindo o tipo numérico
-    if (result && typeof result === 'object' && 'count' in result) {
-      const count = result.count;
-      return typeof count === 'number' ? count : 0;
+    if (vehicleError) {
+      console.error('Erro ao verificar veículos da unidade:', vehicleError);
+      return { canDelete: false };
     }
+
+    // Verificar usuários
+    const { count: usersCount, error: usersError } = await supabase
+      .from('system_users')
+      .select('*', { count: 'exact', head: true })
+      .eq('unit_id', id);
     
-    return 0;
+    if (usersError) {
+      console.error('Erro ao verificar usuários da unidade:', usersError);
+      return { canDelete: false };
+    }
+
+    const canDelete = (vehicleCount || 0) === 0 && (usersCount || 0) === 0;
+    
+    return {
+      canDelete,
+      vehicleCount: vehicleCount || 0,
+      usersCount: usersCount || 0
+    };
   }
 
   /**
-   * Obtém a contagem de usuários por unidade
-   */
-  async getUsersCount(unitId: string): Promise<number> {
-    const result = await handleSupabaseRequest(
-      async () => await supabase
-        .from('system_users')
-        .select('id', { count: 'exact', head: true })
-        .eq('unit_id', unitId),
-      'Erro ao contar usuários da unidade'
-    );
-    
-    // Corrigir o acesso ao count, garantindo o tipo numérico
-    if (result && typeof result === 'object' && 'count' in result) {
-      const count = result.count;
-      return typeof count === 'number' ? count : 0;
-    }
-    
-    return 0;
-  }
-
-  /**
-   * Busca contagem de veículos por unidade
+   * Busca contagem de veículos por unidade usando a função do banco
    */
   async fetchVehicleCountByUnit(): Promise<Record<string, number>> {
     try {
-      const counts = await callRPC<{}, any[]>(
-        'count_vehicles_by_unit',
-        {},
-        'Erro ao buscar contagem de veículos por unidade'
-      );
+      const { data, error } = await supabase.rpc('count_vehicles_by_unit');
       
-      const result: Record<string, number> = {};
-      
-      if (counts && Array.isArray(counts)) {
-        counts.forEach((item: any) => {
-          if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
-            result[item.unit_id] = Number(item.count);
-          }
-        });
+      if (error) {
+        console.error('Erro ao buscar contagens de veículos:', error);
+        return {};
       }
       
-      return result;
+      if (!data) return {};
+      
+      const counts: Record<string, number> = {};
+      data.forEach((row: any) => {
+        counts[row.unit_id] = parseInt(row.vehicle_count) || 0;
+      });
+      
+      return counts;
     } catch (error) {
-      console.error('Erro ao buscar contagem de veículos por unidade:', error);
+      console.error('Exceção ao buscar contagens de veículos:', error);
       return {};
     }
   }
 
   /**
-   * Busca contagem de usuários por unidade
+   * Busca contagem de usuários por unidade usando a função do banco
    */
   async fetchUserCountByUnit(): Promise<Record<string, number>> {
     try {
-      const counts = await callRPC<{}, any[]>(
-        'count_users_by_unit',
-        {},
-        'Erro ao buscar contagem de usuários por unidade'
-      );
+      const { data, error } = await supabase.rpc('count_users_by_unit');
       
-      const result: Record<string, number> = {};
-      
-      if (counts && Array.isArray(counts)) {
-        counts.forEach((item: any) => {
-          if (item && typeof item === 'object' && 'unit_id' in item && 'count' in item) {
-            result[item.unit_id] = Number(item.count);
-          }
-        });
+      if (error) {
+        console.error('Erro ao buscar contagens de usuários:', error);
+        return {};
       }
       
-      return result;
+      if (!data) return {};
+      
+      const counts: Record<string, number> = {};
+      data.forEach((row: any) => {
+        counts[row.unit_id] = parseInt(row.user_count) || 0;
+      });
+      
+      return counts;
     } catch (error) {
-      console.error('Erro ao buscar contagem de usuários por unidade:', error);
+      console.error('Exceção ao buscar contagens de usuários:', error);
       return {};
     }
   }
 
   /**
-   * Verifica se uma unidade pode ser excluída
+   * Mapeia dados da unidade do formato DB para o formato da aplicação
    */
-  async canDeleteUnit(id: string): Promise<{ canDelete: boolean; vehicleCount?: number; usersCount?: number }> {
-    const vehicleCount = await this.getVehicleCount(id);
-    const usersCount = await this.getUsersCount(id);
-    
-    const canDelete = vehicleCount === 0 && usersCount === 0;
-    
-    return { canDelete, vehicleCount, usersCount };
+  private mapUnitFromDb(data: any): Unit {
+    return {
+      id: data.id,
+      name: data.name,
+      code: data.code,
+      address: data.address,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+      createdBy: data.created_by
+    };
   }
 }
 
-/**
- * Instância singleton do repositório
- */
 export const unitRepository = new UnitRepository();

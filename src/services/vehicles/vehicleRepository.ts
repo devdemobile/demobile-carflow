@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Vehicle, VehicleDTO, VehicleLocation } from '@/types';
 import { handleSupabaseRequest } from '@/services/api/supabase';
@@ -90,7 +91,7 @@ export class VehicleRepository implements IVehicleRepository {
           units(id, name)
         `)
         .eq('id', id)
-        .single(),
+        .maybeSingle(),
       'Erro ao buscar veículo'
     );
     
@@ -111,7 +112,7 @@ export class VehicleRepository implements IVehicleRepository {
           units(id, name)
         `)
         .eq('plate', plate)
-        .single(),
+        .maybeSingle(),
       'Erro ao buscar veículo pela placa'
     );
     
@@ -147,7 +148,6 @@ export class VehicleRepository implements IVehicleRepository {
    * Cria um novo veículo e registra uma movimentação inicial
    */
   async create(vehicleData: VehicleDTO): Promise<Vehicle | null> {
-    // Iniciar uma transação implícita usando um bloco try/catch
     try {
       // 1. Criar o veículo
       const vehicleResult = await handleSupabaseRequest(
@@ -161,7 +161,7 @@ export class VehicleRepository implements IVehicleRepository {
             color: vehicleData.color,
             mileage: vehicleData.mileage,
             photo_url: vehicleData.photoUrl,
-            location: vehicleData.location || 'yard', // Por padrão, o veículo está no pátio
+            location: vehicleData.location || 'yard',
             unit_id: vehicleData.unitId
           })
           .select('id')
@@ -175,14 +175,22 @@ export class VehicleRepository implements IVehicleRepository {
       
       const vehicleId = vehicleResult.id;
       
-      // 2. Obter o usuário atual (simulado para este exemplo)
-      // Em um caso real, seria obtido da sessão do usuário autenticado
-      const userId = 'sistema'; // Placeholder para o ID do usuário atual
+      // 2. Obter o usuário admin para usar como created_by
+      const { data: adminUser, error: adminError } = await supabase
+        .from('system_users')
+        .select('id')
+        .eq('username', 'admin')
+        .maybeSingle();
+      
+      let userId = null;
+      if (adminUser && !adminError) {
+        userId = adminUser.id;
+      }
       
       // 3. Criar uma movimentação inicial para o veículo
       const now = new Date();
-      const formattedDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
-      const formattedTime = now.toTimeString().split(' ')[0]; // HH:MM:SS
+      const formattedDate = now.toISOString().split('T')[0];
+      const formattedTime = now.toTimeString().split(' ')[0];
       
       await handleSupabaseRequest(
         async () => await supabase
@@ -267,22 +275,18 @@ export class VehicleRepository implements IVehicleRepository {
    */
   async delete(id: string): Promise<boolean> {
     // Verificar se existem movimentações associadas ao veículo
-    const movementsCount = await handleSupabaseRequest(
-      async () => await supabase
-        .from('movements')
-        .select('id', { count: 'exact', head: true })
-        .eq('vehicle_id', id),
-      'Erro ao verificar movimentações do veículo'
-    );
+    const { count, error: countError } = await supabase
+      .from('movements')
+      .select('*', { count: 'exact', head: true })
+      .eq('vehicle_id', id);
     
-    // Corrigir o tipo e verificação do count
-    let count = 0;
-    if (movementsCount && typeof movementsCount === 'object' && 'count' in movementsCount) {
-      count = typeof movementsCount.count === 'number' ? movementsCount.count : 0;
+    if (countError) {
+      console.error('Erro ao verificar movimentações do veículo:', countError);
+      throw new Error('Erro ao verificar movimentações do veículo');
     }
     
-    // Se houver movimentações, não permitir a exclusão
-    if (count > 1) {
+    // Se houver movimentações além da inicial, não permitir a exclusão
+    if (count && count > 1) {
       throw new Error(`Não é possível excluir o veículo pois existem ${count} movimentações associadas.`);
     }
     
