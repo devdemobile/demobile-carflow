@@ -25,7 +25,7 @@ export class AuthRepository implements IAuthRepository {
     const { username, password } = credentials;
     
     try {
-      console.log('Verificando credenciais:', { username });
+      console.log('Verificando credenciais para usuário:', username);
       
       const userId = await callRPC<
         { username_input: string, password_attempt: string },
@@ -35,12 +35,14 @@ export class AuthRepository implements IAuthRepository {
         'Falha na autenticação'
       );
       
+      console.log('Resposta da função verify_password:', userId);
+      
       if (!userId) {
-        console.error('Autenticação falhou: usuário não encontrado ou senha inválida');
+        console.log('Autenticação falhou: função retornou null/undefined');
         return null;
       }
       
-      console.log('Autenticação bem-sucedida para o usuário:', userId);
+      console.log('Autenticação bem-sucedida para o usuário ID:', userId);
       return userId;
     } catch (error: any) {
       console.error('Erro ao verificar credenciais:', error);
@@ -54,9 +56,15 @@ export class AuthRepository implements IAuthRepository {
    */
   async getUserData(userId: string): Promise<SystemUser | null> {
     try {
+      console.log('Buscando dados do usuário ID:', userId);
+      
       const { data: userData, error } = await supabase
         .from('system_users')
-        .select('*, units(name)')
+        .select(`
+          *,
+          units(name),
+          system_user_permissions(*)
+        `)
         .eq('id', userId)
         .single();
       
@@ -67,12 +75,15 @@ export class AuthRepository implements IAuthRepository {
       }
       
       if (!userData) {
+        console.log('Usuário não encontrado para ID:', userId);
         toast.error('Usuário não encontrado');
         return null;
       }
       
+      console.log('Dados do usuário encontrados:', userData);
+      
       // Mapear para objeto SystemUser
-      return {
+      const systemUser: SystemUser = {
         id: userData.id,
         name: userData.name,
         username: userData.username,
@@ -82,7 +93,19 @@ export class AuthRepository implements IAuthRepository {
         status: userData.status,
         unitId: userData.unit_id,
         unitName: userData.units?.name,
+        permissions: userData.system_user_permissions ? {
+          canViewVehicles: userData.system_user_permissions.can_view_vehicles,
+          canEditVehicles: userData.system_user_permissions.can_edit_vehicles,
+          canViewMovements: userData.system_user_permissions.can_view_movements,
+          canEditMovements: userData.system_user_permissions.can_edit_movements,
+          canViewUsers: userData.system_user_permissions.can_view_users,
+          canEditUsers: userData.system_user_permissions.can_edit_users,
+          canViewUnits: userData.system_user_permissions.can_view_units,
+          canEditUnits: userData.system_user_permissions.can_edit_units,
+        } : undefined
       };
+      
+      return systemUser;
     } catch (error: any) {
       console.error('Exceção ao buscar dados do usuário:', error);
       toast.error('Erro ao buscar dados do usuário');

@@ -1,6 +1,7 @@
 
 import { authService } from '@/services/auth/authService';
 import { toast } from 'sonner';
+import { callRPC } from '@/services/api/supabase';
 
 /**
  * Função para testar a autenticação com credenciais de teste
@@ -37,25 +38,22 @@ export const testAuthentication = async (): Promise<boolean> => {
  */
 export const testVerifyPasswordFunction = async (): Promise<void> => {
   try {
-    const { supabase } = await import('@/integrations/supabase/client');
+    console.log('Testando função verify_password diretamente via callRPC');
     
-    console.log('Testando função verify_password diretamente');
-    const { data, error } = await supabase.rpc('verify_password', {
+    const userId = await callRPC<
+      { username_input: string, password_attempt: string },
+      string
+    >('verify_password', {
       username_input: 'admin',
       password_attempt: 'admin123'
-    });
+    }, 'Erro ao testar verify_password');
     
-    if (error) {
-      console.error('Erro ao testar verify_password:', error);
-      toast.error(`Erro ao testar verify_password: ${error.message}`);
-      return;
-    }
+    console.log('Resposta da função verify_password:', userId);
     
-    console.log('Resposta da função verify_password:', data);
-    if (data) {
-      toast.success('Função verify_password testada com sucesso!');
+    if (userId) {
+      toast.success(`Função verify_password testada com sucesso! User ID: ${userId}`);
     } else {
-      toast.warning('A função verify_password retornou nulo');
+      toast.warning('A função verify_password retornou nulo - verificar credenciais');
     }
   } catch (error: any) {
     console.error('Exceção ao testar verify_password:', error);

@@ -36,7 +36,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const savedUser = localStorage.getItem('user');
       if (savedUser) {
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        console.log('Usuário restaurado do localStorage:', parsedUser);
+        setUser(parsedUser);
       }
     } catch (error) {
       console.error('Erro ao restaurar sessão:', error);
@@ -53,21 +55,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     setError(null);
     try {
-      console.log('Iniciando processo de login para:', credentials.username);
+      console.log('AuthContext: Iniciando processo de login para:', credentials.username);
       const userData = await authService.login(credentials);
       
       if (userData) {
-        console.log('Login bem-sucedido, dados do usuário:', userData);
+        console.log('AuthContext: Login bem-sucedido, dados do usuário:', userData);
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
+        toast.success(`Bem-vindo, ${userData.name}!`);
         return true;
       }
       
-      console.error('Login falhou: credenciais inválidas ou usuário inativo');
+      console.error('AuthContext: Login falhou - credenciais inválidas ou usuário inativo');
       setError('Credenciais inválidas');
       return false;
     } catch (err: any) {
-      console.error('Erro no processo de login:', err);
+      console.error('AuthContext: Erro no processo de login:', err);
       setError(err.message || 'Erro ao fazer login');
       return false;
     } finally {
@@ -79,8 +82,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
    * Logout function that clears the user session
    */
   const logout = () => {
+    console.log('AuthContext: Fazendo logout');
     setUser(null);
+    setError(null);
     localStorage.removeItem('user');
+    toast.success('Logout realizado com sucesso');
   };
 
   /**
