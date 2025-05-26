@@ -33,7 +33,7 @@ export async function handleSupabaseRequest<T>(
 /**
  * Tipos de funções RPC disponíveis
  */
-export type RPCFunctionName = 'verify_password' | 'verify_password2' | 'count_vehicles_by_unit' | 'count_users_by_unit';
+export type RPCFunctionName = 'verify_password' | 'count_vehicles_by_unit' | 'count_users_by_unit';
 
 /**
  * Cria uma função RPC no Supabase com parâmetros tipados

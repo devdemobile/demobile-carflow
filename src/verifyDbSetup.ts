@@ -6,8 +6,7 @@
  * 1. Tabela system_users com os campos necessários
  * 2. Tabela system_user_permissions com os campos necessários
  * 3. Função verify_password para autenticação
- * 4. Função verify_password2 para geração de hash de senha
- * 5. Trigger update_vehicle_on_movement para atualizar veículos após movimentação
+ * 4. Trigger update_vehicle_on_movement para atualizar veículos após movimentação
  */
 
 import { supabase } from '@/integrations/supabase/client';
@@ -41,9 +40,8 @@ export const verifyDatabaseSetup = async (): Promise<{ valid: boolean; issues: s
     issues.push('Erro ao verificar tabelas: ' + error.message);
   }
   
-  // Verificar funções
+  // Verificar função verify_password
   try {
-    // Testar verify_password
     const { data: passwordResult, error: passwordError } = await supabase.rpc('verify_password', {
       username_input: 'test_user_nonexistent',
       password_attempt: 'test_password'
@@ -52,18 +50,8 @@ export const verifyDatabaseSetup = async (): Promise<{ valid: boolean; issues: s
     if (passwordError && !passwordError.message.includes('não encontrado')) {
       issues.push('Função verify_password não está funcionando corretamente: ' + passwordError.message);
     }
-    
-    // Testar verify_password2
-    const { data: hashResult, error: hashError } = await supabase.rpc('verify_password2', {
-      username: 'test_user',
-      password_attempt: 'test_password'
-    });
-    
-    if (hashError) {
-      issues.push('Função verify_password2 não está funcionando corretamente: ' + hashError.message);
-    }
   } catch (error: any) {
-    issues.push('Erro ao verificar funções: ' + error.message);
+    issues.push('Erro ao verificar função verify_password: ' + error.message);
   }
   
   return {
