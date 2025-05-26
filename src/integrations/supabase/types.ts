@@ -458,10 +458,6 @@ export type Database = {
         Args: { username_input: string; password_attempt: string }
         Returns: string
       }
-      verify_password2: {
-        Args: { username: string; password_attempt: string }
-        Returns: string
-      }
     }
     Enums: {
       log_action_type: "edit" | "delete"

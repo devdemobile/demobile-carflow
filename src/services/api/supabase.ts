@@ -40,13 +40,13 @@ export type RPCFunctionName = 'verify_password' | 'verify_password2' | 'count_ve
  * @param functionName Nome da função RPC no Supabase
  */
 export async function callRPC<T, R>(
-  functionName: RPCFunctionName, 
+  functionName: string, 
   params: T, 
   errorMessage: string = `Erro ao chamar ${functionName}`
 ): Promise<R | null> {
   try {
     console.log(`Chamando função RPC: ${functionName} com parâmetros:`, params);
-    const { data, error } = await supabase.rpc(functionName, params as any);
+    const { data, error } = await supabase.rpc(functionName as any, params as any);
     
     if (error) {
       console.error(`Erro ao chamar ${functionName}: ${error.message}`, error);
