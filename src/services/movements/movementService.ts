@@ -16,8 +16,8 @@ export interface IMovementService {
   getMovementsByVehicle(vehicleId: string): Promise<Movement[]>;
   getMovementsByStatus(status: VehicleLocation): Promise<Movement[]>;
   searchMovements(searchTerm: string): Promise<Movement[]>;
-  createMovement(movementData: Movement | MovementDTO): Promise<Movement | null>;
-  finalizeMovement(id: string, data: { 
+  createExitMovement(movementData: MovementDTO): Promise<Movement | null>;
+  registerEntryMovement(vehicleId: string, data: { 
     finalMileage: number, 
     arrivalDate: string, 
     arrivalTime: string, 
@@ -25,6 +25,7 @@ export interface IMovementService {
   }): Promise<Movement | null>;
   updateMovement(id: string, data: Partial<Movement>): Promise<Movement | null>;
   deleteMovement(id: string): Promise<boolean>;
+  getActiveMovementByVehicle(vehicleId: string): Promise<Movement | null>;
 }
 
 /**
@@ -73,18 +74,18 @@ export class MovementService implements IMovementService {
   }
 
   /**
-   * Cria uma nova movimentação
+   * Obtém a movimentação ativa (status 'out') de um veículo
    */
-  async createMovement(movementData: Movement | MovementDTO): Promise<Movement | null> {
-    // For simplicity when calling from components, allow passing Movement objects directly
-    if ('id' in movementData) {
-      // Pass the createdBy field from the Movement object or empty string if not present
-      const userId = movementData.createdBy || '';
-      return this.repository.create(movementData as Movement, userId);
-    }
+  async getActiveMovementByVehicle(vehicleId: string): Promise<Movement | null> {
+    const movements = await this.repository.findByVehicle(vehicleId);
+    return movements.find(m => m.status === 'out') || null;
+  }
 
-    // Original implementation with validation
-    const vehicleId = (movementData as MovementDTO).vehicleId;
+  /**
+   * Cria uma nova movimentação de SAÍDA
+   */
+  async createExitMovement(movementData: MovementDTO): Promise<Movement | null> {
+    const vehicleId = movementData.vehicleId;
     
     // Verificar se o veículo existe
     const vehicle = await vehicleService.getVehicleById(vehicleId);
@@ -92,54 +93,59 @@ export class MovementService implements IMovementService {
       throw new Error('Veículo não encontrado');
     }
 
-    // Verificar se o tipo da movimentação é compatível com a localização atual do veículo
-    if ((movementData as MovementDTO).type === 'exit' && vehicle.location === 'out') {
-      throw new Error('Veículo já está em movimento');
-    }
-
-    if ((movementData as MovementDTO).type === 'entry' && vehicle.location === 'yard') {
-      throw new Error('Veículo já está no pátio');
+    // Verificar se o veículo já está em movimento
+    const activeMovement = await this.getActiveMovementByVehicle(vehicleId);
+    if (activeMovement) {
+      throw new Error('Veículo já possui uma movimentação ativa. Registre primeiro a entrada.');
     }
 
     // Verificar se a quilometragem inicial é válida
-    if ((movementData as MovementDTO).type === 'exit' && (movementData as MovementDTO).initialMileage < vehicle.mileage) {
-      throw new Error(`Quilometragem inicial (${(movementData as MovementDTO).initialMileage}) não pode ser menor que a quilometragem atual do veículo (${vehicle.mileage})`);
+    if (movementData.initialMileage < vehicle.mileage) {
+      throw new Error(`Quilometragem inicial (${movementData.initialMileage}) não pode ser menor que a quilometragem atual do veículo (${vehicle.mileage})`);
     }
 
-    const userId = ''; // Default empty string if no user ID is provided
-    return this.repository.create(movementData as MovementDTO, userId);
+    // Criar movimentação de saída
+    const exitMovementData: MovementDTO = {
+      ...movementData,
+      type: 'exit'
+    };
+
+    const userId = ''; // Default empty string
+    const movement = await this.repository.create(exitMovementData, userId);
+
+    if (movement) {
+      // Atualizar localização do veículo para 'out'
+      await vehicleService.updateVehicleLocation(vehicleId, 'out', movementData.initialMileage);
+    }
+
+    return movement;
   }
 
   /**
-   * Finaliza uma movimentação (retorno de veículo)
+   * Registra a ENTRADA do veículo (atualiza a movimentação existente)
    */
-  async finalizeMovement(id: string, data: { 
+  async registerEntryMovement(vehicleId: string, data: { 
     finalMileage: number, 
     arrivalDate: string, 
     arrivalTime: string, 
     arrivalUnitId: string 
   }): Promise<Movement | null> {
-    // Buscar movimentação atual
-    const movement = await this.repository.findById(id);
-    if (!movement) {
-      throw new Error('Movimentação não encontrada');
-    }
-
-    // Verificar se movimentação já está finalizada
-    if (movement.status === 'yard') {
-      throw new Error('Esta movimentação já está finalizada');
+    // Buscar movimentação ativa do veículo
+    const activeMovement = await this.getActiveMovementByVehicle(vehicleId);
+    if (!activeMovement) {
+      throw new Error('Não há movimentação ativa para este veículo');
     }
 
     // Verificar se a quilometragem final é válida
-    if (data.finalMileage <= movement.initialMileage) {
-      throw new Error(`Quilometragem final (${data.finalMileage}) deve ser maior que a quilometragem inicial (${movement.initialMileage})`);
+    if (data.finalMileage <= activeMovement.initialMileage) {
+      throw new Error(`Quilometragem final (${data.finalMileage}) deve ser maior que a quilometragem inicial (${activeMovement.initialMileage})`);
     }
 
     // Calcular quilometragem percorrida
-    const mileageRun = data.finalMileage - movement.initialMileage;
+    const mileageRun = data.finalMileage - activeMovement.initialMileage;
 
     // Calcular duração da movimentação
-    const departureDateTime = new Date(`${movement.departureDate}T${movement.departureTime}`);
+    const departureDateTime = new Date(`${activeMovement.departureDate}T${activeMovement.departureTime}`);
     const arrivalDateTime = new Date(`${data.arrivalDate}T${data.arrivalTime}`);
     const durationMs = arrivalDateTime.getTime() - departureDateTime.getTime();
     
@@ -148,17 +154,23 @@ export class MovementService implements IMovementService {
     const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
     const duration = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 
-    // Atualizar movimentação
-    return this.repository.updateWithReturn(id, {
+    // Atualizar a movimentação existente com os dados de entrada
+    const updatedMovement = await this.repository.updateWithReturn(activeMovement.id, {
       finalMileage: data.finalMileage,
       mileageRun,
       arrivalDate: data.arrivalDate,
       arrivalTime: data.arrivalTime,
       arrivalUnitId: data.arrivalUnitId,
       duration,
-      status: 'yard',
-      type: 'entry'
+      status: 'yard' // Mudar status para 'yard'
     });
+
+    if (updatedMovement) {
+      // Atualizar localização do veículo para 'yard'
+      await vehicleService.updateVehicleLocation(vehicleId, 'yard', data.finalMileage);
+    }
+
+    return updatedMovement;
   }
 
   /**

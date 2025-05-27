@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Car, Search } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '@/hooks/useVehicles';
-import { Vehicle, Movement } from '@/types';
+import { Vehicle, MovementDTO } from '@/types';
 import { formatMileage } from '@/lib/utils';
 import { 
   Dialog,
@@ -23,8 +23,7 @@ interface VehicleMovementFormProps {
   isOpen?: boolean;
   onClose?: () => void;
   vehicle?: Vehicle;
-  onSubmit?: (formData: Movement) => void;
-  lastMovement?: Movement;
+  onSubmit?: (success: boolean) => void;
 }
 
 interface MovementFormData {
@@ -39,8 +38,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   isOpen,
   onClose,
   vehicle,
-  onSubmit,
-  lastMovement
+  onSubmit
 }) => {
   const navigate = useNavigate();
   const { findVehicleByPlate } = useVehicles();
@@ -49,6 +47,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   const [error, setError] = useState('');
   const [loadingLastMovement, setLoadingLastMovement] = useState(false);
   const [lastDriverName, setLastDriverName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<MovementFormData>();
   const [mileageInput, setMileageInput] = useState('');
@@ -76,24 +75,16 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     if (vehicle && !isExit) {
       setLoadingLastMovement(true);
       
-      // Buscar a última movimentação de saída para este veículo
-      movementService.getMovementsByVehicle(vehicle.id)
-        .then(movements => {
-          const lastExitMovement = movements
-            .filter(m => m.type === 'exit' && m.status === 'out')
-            .sort((a, b) => {
-              const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-              const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
-              return dateB.getTime() - dateA.getTime();
-            })[0];
-          
-          if (lastExitMovement && lastExitMovement.driver) {
-            setLastDriverName(lastExitMovement.driver);
-            setValue('driver', lastExitMovement.driver);
+      // Buscar a movimentação ativa para este veículo
+      movementService.getActiveMovementByVehicle(vehicle.id)
+        .then(activeMovement => {
+          if (activeMovement && activeMovement.driver) {
+            setLastDriverName(activeMovement.driver);
+            setValue('driver', activeMovement.driver);
           }
         })
         .catch(err => {
-          console.error('Erro ao buscar último movimento:', err);
+          console.error('Erro ao buscar movimento ativo:', err);
         })
         .finally(() => {
           setLoadingLastMovement(false);
@@ -104,9 +95,6 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
   // Set initial values when vehicle changes
   useEffect(() => {
     if (vehicle) {
-      const today = new Date().toISOString().split('T')[0];
-      const currentTime = new Date().toTimeString().split(' ')[0].substring(0, 5);
-      
       if (isExit) {
         // Para saída, limpar o motorista e destino
         setValue('driver', '');
@@ -184,55 +172,74 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
     }
   };
 
-  const handleDialogFormSubmit = (data: MovementFormData) => {
+  const handleDialogFormSubmit = async (data: MovementFormData) => {
     if (!vehicle || !onSubmit) return;
     
-    // Validações específicas para entrada e saída
-    if (isExit) {
-      // Para saída: KM inicial deve ser >= KM atual do veículo
-      if (data.initialMileage < (vehicle.mileage || 0)) {
-        toast.error(`Quilometragem inicial não pode ser menor que a atual (${formatMileage(vehicle.mileage || 0)} km)`);
-        return;
+    setIsSubmitting(true);
+    
+    try {
+      if (isExit) {
+        // Validações para saída
+        if (data.initialMileage < (vehicle.mileage || 0)) {
+          toast.error(`Quilometragem inicial não pode ser menor que a atual (${formatMileage(vehicle.mileage || 0)} km)`);
+          return;
+        }
+        
+        if (!data.destination) {
+          toast.error('Destino é obrigatório para registrar saída');
+          return;
+        }
+        
+        // Pega a data e hora atuais
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date().toTimeString().split(' ')[0].substring(0, 5);
+        
+        // Criar movimentação de saída
+        const movementData: MovementDTO = {
+          vehicleId: vehicle.id,
+          driver: data.driver,
+          destination: data.destination,
+          initialMileage: data.initialMileage,
+          departureUnitId: vehicle.unitId || '',
+          departureDate: today,
+          departureTime: now,
+          type: 'exit'
+        };
+        
+        await movementService.createExitMovement(movementData);
+        toast.success('Saída registrada com sucesso!');
+        
+      } else {
+        // Validações para entrada
+        const lastMileage = vehicle.mileage || 0;
+        if ((data.finalMileage || 0) < lastMileage) {
+          toast.error(`Quilometragem final não pode ser menor que a inicial (${formatMileage(lastMileage)} km)`);
+          return;
+        }
+        
+        // Pega a data e hora atuais
+        const today = new Date().toISOString().split('T')[0];
+        const now = new Date().toTimeString().split(' ')[0].substring(0, 5);
+        
+        // Registrar entrada (atualizar movimentação existente)
+        await movementService.registerEntryMovement(vehicle.id, {
+          finalMileage: data.finalMileage || 0,
+          arrivalDate: today,
+          arrivalTime: now,
+          arrivalUnitId: vehicle.unitId || ''
+        });
+        toast.success('Entrada registrada com sucesso!');
       }
       
-      // Destino é obrigatório para saída
-      if (!data.destination) {
-        toast.error('Destino é obrigatório para registrar saída');
-        return;
-      }
-    } else {
-      // Para entrada: KM final deve ser >= KM inicial da última saída
-      const lastMileage = vehicle.mileage || 0;
-      if ((data.finalMileage || 0) < lastMileage) {
-        toast.error(`Quilometragem final não pode ser menor que a inicial (${formatMileage(lastMileage)} km)`);
-        return;
-      }
+      onSubmit(true);
+      
+    } catch (error) {
+      console.error('Erro ao registrar movimentação:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao registrar movimentação');
+      onSubmit(false);
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    // Pega a data e hora atuais
-    const today = new Date().toISOString().split('T')[0];
-    const now = new Date().toTimeString().split(' ')[0].substring(0, 5);
-    
-    // Create movement object from form data
-    const movement: Movement = {
-      id: Math.random().toString(),
-      vehicleId: vehicle.id,
-      vehiclePlate: vehicle.plate,
-      vehicleName: `${vehicle.make} ${vehicle.model}`,
-      driver: data.driver,
-      destination: isExit ? data.destination : undefined,
-      initialMileage: isExit ? data.initialMileage : vehicle.mileage || 0,
-      finalMileage: !isExit ? data.finalMileage : undefined,
-      departureDate: today,
-      departureTime: now,
-      notes: data.notes,
-      departureUnitId: vehicle.unitId || '',
-      status: isExit ? 'out' : 'yard',
-      type: isExit ? 'exit' : 'entry'
-    };
-    
-    onSubmit(movement);
-    toast.success(`Movimentação de ${isExit ? 'saída' : 'entrada'} registrada com sucesso!`);
   };
 
   // If this is being used as a dialog, render the dialog version
@@ -347,12 +354,15 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
             </div>
             
             <DialogFooter className="pt-2">
-              <Button variant="outline" onClick={onClose} type="button">Cancelar</Button>
+              <Button variant="outline" onClick={onClose} type="button" disabled={isSubmitting}>
+                Cancelar
+              </Button>
               <Button 
                 type="submit" 
+                disabled={isSubmitting}
                 className={isExit ? 'bg-amber-600 hover:bg-amber-700' : 'bg-emerald-600 hover:bg-emerald-700'}
               >
-                {buttonText}
+                {isSubmitting ? 'Processando...' : buttonText}
               </Button>
             </DialogFooter>
           </form>

@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { useMediaQuery } from '@/hooks/use-mobile';
+import { movementService } from '@/services/movements/movementService';
 
 const Movements = () => {
   const { movements, isLoading, refetch } = useMovements();
@@ -44,19 +45,26 @@ const Movements = () => {
     setIsEditDialogOpen(true);
   };
 
-  // Stub methods for the MovementEditDialog
   const handleUpdate = async (updatedMovement: Movement) => {
-    // Implement the actual update logic here
-    console.log("Updating movement:", updatedMovement);
-    await Promise.resolve(); // Placeholder for actual API call
-    await refetch();
+    try {
+      await movementService.updateMovement(updatedMovement.id, updatedMovement);
+      toast.success('Movimentação atualizada com sucesso');
+      await refetch();
+    } catch (error) {
+      console.error('Erro ao atualizar movimentação:', error);
+      toast.error('Erro ao atualizar movimentação');
+    }
   };
   
   const handleDelete = async (movement: Movement, password: string) => {
-    // Implement the actual delete logic here
-    console.log("Deleting movement:", movement.id, "with password:", password);
-    await Promise.resolve(); // Placeholder for actual API call
-    await refetch();
+    try {
+      await movementService.deleteMovement(movement.id);
+      toast.success('Movimentação excluída com sucesso');
+      await refetch();
+    } catch (error) {
+      console.error('Erro ao excluir movimentação:', error);
+      toast.error('Erro ao excluir movimentação');
+    }
   };
   
   return (
