@@ -23,7 +23,7 @@ interface VehicleMovementFormProps {
   isOpen?: boolean;
   onClose?: () => void;
   vehicle?: Vehicle;
-  onSubmit?: (success: boolean) => void;
+  onSubmit?: (success: boolean) => void; // Corrigido para aceitar boolean
 }
 
 interface MovementFormData {
@@ -182,11 +182,13 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
         // Validações para saída
         if (data.initialMileage < (vehicle.mileage || 0)) {
           toast.error(`Quilometragem inicial não pode ser menor que a atual (${formatMileage(vehicle.mileage || 0)} km)`);
+          onSubmit(false);
           return;
         }
         
         if (!data.destination) {
           toast.error('Destino é obrigatório para registrar saída');
+          onSubmit(false);
           return;
         }
         
@@ -214,6 +216,7 @@ const VehicleMovementForm: React.FC<VehicleMovementFormProps> = ({
         const lastMileage = vehicle.mileage || 0;
         if ((data.finalMileage || 0) < lastMileage) {
           toast.error(`Quilometragem final não pode ser menor que a inicial (${formatMileage(lastMileage)} km)`);
+          onSubmit(false);
           return;
         }
         

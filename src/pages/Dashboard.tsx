@@ -225,38 +225,16 @@ const Dashboard = () => {
     }
   };
   
-  const handleMovementSubmit = async (formData: Movement) => {
-    try {
-      // Save movement to the service
-      await movementService.createMovement(formData);
-
-      // Update the vehicle's status to match the movement type
-      if (selectedVehicle) {
-        await vehicleService.updateVehicle(selectedVehicle.id, {
-          location: formData.type === 'exit' ? 'out' : 'yard',
-          mileage: formData.initialMileage // Update vehicle mileage
-        });
-      }
-      
+  // Função corrigida para aceitar success boolean
+  const handleMovementFormSuccess = async (success: boolean) => {
+    if (success) {
       // Update recent movements after registration
       refetchMovements();
-      
-      toast({
-        title: formData.type === 'exit' ? "Saída registrada" : "Entrada registrada",
-        description: `A ${formData.type === 'exit' ? 'saída' : 'entrada'} do veículo foi registrada com sucesso.`,
-      });
       
       // Clear form after submission
       setPlateSearch('');
       setSelectedVehicle(null);
       setIsFormOpen(false);
-    } catch (error) {
-      console.error("Erro ao registrar movimentação:", error);
-      toast({
-        title: "Erro ao registrar movimentação",
-        description: error instanceof Error ? error.message : "Ocorreu um erro ao registrar a movimentação.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -480,7 +458,7 @@ const Dashboard = () => {
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           vehicle={selectedVehicle}
-          onSubmit={handleMovementSubmit}
+          onSubmit={handleMovementFormSuccess}
         />
       )}
 

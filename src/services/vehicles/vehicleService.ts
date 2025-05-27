@@ -1,4 +1,3 @@
-
 /**
  * Serviço de negócios para Veículos
  */
@@ -17,6 +16,7 @@ export interface IVehicleService {
   getVehiclesByLocation(location: VehicleLocation): Promise<Vehicle[]>;
   createVehicle(vehicleData: VehicleDTO): Promise<Vehicle | null>;
   updateVehicle(id: string, vehicleData: Partial<VehicleDTO>): Promise<boolean>;
+  updateVehicleLocation(vehicleId: string, location: VehicleLocation, mileage?: number): Promise<boolean>;
   deleteVehicle(id: string): Promise<boolean>;
 }
 
@@ -98,6 +98,19 @@ export class VehicleService implements IVehicleService {
     }
 
     return this.repository.update(id, vehicleData);
+  }
+
+  /**
+   * Atualiza a localização e quilometragem de um veículo
+   */
+  async updateVehicleLocation(vehicleId: string, location: VehicleLocation, mileage?: number): Promise<boolean> {
+    const updateData: Partial<VehicleDTO> = { location };
+    
+    if (mileage !== undefined) {
+      updateData.mileage = mileage;
+    }
+    
+    return this.repository.update(vehicleId, updateData);
   }
 
   /**
