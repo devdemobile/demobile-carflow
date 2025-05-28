@@ -1,31 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
-import StatCard from '@/components/dashboard/StatCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import VehicleCard from '@/components/vehicles/VehicleCard';
-import MovementCard from '@/components/movements/MovementCard';
 import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
 import UnitFilter from '@/components/filters/UnitFilter';
+import FrequentVehiclesSection from '@/components/dashboard/sections/FrequentVehiclesSection';
+import RecentMovementsSection from '@/components/dashboard/sections/RecentMovementsSection';
 import { Vehicle, Movement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { movementService } from '@/services/movements/movementService';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useUnitFilter } from '@/hooks/useUnitFilter';
-import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -39,18 +30,13 @@ const Dashboard = () => {
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [isMovementDialogOpen, setIsMovementDialogOpen] = useState(false);
 
-  // Estados para controlar a exibição de "Mostrar Mais"
-  const [showAllVehicles, setShowAllVehicles] = useState(false);
-  const [showAllMovements, setShowAllMovements] = useState(false);
-  
   // Fetch vehicle stats - filtrados por unidade selecionada
-  const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 }, isLoading: isLoadingStats } = useQuery({
+  const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 } } = useQuery({
     queryKey: ['vehicle-stats', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
         const allVehicles = await vehicleService.getAllVehicles();
         
-        // Aplicar filtro de unidade
         let filteredVehicles = allVehicles;
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredVehicles = allVehicles.filter(v => v.unitId === filter.selectedUnitId);
@@ -60,18 +46,10 @@ const Dashboard = () => {
         const vehiclesInYard = filteredVehicles.filter(v => v.location === 'yard').length;
         const vehiclesOut = filteredVehicles.filter(v => v.location === 'out').length;
         
-        return {
-          totalVehicles,
-          vehiclesInYard,
-          vehiclesOut
-        };
+        return { totalVehicles, vehiclesInYard, vehiclesOut };
       } catch (error) {
         console.error('Erro ao buscar estatísticas de veículos:', error);
-        return {
-          totalVehicles: 0,
-          vehiclesInYard: 0,
-          vehiclesOut: 0
-        };
+        return { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 };
       }
     },
     enabled: !!user
@@ -83,12 +61,9 @@ const Dashboard = () => {
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
-        
-        // Filter by today's date
         const today = new Date().toISOString().split('T')[0];
         let filteredMovements = allMovements.filter(m => m.departureDate === today);
         
-        // Aplicar filtro de unidade
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredMovements = filteredMovements.filter(m => 
             m.departureUnitId === filter.selectedUnitId || 
@@ -111,10 +86,8 @@ const Dashboard = () => {
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
-        
         let filteredMovements = allMovements;
         
-        // Aplicar filtro de unidade
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredMovements = allMovements.filter(m => 
             m.departureUnitId === filter.selectedUnitId || 
@@ -122,13 +95,11 @@ const Dashboard = () => {
           );
         }
         
-        // Sort by most recent departure date
-        return filteredMovements
-          .sort((a, b) => {
-            const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-            const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
-            return dateB.getTime() - dateA.getTime();
-          });
+        return filteredMovements.sort((a, b) => {
+          const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
+          const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
+          return dateB.getTime() - dateA.getTime();
+        });
       } catch (error) {
         console.error('Erro ao buscar movimentações recentes:', error);
         return [];
@@ -145,26 +116,20 @@ const Dashboard = () => {
         const vehicles = await vehicleService.getAllVehicles();
         const allMovements = await movementService.getAllMovements();
         
-        // Aplicar filtro de unidade para veículos
         let filteredVehicles = vehicles;
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredVehicles = vehicles.filter(v => v.unitId === filter.selectedUnitId);
         }
         
-        // Count movements per vehicle
         const vehicleMovementCount = new Map<string, number>();
         
         allMovements.forEach(movement => {
           const vehicleId = movement.vehicleId;
           if (vehicleId) {
-            vehicleMovementCount.set(
-              vehicleId,
-              (vehicleMovementCount.get(vehicleId) || 0) + 1
-            );
+            vehicleMovementCount.set(vehicleId, (vehicleMovementCount.get(vehicleId) || 0) + 1);
           }
         });
         
-        // Add movement count to vehicles and sort
         return filteredVehicles
           .map(vehicle => ({
             ...vehicle,
@@ -193,11 +158,9 @@ const Dashboard = () => {
     }
     
     try {
-      // Search for vehicle by plate using the service
       const vehicle = await vehicleService.getVehicleByPlate(plateSearch);
       
       if (vehicle) {
-        // Verificar se o usuário pode editar o veículo
         if (!canEditInUnit(vehicle.unitId)) {
           toast({
             title: "Acesso restrito",
@@ -227,7 +190,6 @@ const Dashboard = () => {
   };
   
   const handleVehicleClick = (vehicle: Vehicle) => {
-    // Verificar se o usuário pode editar o veículo
     if (!canEditInUnit(vehicle.unitId)) {
       toast({
         title: "Acesso restrito",
@@ -325,20 +287,6 @@ const Dashboard = () => {
     }
   ] : [];
 
-  // Preparar exibição de veículos frequentes
-  const displayFrequentVehicles = showAllVehicles 
-    ? frequentVehicles 
-    : frequentVehicles.slice(0, 4);
-
-  // Preparar exibição de movimentações recentes
-  const displayRecentMovements = showAllMovements 
-    ? recentMovements 
-    : recentMovements.slice(0, 4);
-
-  // Verificar se há mais itens além dos exibidos inicialmente
-  const hasMoreVehicles = frequentVehicles.length > 4;
-  const hasMoreMovements = recentMovements.length > 4;
-
   return (
     <Layout>
       <div className="container py-6 pb-20 md:pb-6 space-y-6 animate-fade-in">
@@ -362,7 +310,6 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Unit Filter */}
         {(user?.role === 'admin' || user?.permissions?.canViewUnits) && (
           <div className="bg-card border rounded-lg p-4">
             <UnitFilter
@@ -374,7 +321,6 @@ const Dashboard = () => {
           </div>
         )}
         
-        {/* Vehicle Search */}
         <div className="bg-card border rounded-lg p-4">
           <form onSubmit={handleSearchSubmit} className="space-y-3">
             <Label htmlFor="plate-search">Registrar Movimentação</Label>
@@ -400,162 +346,22 @@ const Dashboard = () => {
           </form>
         </div>
         
-        {/* Frequent Vehicles */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold">
-              Veículos Frequentes
-              {!filter.showAllUnits && filter.selectedUnitId && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  (Unidade Filtrada)
-                </span>
-              )}
-              {filter.showAllUnits && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  (Todas as Unidades)
-                </span>
-              )}
-            </h2>
-          </div>
-          
-          {!showAllVehicles && !isMobile && frequentVehicles.length > 4 ? (
-            <Carousel className="w-full mx-auto" opts={{ 
-              align: 'start', 
-              containScroll: 'trimSnaps',
-              dragFree: false,
-              slidesToScroll: 1
-            }}>
-              <CarouselContent>
-                {frequentVehicles.slice(0, 8).map((vehicle) => (
-                  <CarouselItem key={vehicle.id} className="md:basis-1/4 px-1">
-                    <VehicleCard 
-                      vehicle={vehicle} 
-                      onClick={() => handleVehicleClick(vehicle)}
-                      compact={true}
-                    />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="!-left-4" />
-              <CarouselNext className="!-right-4" />
-            </Carousel>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {displayFrequentVehicles.length > 0 ? (
-                displayFrequentVehicles.map((vehicle) => (
-                  <VehicleCard 
-                    key={vehicle.id} 
-                    vehicle={vehicle} 
-                    onClick={() => handleVehicleClick(vehicle)}
-                    compact={true}
-                  />
-                ))
-              ) : (
-                <p className="text-muted-foreground text-center py-6 col-span-4">
-                  Nenhum veículo cadastrado ainda
-                  {!filter.showAllUnits && filter.selectedUnitId && ` na unidade filtrada`}.
-                </p>
-              )}
-            </div>
-          )}
-          
-          {/* Botão "Mostrar Mais" para veículos */}
-          {hasMoreVehicles && (
-            <div className="flex justify-center mt-3">
-              <Button 
-                variant="outline"
-                onClick={() => setShowAllVehicles(!showAllVehicles)}
-                className="text-sm"
-              >
-                {showAllVehicles ? "- Mostrar Menos" : "+ Mostrar Mais"}
-              </Button>
-            </div>
-          )}
-        </div>
+        <FrequentVehiclesSection
+          vehicles={frequentVehicles}
+          globalFilter={filter}
+          onVehicleClick={handleVehicleClick}
+          isMobile={isMobile}
+        />
         
-        {/* Recent Movements */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-lg font-semibold">
-              Movimentações Recentes
-              {!filter.showAllUnits && filter.selectedUnitId && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  (Unidade Filtrada)
-                </span>
-              )}
-              {filter.showAllUnits && (
-                <span className="text-sm font-normal text-muted-foreground ml-2">
-                  (Todas as Unidades)
-                </span>
-              )}
-            </h2>
-          </div>
-          
-          {isLoadingMovements ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <div key={i} className="border rounded-lg shadow-sm p-4">
-                  <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
-                    <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-                    <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : recentMovements.length === 0 ? (
-            <div className="border rounded-lg shadow-sm p-4 col-span-full bg-muted text-center">
-              Nenhuma movimentação registrada nos últimos dias
-              {!filter.showAllUnits && filter.selectedUnitId && ` na unidade filtrada`}.
-            </div>
-          ) : !showAllMovements && !isMobile && recentMovements.length > 4 ? (
-            <Carousel className="w-full mx-auto" opts={{ 
-              align: 'start', 
-              containScroll: 'trimSnaps',
-              dragFree: false,
-              slidesToScroll: 1
-            }}>
-              <CarouselContent>
-                {recentMovements.slice(0, 8).map((movement) => (
-                  <CarouselItem key={movement.id} className="md:basis-1/2 lg:basis-1/3 px-1">
-                    <MovementCard 
-                      movement={movement} 
-                      onClick={handleMovementClick}
-                    />
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="!-left-4" />
-              <CarouselNext className="!-right-4" />
-            </Carousel>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-              {displayRecentMovements.map((movement) => (
-                <MovementCard 
-                  key={movement.id} 
-                  movement={movement} 
-                  onClick={handleMovementClick}
-                />
-              ))}
-            </div>
-          )}
-          
-          {/* Botão "Mostrar Mais" para movimentações */}
-          {hasMoreMovements && (
-            <div className="flex justify-center mt-3">
-              <Button 
-                variant="outline"
-                onClick={() => setShowAllMovements(!showAllMovements)}
-                className="text-sm"
-              >
-                {showAllMovements ? "- Mostrar Menos" : "+ Mostrar Mais"}
-              </Button>
-            </div>
-          )}
-        </div>
+        <RecentMovementsSection
+          movements={recentMovements}
+          globalFilter={filter}
+          onMovementClick={handleMovementClick}
+          isMobile={isMobile}
+          isLoading={isLoadingMovements}
+        />
       </div>
       
-      {/* Vehicle Movement Form Dialog */}
       {selectedVehicle && (
         <VehicleMovementForm
           isOpen={isFormOpen}
@@ -565,7 +371,6 @@ const Dashboard = () => {
         />
       )}
 
-      {/* Movement Details Dialog */}
       <MovementEditDialog 
         isOpen={isMovementDialogOpen}
         onClose={() => setIsMovementDialogOpen(false)}

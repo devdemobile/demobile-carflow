@@ -9,12 +9,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { SystemUser, UserPermissions } from '@/types/entities';
-import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { userRepository } from '@/services/users/userRepository';
 import { supabase } from '@/integrations/supabase/client';
-import { Skeleton } from '@/components/ui/skeleton';
-import { UserPermissionsResponse } from '@/types/user.types';
+import PermissionsForm from './permissions/PermissionsForm';
 
 type UserPermissionsDialogProps = {
   isOpen: boolean;
@@ -92,7 +90,6 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
     setSaving(true);
     
     try {
-      // Converter de camelCase para snake_case para o banco de dados
       const dbPermissions = {
         can_view_vehicles: permissions.canViewVehicles,
         can_edit_vehicles: permissions.canEditVehicles,
@@ -122,7 +119,6 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
     }
   };
 
-  // Helper para atualizar permissões individuais
   const updatePermission = (key: keyof typeof permissions, value: boolean) => {
     setPermissions(prev => ({ ...prev, [key]: value }));
   };
@@ -137,128 +133,11 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
           </DialogTitle>
         </DialogHeader>
 
-        {loading ? (
-          <div className="space-y-3">
-            {[1, 2, 3, 4, 5, 6, 7].map(i => (
-              <div key={i} className="flex items-center space-x-2">
-                <Skeleton className="h-4 w-4" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 py-4">
-            <h3 className="text-md font-medium">Veículos</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canViewVehicles" 
-                  checked={permissions.canViewVehicles}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canViewVehicles', checked === true)
-                  }
-                />
-                <label htmlFor="canViewVehicles">Visualizar veículos</label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canEditVehicles" 
-                  checked={permissions.canEditVehicles}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canEditVehicles', checked === true)
-                  }
-                />
-                <label htmlFor="canEditVehicles">Editar veículos</label>
-              </div>
-            </div>
-
-            <h3 className="text-md font-medium">Unidades</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canViewUnits" 
-                  checked={permissions.canViewUnits}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canViewUnits', checked === true)
-                  }
-                />
-                <label htmlFor="canViewUnits">Visualizar unidades</label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canEditUnits" 
-                  checked={permissions.canEditUnits}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canEditUnits', checked === true)
-                  }
-                />
-                <label htmlFor="canEditUnits">Editar unidades</label>
-              </div>
-            </div>
-
-            <h3 className="text-md font-medium">Usuários</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canViewUsers" 
-                  checked={permissions.canViewUsers}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canViewUsers', checked === true)
-                  }
-                />
-                <label htmlFor="canViewUsers">Visualizar usuários</label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canEditUsers" 
-                  checked={permissions.canEditUsers}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canEditUsers', checked === true)
-                  }
-                />
-                <label htmlFor="canEditUsers">Editar usuários</label>
-              </div>
-            </div>
-
-            <h3 className="text-md font-medium">Movimentações</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canViewMovements" 
-                  checked={permissions.canViewMovements}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canViewMovements', checked === true)
-                  }
-                />
-                <label htmlFor="canViewMovements">Visualizar movimentações</label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canEditMovements" 
-                  checked={permissions.canEditMovements}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canEditMovements', checked === true)
-                  }
-                />
-                <label htmlFor="canEditMovements">Editar movimentações</label>
-              </div>
-            </div>
-
-            <h3 className="text-md font-medium">Sistema</h3>
-            <div className="grid grid-cols-1 gap-4 pl-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="canSwitchUnits" 
-                  checked={permissions.canSwitchUnits}
-                  onCheckedChange={(checked) => 
-                    updatePermission('canSwitchUnits', checked === true)
-                  }
-                />
-                <label htmlFor="canSwitchUnits">Trocar de unidade</label>
-              </div>
-            </div>
-          </div>
-        )}
+        <PermissionsForm
+          loading={loading}
+          permissions={permissions}
+          onPermissionChange={updatePermission}
+        />
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
