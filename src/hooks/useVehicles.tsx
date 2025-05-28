@@ -8,6 +8,7 @@ import { useVehicleMakes } from './useVehicleMakes';
 import { useVehicleModels } from './useVehicleModels';
 import { useUnits } from './useUnits';
 import { movementService } from '@/services/movements/movementService';
+import { useUnitFilter } from './useUnitFilter';
 
 // Export the interface so it can be imported elsewhere
 export interface VehicleFilters {
@@ -25,6 +26,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
   const { makes } = useVehicleMakes();
   const { models } = useVehicleModels();
   const { units } = useUnits();
+  const { filter: unitFilter, canEditInUnit } = useUnitFilter();
   
   const [filters, setFilters] = useState<VehicleFilters>({
     search: initialFilters?.search || '',
@@ -48,15 +50,20 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
   const modelOptions = models.map(model => ({ value: model.id, label: model.name }));
   const unitOptions = units.map(unit => ({ value: unit.id, label: unit.name }));
 
-  // Fetch vehicles with filters
+  // Fetch vehicles with filters including unit filter
   const { data: allVehicles = [], isLoading, isError, refetch }: UseQueryResult<Vehicle[], Error> = useQuery({
-    queryKey: ['vehicles', filters],
+    queryKey: ['vehicles', filters, unitFilter],
     queryFn: async () => {
       try {
         let filteredVehicles: Vehicle[] = [];
         
         // Primeiro buscamos todos os veículos
         filteredVehicles = await vehicleService.getAllVehicles();
+        
+        // Aplicar filtro de unidade global primeiro
+        if (!unitFilter.showAllUnits && unitFilter.selectedUnitId) {
+          filteredVehicles = filteredVehicles.filter(v => v.unitId === unitFilter.selectedUnitId);
+        }
         
         // Para veículos em rota, buscar os respectivos destinos das movimentações ativas
         const promises = filteredVehicles.map(async (vehicle) => {
@@ -88,7 +95,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         // Esperar todas as consultas terminarem
         await Promise.all(promises);
         
-        // Aplicamos os filtros sequencialmente
+        // Aplicamos os filtros adicionais sequencialmente
         
         // Filtrar por status
         if (filters.status && filters.status !== 'all') {
@@ -111,7 +118,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
           );
         }
         
-        // Filtrar por unidade
+        // Filtrar por unidade específica (filtro adicional)
         if (filters.unitId && filters.unitId !== 'all') {
           filteredVehicles = filteredVehicles.filter(v => 
             v.unitId === filters.unitId
@@ -244,6 +251,8 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     findVehicleByPlate,
     makeOptions,
     modelOptions,
-    unitOptions
+    unitOptions,
+    unitFilter,
+    canEditInUnit
   };
 };

@@ -10,7 +10,9 @@ import VehicleCard from '@/components/vehicles/VehicleCard';
 import { useMediaQuery } from '@/hooks/use-mobile';
 import VehicleDetails from '@/components/vehicles/VehicleDetails';
 import VehicleForm from '@/components/vehicles/VehicleForm';
+import UnitFilter from '@/components/filters/UnitFilter';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnitFilter } from '@/hooks/useUnitFilter';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import MakesDialog from '@/components/vehicles/makes/MakesDialog';
@@ -19,6 +21,7 @@ import ModelsDialog from '@/components/vehicles/models/ModelsDialog';
 const Vehicles = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
   const { user, userPermissions } = useAuth();
+  const { filter: unitFilter, setShowAllUnits, setSelectedUnit } = useUnitFilter();
   const [isMakesDialogOpen, setIsMakesDialogOpen] = useState(false);
   const [isModelsDialogOpen, setIsModelsDialogOpen] = useState(false);
   
@@ -41,7 +44,8 @@ const Vehicles = () => {
     // Dados para os filtros
     makeOptions,
     modelOptions,
-    unitOptions
+    unitOptions,
+    canEditInUnit
   } = useVehicles();
   
   // Redirecionar se o usuário não tem permissão
@@ -49,16 +53,6 @@ const Vehicles = () => {
     toast.error('Você não tem permissão para visualizar veículos');
     return <Navigate to="/" />;
   }
-
-  // Filtrar veículos pela unidade do usuário se não for admin
-  const filteredVehicles = React.useMemo(() => {
-    if (user?.role === 'admin') {
-      return vehicles; // Admin vê todos os veículos
-    }
-    
-    // Operadores só veem veículos da sua unidade
-    return vehicles.filter(vehicle => vehicle.unitId === user?.unitId);
-  }, [vehicles, user?.role, user?.unitId]);
 
   // Definir as ações do cabeçalho
   const headerActions = userPermissions?.canEditVehicles ? (
@@ -88,9 +82,30 @@ const Vehicles = () => {
     </>
   ) : null;
 
+  const handleVehicleClick = (vehicle: any) => {
+    // Verificar se o usuário pode editar o veículo
+    if (!canEditInUnit(vehicle.unitId)) {
+      toast.warning('Você pode visualizar este veículo, mas não pode editá-lo pois pertence a outra unidade.');
+    }
+    openVehicleDetails(vehicle);
+  };
+
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
+        {/* Unit Filter */}
+        {(user?.role === 'admin' || user?.permissions?.canViewUnits) && (
+          <div className="mb-4 bg-card border rounded-lg p-4">
+            <UnitFilter
+              selectedUnitId={unitFilter.selectedUnitId}
+              showAllUnits={unitFilter.showAllUnits}
+              onUnitChange={setSelectedUnit}
+              onShowAllChange={setShowAllUnits}
+              label="Filtro Global por Unidade"
+            />
+          </div>
+        )}
+
         <VehiclesFilter 
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -101,24 +116,33 @@ const Vehicles = () => {
           showViewToggle={!isMobile}
           availableMakes={makeOptions}
           availableModels={modelOptions}
-          availableUnits={user?.role === 'admin' ? unitOptions : unitOptions.filter(u => u.value === user?.unitId)}
+          availableUnits={unitFilter.showAllUnits ? unitOptions : unitOptions.filter(u => u.value === unitFilter.selectedUnitId)}
         />
         
         {/* Indicador de filtro por unidade */}
-        {user?.role !== 'admin' && (
+        {!unitFilter.showAllUnits && unitFilter.selectedUnitId && (
           <div className="mb-4 p-3 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground">
-              <strong>Filtro ativo:</strong> Exibindo apenas veículos da {user?.unitName}
+              <strong>Filtro ativo:</strong> Exibindo apenas veículos da unidade filtrada.
+              {user?.role !== 'admin' && " Você só pode editar/criar veículos da sua própria unidade."}
+            </p>
+          </div>
+        )}
+
+        {unitFilter.showAllUnits && user?.role !== 'admin' && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              <strong>Visualização ampliada:</strong> Você está vendo veículos de todas as unidades, mas só pode editar/criar veículos da sua unidade ({user?.unitName}).
             </p>
           </div>
         )}
         
         {viewMode === 'table' ? (
           <VehiclesTable 
-            vehicles={filteredVehicles}
+            vehicles={vehicles}
             isLoading={isLoading}
             onRefresh={refetch}
-            onVehicleClick={openVehicleDetails}
+            onVehicleClick={handleVehicleClick}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
@@ -126,19 +150,18 @@ const Vehicles = () => {
               Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="h-56 bg-muted rounded-lg animate-pulse" />
               ))
-            ) : filteredVehicles.length > 0 ? (
-              filteredVehicles.map((vehicle) => (
+            ) : vehicles.length > 0 ? (
+              vehicles.map((vehicle) => (
                 <VehicleCard 
                   key={vehicle.id} 
                   vehicle={vehicle} 
-                  onClick={openVehicleDetails}
+                  onClick={handleVehicleClick}
                 />
               ))
             ) : (
               <div className="col-span-full text-center py-10">
                 <p className="text-muted-foreground">
-                  Nenhum veículo encontrado
-                  {user?.role !== 'admin' && ` na ${user?.unitName}`}
+                  Nenhum veículo encontrado com os filtros aplicados.
                 </p>
               </div>
             )}

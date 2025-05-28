@@ -7,14 +7,17 @@ import MovementsTable from '@/components/movements/MovementsTable';
 import MovementCard from '@/components/movements/MovementCard';
 import MovementsFilter from '@/components/movements/MovementsFilter';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
+import UnitFilter from '@/components/filters/UnitFilter';
 import { useAuth } from '@/hooks/useAuth';
+import { useUnitFilter } from '@/hooks/useUnitFilter';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { useMediaQuery } from '@/hooks/use-mobile';
 import { movementService } from '@/services/movements/movementService';
 
 const Movements = () => {
-  const { movements, isLoading, refetch } = useMovements();
+  const { movements, isLoading, refetch, unitFilter } = useMovements();
+  const { filter: globalUnitFilter, setShowAllUnits, setSelectedUnit } = useUnitFilter();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -29,21 +32,8 @@ const Movements = () => {
     return <Navigate to="/" />;
   }
   
-  // Filtrar movimentações pela unidade do usuário se não for admin
-  const userFilteredMovements = React.useMemo(() => {
-    if (user?.role === 'admin') {
-      return movements; // Admin vê todas as movimentações
-    }
-    
-    // Operadores só veem movimentações da sua unidade
-    return movements.filter(movement => 
-      movement.departureUnitId === user?.unitId || 
-      movement.arrivalUnitId === user?.unitId
-    );
-  }, [movements, user?.role, user?.unitId]);
-  
-  // Filtrar movimentações por busca e status
-  const filteredMovements = userFilteredMovements.filter(movement => {
+  // Filtrar movimentações por busca e status (filtros locais)
+  const filteredMovements = movements.filter(movement => {
     const matchesSearch = 
       (movement.vehiclePlate || movement.plate || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (movement.driver || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -87,11 +77,33 @@ const Movements = () => {
           <h1 className="text-3xl font-bold">Movimentações</h1>
         </div>
         
+        {/* Unit Filter */}
+        {(user?.role === 'admin' || user?.permissions?.canViewUnits) && (
+          <div className="mb-4 bg-card border rounded-lg p-4">
+            <UnitFilter
+              selectedUnitId={globalUnitFilter.selectedUnitId}
+              showAllUnits={globalUnitFilter.showAllUnits}
+              onUnitChange={setSelectedUnit}
+              onShowAllChange={setShowAllUnits}
+              label="Filtro Global por Unidade"
+            />
+          </div>
+        )}
+
         {/* Indicador de filtro por unidade */}
-        {user?.role !== 'admin' && (
+        {!globalUnitFilter.showAllUnits && globalUnitFilter.selectedUnitId && (
           <div className="mb-4 p-3 bg-muted rounded-lg">
             <p className="text-sm text-muted-foreground">
-              <strong>Filtro ativo:</strong> Exibindo apenas movimentações da {user?.unitName}
+              <strong>Filtro ativo:</strong> Exibindo apenas movimentações da unidade filtrada.
+              {user?.role !== 'admin' && " Você só pode editar movimentações da sua própria unidade."}
+            </p>
+          </div>
+        )}
+
+        {globalUnitFilter.showAllUnits && user?.role !== 'admin' && (
+          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              <strong>Visualização ampliada:</strong> Você está vendo movimentações de todas as unidades, mas só pode editar as da sua unidade ({user?.unitName}).
             </p>
           </div>
         )}
@@ -127,8 +139,7 @@ const Movements = () => {
             ) : (
               <div className="col-span-full text-center py-8">
                 <p className="text-muted-foreground">
-                  Nenhuma movimentação encontrada
-                  {user?.role !== 'admin' && ` na ${user?.unitName}`}
+                  Nenhuma movimentação encontrada com os filtros aplicados.
                 </p>
               </div>
             )}

@@ -9,6 +9,7 @@ import VehicleCard from '@/components/vehicles/VehicleCard';
 import MovementCard from '@/components/movements/MovementCard';
 import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
+import UnitFilter from '@/components/filters/UnitFilter';
 import { Vehicle, Movement } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
@@ -16,6 +17,7 @@ import { movementService } from '@/services/movements/movementService';
 import { vehicleService } from '@/services/vehicles/vehicleService';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useUnitFilter } from '@/hooks/useUnitFilter';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import {
   Carousel,
@@ -29,6 +31,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { filter, setShowAllUnits, setSelectedUnit, canEditInUnit } = useUnitFilter();
   
   const [plateSearch, setPlateSearch] = useState('');
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
@@ -40,21 +43,22 @@ const Dashboard = () => {
   const [showAllVehicles, setShowAllVehicles] = useState(false);
   const [showAllMovements, setShowAllMovements] = useState(false);
   
-  // Fetch vehicle stats - filtrados por unidade do usuário
+  // Fetch vehicle stats - filtrados por unidade selecionada
   const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 }, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['vehicle-stats', user?.unitId],
+    queryKey: ['vehicle-stats', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
         const allVehicles = await vehicleService.getAllVehicles();
         
-        // Filtrar veículos da unidade do usuário atual
-        const userVehicles = user?.unitId 
-          ? allVehicles.filter(v => v.unitId === user.unitId)
-          : allVehicles;
+        // Aplicar filtro de unidade
+        let filteredVehicles = allVehicles;
+        if (!filter.showAllUnits && filter.selectedUnitId) {
+          filteredVehicles = allVehicles.filter(v => v.unitId === filter.selectedUnitId);
+        }
         
-        const totalVehicles = userVehicles.length;
-        const vehiclesInYard = userVehicles.filter(v => v.location === 'yard').length;
-        const vehiclesOut = userVehicles.filter(v => v.location === 'out').length;
+        const totalVehicles = filteredVehicles.length;
+        const vehiclesInYard = filteredVehicles.filter(v => v.location === 'yard').length;
+        const vehiclesOut = filteredVehicles.filter(v => v.location === 'out').length;
         
         return {
           totalVehicles,
@@ -73,21 +77,22 @@ const Dashboard = () => {
     enabled: !!user
   });
   
-  // Fetch today's movements - filtradas por unidade
+  // Fetch today's movements - filtradas por unidade selecionada
   const { data: todayMovements = 0 } = useQuery({
-    queryKey: ['today-movements-count', user?.unitId],
+    queryKey: ['today-movements-count', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
         
-        // Filter by user's unit and today's date
+        // Filter by today's date
         const today = new Date().toISOString().split('T')[0];
         let filteredMovements = allMovements.filter(m => m.departureDate === today);
         
-        // Se não for admin, filtrar pela unidade do usuário
-        if (user?.role !== 'admin' && user?.unitId) {
+        // Aplicar filtro de unidade
+        if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredMovements = filteredMovements.filter(m => 
-            m.departureUnitId === user.unitId || m.arrivalUnitId === user.unitId
+            m.departureUnitId === filter.selectedUnitId || 
+            m.arrivalUnitId === filter.selectedUnitId
           );
         }
         
@@ -100,19 +105,20 @@ const Dashboard = () => {
     enabled: !!user
   });
   
-  // Fetch recent movements - filtradas por unidade
+  // Fetch recent movements - filtradas por unidade selecionada
   const { data: recentMovements = [], refetch: refetchMovements, isLoading: isLoadingMovements } = useQuery({
-    queryKey: ['recent-movements', user?.unitId],
+    queryKey: ['recent-movements', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
         
         let filteredMovements = allMovements;
         
-        // Se não for admin, filtrar pela unidade do usuário
-        if (user?.role !== 'admin' && user?.unitId) {
+        // Aplicar filtro de unidade
+        if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredMovements = allMovements.filter(m => 
-            m.departureUnitId === user.unitId || m.arrivalUnitId === user.unitId
+            m.departureUnitId === filter.selectedUnitId || 
+            m.arrivalUnitId === filter.selectedUnitId
           );
         }
         
@@ -131,18 +137,18 @@ const Dashboard = () => {
     enabled: !!user
   });
   
-  // Fetch frequently used vehicles - filtrados por unidade
+  // Fetch frequently used vehicles - filtrados por unidade selecionada
   const { data: frequentVehicles = [] } = useQuery({
-    queryKey: ['frequent-vehicles', user?.unitId],
+    queryKey: ['frequent-vehicles', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
         const vehicles = await vehicleService.getAllVehicles();
         const allMovements = await movementService.getAllMovements();
         
-        // Filtrar veículos da unidade do usuário
-        let userVehicles = vehicles;
-        if (user?.role !== 'admin' && user?.unitId) {
-          userVehicles = vehicles.filter(v => v.unitId === user.unitId);
+        // Aplicar filtro de unidade para veículos
+        let filteredVehicles = vehicles;
+        if (!filter.showAllUnits && filter.selectedUnitId) {
+          filteredVehicles = vehicles.filter(v => v.unitId === filter.selectedUnitId);
         }
         
         // Count movements per vehicle
@@ -159,7 +165,7 @@ const Dashboard = () => {
         });
         
         // Add movement count to vehicles and sort
-        return userVehicles
+        return filteredVehicles
           .map(vehicle => ({
             ...vehicle,
             movementCount: vehicleMovementCount.get(vehicle.id) || 0
@@ -191,11 +197,11 @@ const Dashboard = () => {
       const vehicle = await vehicleService.getVehicleByPlate(plateSearch);
       
       if (vehicle) {
-        // Verificar se o usuário tem acesso ao veículo (se não for admin)
-        if (user?.role !== 'admin' && user?.unitId && vehicle.unitId !== user.unitId) {
+        // Verificar se o usuário pode editar o veículo
+        if (!canEditInUnit(vehicle.unitId)) {
           toast({
-            title: "Acesso negado",
-            description: "Você não tem permissão para acessar veículos desta unidade.",
+            title: "Acesso restrito",
+            description: "Você pode visualizar este veículo, mas não pode registrar movimentações para ele.",
             variant: "destructive",
           });
           return;
@@ -221,6 +227,16 @@ const Dashboard = () => {
   };
   
   const handleVehicleClick = (vehicle: Vehicle) => {
+    // Verificar se o usuário pode editar o veículo
+    if (!canEditInUnit(vehicle.unitId)) {
+      toast({
+        title: "Acesso restrito",
+        description: "Você pode visualizar este veículo, mas não pode registrar movimentações para ele.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedVehicle(vehicle);
     setIsFormOpen(true);
   };
@@ -249,7 +265,6 @@ const Dashboard = () => {
     }
   };
   
-  // Corrigido para aceitar apenas um parâmetro
   const handleMovementDelete = async (movement: Movement): Promise<void> => {
     try {
       await movementService.deleteMovement(movement.id);
@@ -269,13 +284,9 @@ const Dashboard = () => {
     }
   };
   
-  // Função corrigida para aceitar success boolean
   const handleMovementFormSuccess = async (success: boolean) => {
     if (success) {
-      // Update recent movements after registration
       refetchMovements();
-      
-      // Clear form after submission
       setPlateSearch('');
       setSelectedVehicle(null);
       setIsFormOpen(false);
@@ -291,12 +302,12 @@ const Dashboard = () => {
     ? Math.round((vehicleStats.vehiclesOut / vehicleStats.totalVehicles) * 100) 
     : 0;
 
-  // Create header stats with percentages e tamanho fixo para as DIVs
+  // Create header stats with percentages
   const headerStats = !isMobile ? [
     {
       title: "Total de Veículos",
       value: vehicleStats.totalVehicles,
-      description: user?.role === 'admin' ? "Em todas as unidades" : `Na ${user?.unitName}`
+      description: filter.showAllUnits ? "Em todas as unidades" : `Na unidade filtrada`
     },
     {
       title: "Veículos no Pátio",
@@ -350,6 +361,18 @@ const Dashboard = () => {
             </div>
           )}
         </div>
+
+        {/* Unit Filter */}
+        {(user?.role === 'admin' || user?.permissions?.canViewUnits) && (
+          <div className="bg-card border rounded-lg p-4">
+            <UnitFilter
+              selectedUnitId={filter.selectedUnitId}
+              showAllUnits={filter.showAllUnits}
+              onUnitChange={setSelectedUnit}
+              onShowAllChange={setShowAllUnits}
+            />
+          </div>
+        )}
         
         {/* Vehicle Search */}
         <div className="bg-card border rounded-lg p-4">
@@ -370,19 +393,26 @@ const Dashboard = () => {
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Digite a placa do veículo
-              {user?.role !== 'admin' && ` da ${user?.unitName}`}
+              {!filter.showAllUnits && filter.selectedUnitId && 
+                ` (apenas veículos da sua unidade podem ser movimentados)`
+              }
             </p>
           </form>
         </div>
         
-        {/* Frequent Vehicles - com indicação de filtro por unidade */}
+        {/* Frequent Vehicles */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold">
               Veículos Frequentes
-              {user?.role !== 'admin' && (
+              {!filter.showAllUnits && filter.selectedUnitId && (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ({user?.unitName})
+                  (Unidade Filtrada)
+                </span>
+              )}
+              {filter.showAllUnits && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  (Todas as Unidades)
                 </span>
               )}
             </h2>
@@ -423,7 +453,7 @@ const Dashboard = () => {
               ) : (
                 <p className="text-muted-foreground text-center py-6 col-span-4">
                   Nenhum veículo cadastrado ainda
-                  {user?.role !== 'admin' && ` na ${user?.unitName}`}.
+                  {!filter.showAllUnits && filter.selectedUnitId && ` na unidade filtrada`}.
                 </p>
               )}
             </div>
@@ -443,14 +473,19 @@ const Dashboard = () => {
           )}
         </div>
         
-        {/* Recent Movements - com indicação de filtro por unidade */}
+        {/* Recent Movements */}
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-lg font-semibold">
               Movimentações Recentes
-              {user?.role !== 'admin' && (
+              {!filter.showAllUnits && filter.selectedUnitId && (
                 <span className="text-sm font-normal text-muted-foreground ml-2">
-                  ({user?.unitName})
+                  (Unidade Filtrada)
+                </span>
+              )}
+              {filter.showAllUnits && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  (Todas as Unidades)
                 </span>
               )}
             </h2>
@@ -471,7 +506,7 @@ const Dashboard = () => {
           ) : recentMovements.length === 0 ? (
             <div className="border rounded-lg shadow-sm p-4 col-span-full bg-muted text-center">
               Nenhuma movimentação registrada nos últimos dias
-              {user?.role !== 'admin' && ` na ${user?.unitName}`}.
+              {!filter.showAllUnits && filter.selectedUnitId && ` na unidade filtrada`}.
             </div>
           ) : !showAllMovements && !isMobile && recentMovements.length > 4 ? (
             <Carousel className="w-full mx-auto" opts={{ 
