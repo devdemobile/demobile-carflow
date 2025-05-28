@@ -46,6 +46,7 @@ export interface UserPermissions {
   canEditUsers: boolean;
   canViewMovements: boolean;
   canEditMovements: boolean;
+  canSwitchUnits: boolean;
 }
 
 export interface Vehicle {
