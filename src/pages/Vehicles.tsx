@@ -18,7 +18,7 @@ import ModelsDialog from '@/components/vehicles/models/ModelsDialog';
 
 const Vehicles = () => {
   const isMobile = useMediaQuery('(max-width: 768px)');
-  const { userPermissions } = useAuth();
+  const { user, userPermissions } = useAuth();
   const [isMakesDialogOpen, setIsMakesDialogOpen] = useState(false);
   const [isModelsDialogOpen, setIsModelsDialogOpen] = useState(false);
   
@@ -49,6 +49,16 @@ const Vehicles = () => {
     toast.error('Você não tem permissão para visualizar veículos');
     return <Navigate to="/" />;
   }
+
+  // Filtrar veículos pela unidade do usuário se não for admin
+  const filteredVehicles = React.useMemo(() => {
+    if (user?.role === 'admin') {
+      return vehicles; // Admin vê todos os veículos
+    }
+    
+    // Operadores só veem veículos da sua unidade
+    return vehicles.filter(vehicle => vehicle.unitId === user?.unitId);
+  }, [vehicles, user?.role, user?.unitId]);
 
   // Definir as ações do cabeçalho
   const headerActions = userPermissions?.canEditVehicles ? (
@@ -91,12 +101,21 @@ const Vehicles = () => {
           showViewToggle={!isMobile}
           availableMakes={makeOptions}
           availableModels={modelOptions}
-          availableUnits={unitOptions}
+          availableUnits={user?.role === 'admin' ? unitOptions : unitOptions.filter(u => u.value === user?.unitId)}
         />
+        
+        {/* Indicador de filtro por unidade */}
+        {user?.role !== 'admin' && (
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              <strong>Filtro ativo:</strong> Exibindo apenas veículos da {user?.unitName}
+            </p>
+          </div>
+        )}
         
         {viewMode === 'table' ? (
           <VehiclesTable 
-            vehicles={vehicles}
+            vehicles={filteredVehicles}
             isLoading={isLoading}
             onRefresh={refetch}
             onVehicleClick={openVehicleDetails}
@@ -107,8 +126,8 @@ const Vehicles = () => {
               Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="h-56 bg-muted rounded-lg animate-pulse" />
               ))
-            ) : vehicles.length > 0 ? (
-              vehicles.map((vehicle) => (
+            ) : filteredVehicles.length > 0 ? (
+              filteredVehicles.map((vehicle) => (
                 <VehicleCard 
                   key={vehicle.id} 
                   vehicle={vehicle} 
@@ -117,7 +136,10 @@ const Vehicles = () => {
               ))
             ) : (
               <div className="col-span-full text-center py-10">
-                <p className="text-muted-foreground">Nenhum veículo encontrado</p>
+                <p className="text-muted-foreground">
+                  Nenhum veículo encontrado
+                  {user?.role !== 'admin' && ` na ${user?.unitName}`}
+                </p>
               </div>
             )}
           </div>

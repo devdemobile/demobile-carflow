@@ -28,5 +28,6 @@ export interface UserPermissionsResponse {
   can_edit_users: boolean;
   can_view_movements: boolean;
   can_edit_movements: boolean;
+  can_switch_units: boolean;
   user_id: string;
 }

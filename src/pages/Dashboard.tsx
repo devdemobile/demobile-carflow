@@ -40,16 +40,21 @@ const Dashboard = () => {
   const [showAllVehicles, setShowAllVehicles] = useState(false);
   const [showAllMovements, setShowAllMovements] = useState(false);
   
-  // Fetch vehicle stats
+  // Fetch vehicle stats - filtrados por unidade do usuário
   const { data: vehicleStats = { totalVehicles: 0, vehiclesInYard: 0, vehiclesOut: 0 }, isLoading: isLoadingStats } = useQuery({
-    queryKey: ['vehicle-stats'],
+    queryKey: ['vehicle-stats', user?.unitId],
     queryFn: async () => {
       try {
         const allVehicles = await vehicleService.getAllVehicles();
-        const totalVehicles = allVehicles.length;
         
-        const vehiclesInYard = allVehicles.filter(v => v.location === 'yard').length;
-        const vehiclesOut = allVehicles.filter(v => v.location === 'out').length;
+        // Filtrar veículos da unidade do usuário atual
+        const userVehicles = user?.unitId 
+          ? allVehicles.filter(v => v.unitId === user.unitId)
+          : allVehicles;
+        
+        const totalVehicles = userVehicles.length;
+        const vehiclesInYard = userVehicles.filter(v => v.location === 'yard').length;
+        const vehiclesOut = userVehicles.filter(v => v.location === 'out').length;
         
         return {
           totalVehicles,
@@ -64,34 +69,55 @@ const Dashboard = () => {
           vehiclesOut: 0
         };
       }
-    }
+    },
+    enabled: !!user
   });
   
-  // Fetch today's movements
+  // Fetch today's movements - filtradas por unidade
   const { data: todayMovements = 0 } = useQuery({
-    queryKey: ['today-movements-count'],
+    queryKey: ['today-movements-count', user?.unitId],
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
         
-        // Filter today's movements
-        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
-        return allMovements.filter(m => m.departureDate === today).length;
+        // Filter by user's unit and today's date
+        const today = new Date().toISOString().split('T')[0];
+        let filteredMovements = allMovements.filter(m => m.departureDate === today);
+        
+        // Se não for admin, filtrar pela unidade do usuário
+        if (user?.role !== 'admin' && user?.unitId) {
+          filteredMovements = filteredMovements.filter(m => 
+            m.departureUnitId === user.unitId || m.arrivalUnitId === user.unitId
+          );
+        }
+        
+        return filteredMovements.length;
       } catch (error) {
         console.error('Erro ao buscar movimentações de hoje:', error);
         return 0;
       }
-    }
+    },
+    enabled: !!user
   });
   
-  // Fetch recent movements
+  // Fetch recent movements - filtradas por unidade
   const { data: recentMovements = [], refetch: refetchMovements, isLoading: isLoadingMovements } = useQuery({
-    queryKey: ['recent-movements'],
+    queryKey: ['recent-movements', user?.unitId],
     queryFn: async () => {
       try {
         const allMovements = await movementService.getAllMovements();
+        
+        let filteredMovements = allMovements;
+        
+        // Se não for admin, filtrar pela unidade do usuário
+        if (user?.role !== 'admin' && user?.unitId) {
+          filteredMovements = allMovements.filter(m => 
+            m.departureUnitId === user.unitId || m.arrivalUnitId === user.unitId
+          );
+        }
+        
         // Sort by most recent departure date
-        return allMovements
+        return filteredMovements
           .sort((a, b) => {
             const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
             const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
@@ -101,16 +127,23 @@ const Dashboard = () => {
         console.error('Erro ao buscar movimentações recentes:', error);
         return [];
       }
-    }
+    },
+    enabled: !!user
   });
   
-  // Fetch frequently used vehicles
+  // Fetch frequently used vehicles - filtrados por unidade
   const { data: frequentVehicles = [] } = useQuery({
-    queryKey: ['frequent-vehicles'],
+    queryKey: ['frequent-vehicles', user?.unitId],
     queryFn: async () => {
       try {
         const vehicles = await vehicleService.getAllVehicles();
         const allMovements = await movementService.getAllMovements();
+        
+        // Filtrar veículos da unidade do usuário
+        let userVehicles = vehicles;
+        if (user?.role !== 'admin' && user?.unitId) {
+          userVehicles = vehicles.filter(v => v.unitId === user.unitId);
+        }
         
         // Count movements per vehicle
         const vehicleMovementCount = new Map<string, number>();
@@ -126,7 +159,7 @@ const Dashboard = () => {
         });
         
         // Add movement count to vehicles and sort
-        return vehicles
+        return userVehicles
           .map(vehicle => ({
             ...vehicle,
             movementCount: vehicleMovementCount.get(vehicle.id) || 0
@@ -136,7 +169,8 @@ const Dashboard = () => {
         console.error('Erro ao buscar veículos frequentes:', error);
         return [];
       }
-    }
+    },
+    enabled: !!user
   });
   
   // Search for vehicle by plate
@@ -157,6 +191,16 @@ const Dashboard = () => {
       const vehicle = await vehicleService.getVehicleByPlate(plateSearch);
       
       if (vehicle) {
+        // Verificar se o usuário tem acesso ao veículo (se não for admin)
+        if (user?.role !== 'admin' && user?.unitId && vehicle.unitId !== user.unitId) {
+          toast({
+            title: "Acesso negado",
+            description: "Você não tem permissão para acessar veículos desta unidade.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
         setSelectedVehicle(vehicle);
         setIsFormOpen(true);
       } else {
@@ -247,11 +291,12 @@ const Dashboard = () => {
     ? Math.round((vehicleStats.vehiclesOut / vehicleStats.totalVehicles) * 100) 
     : 0;
 
-  // Create header stats with percentages and tamanho fixo para as DIVs
+  // Create header stats with percentages e tamanho fixo para as DIVs
   const headerStats = !isMobile ? [
     {
       title: "Total de Veículos",
-      value: vehicleStats.totalVehicles
+      value: vehicleStats.totalVehicles,
+      description: user?.role === 'admin' ? "Em todas as unidades" : `Na ${user?.unitName}`
     },
     {
       title: "Veículos no Pátio",
@@ -323,13 +368,25 @@ const Dashboard = () => {
                 {!isMobile && "Registrar"}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">Digite a placa do veículo</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Digite a placa do veículo
+              {user?.role !== 'admin' && ` da ${user?.unitName}`}
+            </p>
           </form>
         </div>
         
-        {/* Frequent Vehicles - Implementação do carousel e mostrar mais */}
+        {/* Frequent Vehicles - com indicação de filtro por unidade */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Veículos Frequentes</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold">
+              Veículos Frequentes
+              {user?.role !== 'admin' && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({user?.unitName})
+                </span>
+              )}
+            </h2>
+          </div>
           
           {!showAllVehicles && !isMobile && frequentVehicles.length > 4 ? (
             <Carousel className="w-full mx-auto" opts={{ 
@@ -365,7 +422,8 @@ const Dashboard = () => {
                 ))
               ) : (
                 <p className="text-muted-foreground text-center py-6 col-span-4">
-                  Nenhum veículo cadastrado ainda.
+                  Nenhum veículo cadastrado ainda
+                  {user?.role !== 'admin' && ` na ${user?.unitName}`}.
                 </p>
               )}
             </div>
@@ -385,9 +443,18 @@ const Dashboard = () => {
           )}
         </div>
         
-        {/* Recent Movements - Implementação do carousel e mostrar mais */}
+        {/* Recent Movements - com indicação de filtro por unidade */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Movimentações Recentes</h2>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-lg font-semibold">
+              Movimentações Recentes
+              {user?.role !== 'admin' && (
+                <span className="text-sm font-normal text-muted-foreground ml-2">
+                  ({user?.unitName})
+                </span>
+              )}
+            </h2>
+          </div>
           
           {isLoadingMovements ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -403,7 +470,8 @@ const Dashboard = () => {
             </div>
           ) : recentMovements.length === 0 ? (
             <div className="border rounded-lg shadow-sm p-4 col-span-full bg-muted text-center">
-              Nenhuma movimentação registrada nos últimos dias.
+              Nenhuma movimentação registrada nos últimos dias
+              {user?.role !== 'admin' && ` na ${user?.unitName}`}.
             </div>
           ) : !showAllMovements && !isMobile && recentMovements.length > 4 ? (
             <Carousel className="w-full mx-auto" opts={{ 
@@ -470,6 +538,7 @@ const Dashboard = () => {
         onUpdate={handleMovementUpdate}
         onDelete={handleMovementDelete}
         showUnits={true}
+        onSaved={refetchMovements}
       />
     </Layout>
   );

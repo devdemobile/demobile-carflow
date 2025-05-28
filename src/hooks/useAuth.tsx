@@ -14,6 +14,7 @@ interface UserPermissions {
   canEditUsers: boolean;
   canViewUnits: boolean;
   canEditUnits: boolean;
+  canSwitchUnits: boolean;
 }
 
 // Define the return type for our useAuth hook
@@ -48,6 +49,7 @@ export const useAuth = (): AuthHookReturn => {
     canEditUsers: context.user.permissions?.canEditUsers || context.user.role === 'admin',
     canViewUnits: context.user.permissions?.canViewUnits || context.user.role === 'admin',
     canEditUnits: context.user.permissions?.canEditUnits || context.user.role === 'admin',
+    canSwitchUnits: context.user.permissions?.canSwitchUnits || context.user.role === 'admin',
   } : null;
   
   return {

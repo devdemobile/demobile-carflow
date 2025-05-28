@@ -37,15 +37,19 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
     // If already on this unit, do nothing
     if (user?.unitId === unitId) return;
     
-    // If admin, switch without password
-    if (user?.role === 'admin') {
-      switchUnit(unitId);
-    } else {
-      // For non-admins, would show a modal to enter password
-      // For demo purposes, we'll just switch
-      switchUnit(unitId);
+    // Check if user has permission to switch units
+    if (!userPermissions?.canSwitchUnits) {
+      return;
     }
+    
+    switchUnit(unitId);
   };
+
+  // Define available units based on user permissions
+  const availableUnits = [
+    { id: "1", name: "Matriz" },
+    { id: "2", name: "Filial 6" }
+  ];
 
   return (
     <header className="sticky top-0 z-30 w-full bg-background/90 backdrop-blur-sm border-b">
@@ -84,7 +88,7 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
                 </Link>
               )}
               
-              {userPermissions?.canViewVehicles && (
+              {userPermissions?.canViewUnits && (
                 <Link
                   to="/units"
                   className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
@@ -109,31 +113,30 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
         
         {user && (
           <div className="flex items-center gap-2">
-            {/* Unit Switch */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Building className="h-5 w-5" />
-                  <span className="sr-only">Trocar Unidade</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Unidades</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={() => handleSwitchUnit("1")}
-                  className={user?.unitId === "1" ? "bg-muted" : ""}
-                >
-                  Matriz
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  onClick={() => handleSwitchUnit("2")}
-                  className={user?.unitId === "2" ? "bg-muted" : ""}
-                >
-                  Filial 6
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Unit Switch - Only show if user has permission */}
+            {userPermissions?.canSwitchUnits && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="relative">
+                    <Building className="h-5 w-5" />
+                    <span className="sr-only">Trocar Unidade</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Unidades</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {availableUnits.map((unit) => (
+                    <DropdownMenuItem 
+                      key={unit.id}
+                      onClick={() => handleSwitchUnit(unit.id)}
+                      className={user?.unitId === unit.id ? "bg-muted" : ""}
+                    >
+                      {unit.name}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             
             {/* User Menu */}
             <DropdownMenu>

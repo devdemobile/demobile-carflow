@@ -20,7 +20,7 @@ const Movements = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [selectedMovement, setSelectedMovement] = useState<Movement | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const { userPermissions } = useAuth();
+  const { user, userPermissions } = useAuth();
   const isMobile = useMediaQuery('(max-width: 768px)');
   
   // Redirecionar se o usuário não tem permissão
@@ -29,8 +29,21 @@ const Movements = () => {
     return <Navigate to="/" />;
   }
   
-  // Filtrar movimentações
-  const filteredMovements = movements.filter(movement => {
+  // Filtrar movimentações pela unidade do usuário se não for admin
+  const userFilteredMovements = React.useMemo(() => {
+    if (user?.role === 'admin') {
+      return movements; // Admin vê todas as movimentações
+    }
+    
+    // Operadores só veem movimentações da sua unidade
+    return movements.filter(movement => 
+      movement.departureUnitId === user?.unitId || 
+      movement.arrivalUnitId === user?.unitId
+    );
+  }, [movements, user?.role, user?.unitId]);
+  
+  // Filtrar movimentações por busca e status
+  const filteredMovements = userFilteredMovements.filter(movement => {
     const matchesSearch = 
       (movement.vehiclePlate || movement.plate || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (movement.driver || '').toLowerCase().includes(searchTerm.toLowerCase());
@@ -74,6 +87,15 @@ const Movements = () => {
           <h1 className="text-3xl font-bold">Movimentações</h1>
         </div>
         
+        {/* Indicador de filtro por unidade */}
+        {user?.role !== 'admin' && (
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              <strong>Filtro ativo:</strong> Exibindo apenas movimentações da {user?.unitName}
+            </p>
+          </div>
+        )}
+        
         <MovementsFilter
           viewMode={viewMode}
           setViewMode={setViewMode}
@@ -104,7 +126,10 @@ const Movements = () => {
               ))
             ) : (
               <div className="col-span-full text-center py-8">
-                <p className="text-muted-foreground">Nenhuma movimentação encontrada</p>
+                <p className="text-muted-foreground">
+                  Nenhuma movimentação encontrada
+                  {user?.role !== 'admin' && ` na ${user?.unitName}`}
+                </p>
               </div>
             )}
           </div>

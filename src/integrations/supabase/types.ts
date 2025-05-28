@@ -193,6 +193,7 @@ export type Database = {
           can_edit_units: boolean
           can_edit_users: boolean
           can_edit_vehicles: boolean
+          can_switch_units: boolean
           can_view_movements: boolean
           can_view_units: boolean
           can_view_users: boolean
@@ -206,6 +207,7 @@ export type Database = {
           can_edit_units?: boolean
           can_edit_users?: boolean
           can_edit_vehicles?: boolean
+          can_switch_units?: boolean
           can_view_movements?: boolean
           can_view_units?: boolean
           can_view_users?: boolean
@@ -219,6 +221,7 @@ export type Database = {
           can_edit_units?: boolean
           can_edit_users?: boolean
           can_edit_vehicles?: boolean
+          can_switch_units?: boolean
           can_view_movements?: boolean
           can_view_units?: boolean
           can_view_users?: boolean

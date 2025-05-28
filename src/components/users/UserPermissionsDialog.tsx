@@ -29,7 +29,7 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
   user,
   onSaved,
 }) => {
-  const [permissions, setPermissions] = useState<UserPermissions>({
+  const [permissions, setPermissions] = useState<UserPermissions & { canSwitchUnits: boolean }>({
     canViewVehicles: false,
     canEditVehicles: false,
     canViewUnits: false,
@@ -38,6 +38,7 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
     canEditUsers: false,
     canViewMovements: false,
     canEditMovements: false,
+    canSwitchUnits: false,
   });
   
   const [loading, setLoading] = useState(false);
@@ -71,6 +72,7 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
             canEditUsers: data.can_edit_users || false,
             canViewMovements: data.can_view_movements || false,
             canEditMovements: data.can_edit_movements || false,
+            canSwitchUnits: data.can_switch_units || false,
           });
         }
       } catch (err) {
@@ -100,6 +102,7 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
         can_edit_users: permissions.canEditUsers,
         can_view_movements: permissions.canViewMovements,
         can_edit_movements: permissions.canEditMovements,
+        can_switch_units: permissions.canSwitchUnits,
       };
       
       const success = await userRepository.updateUserPermissions(user.id, dbPermissions);
@@ -120,7 +123,7 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
   };
 
   // Helper para atualizar permissões individuais
-  const updatePermission = (key: keyof UserPermissions, value: boolean) => {
+  const updatePermission = (key: keyof typeof permissions, value: boolean) => {
     setPermissions(prev => ({ ...prev, [key]: value }));
   };
 
@@ -136,7 +139,7 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
 
         {loading ? (
           <div className="space-y-3">
-            {[1, 2, 3, 4, 5, 6].map(i => (
+            {[1, 2, 3, 4, 5, 6, 7].map(i => (
               <div key={i} className="flex items-center space-x-2">
                 <Skeleton className="h-4 w-4" />
                 <Skeleton className="h-4 w-32" />
@@ -238,6 +241,20 @@ const UserPermissionsDialog: React.FC<UserPermissionsDialogProps> = ({
                   }
                 />
                 <label htmlFor="canEditMovements">Editar movimentações</label>
+              </div>
+            </div>
+
+            <h3 className="text-md font-medium">Sistema</h3>
+            <div className="grid grid-cols-1 gap-4 pl-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="canSwitchUnits" 
+                  checked={permissions.canSwitchUnits}
+                  onCheckedChange={(checked) => 
+                    updatePermission('canSwitchUnits', checked === true)
+                  }
+                />
+                <label htmlFor="canSwitchUnits">Trocar de unidade</label>
               </div>
             </div>
           </div>
