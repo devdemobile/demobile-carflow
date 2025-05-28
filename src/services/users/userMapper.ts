@@ -50,7 +50,8 @@ export class UserMapper {
       canViewUsers: data.can_view_users,
       canEditUsers: data.can_edit_users,
       canViewMovements: data.can_view_movements,
-      canEditMovements: data.can_edit_movements
+      canEditMovements: data.can_edit_movements,
+      canSwitchUnits: data.can_switch_units
     };
   }
 }

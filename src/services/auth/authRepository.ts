@@ -102,6 +102,7 @@ export class AuthRepository implements IAuthRepository {
           canEditUsers: userData.system_user_permissions.can_edit_users,
           canViewUnits: userData.system_user_permissions.can_view_units,
           canEditUnits: userData.system_user_permissions.can_edit_units,
+          canSwitchUnits: userData.system_user_permissions.can_switch_units,
         } : undefined
       };
       
