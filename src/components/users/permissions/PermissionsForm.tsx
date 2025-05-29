@@ -2,6 +2,7 @@
 import React from 'react';
 import { UserPermissions } from '@/types/entities';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Checkbox } from '@/components/ui/checkbox';
 import PermissionSection from './PermissionSection';
 
 interface PermissionsFormProps {
