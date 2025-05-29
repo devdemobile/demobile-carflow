@@ -9,13 +9,14 @@ export const useDashboardQueries = (user: any, filter: any) => {
     queryKey: ['vehicle-stats', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
-        console.log('Buscando veículos para estatísticas...');
+        console.log('Buscando estatísticas de veículos com filtro:', filter);
         const allVehicles = await vehicleService.getAllVehicles();
-        console.log('Veículos encontrados:', allVehicles.length);
+        console.log('Total de veículos encontrados:', allVehicles.length);
         
         let filteredVehicles = allVehicles;
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredVehicles = allVehicles.filter(v => v.unitId === filter.selectedUnitId);
+          console.log('Veículos filtrados por unidade:', filteredVehicles.length);
         }
         
         const totalVehicles = filteredVehicles.length;
@@ -37,18 +38,25 @@ export const useDashboardQueries = (user: any, filter: any) => {
     queryKey: ['today-movements-count', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
-        console.log('Buscando movimentações de hoje...');
+        console.log('Buscando movimentações de hoje com filtro:', filter);
         const allMovements = await movementService.getAllMovements();
-        console.log('Movimentações encontradas:', allMovements.length);
+        console.log('Total de movimentações encontradas:', allMovements.length);
         
         const today = new Date().toISOString().split('T')[0];
-        let filteredMovements = allMovements.filter(m => m.departureDate === today);
+        let filteredMovements = allMovements.filter(m => {
+          const isToday = m.departureDate === today;
+          console.log('Movimentação:', m.id, 'Data:', m.departureDate, 'É hoje?', isToday);
+          return isToday;
+        });
+        
+        console.log('Movimentações de hoje (antes do filtro de unidade):', filteredMovements.length);
         
         if (!filter.showAllUnits && filter.selectedUnitId) {
-          filteredMovements = filteredMovements.filter(m => 
-            m.departureUnitId === filter.selectedUnitId || 
-            m.arrivalUnitId === filter.selectedUnitId
-          );
+          filteredMovements = filteredMovements.filter(m => {
+            const matchUnit = m.departureUnitId === filter.selectedUnitId || m.arrivalUnitId === filter.selectedUnitId;
+            console.log('Movimentação:', m.id, 'Match unidade?', matchUnit);
+            return matchUnit;
+          });
         }
         
         console.log('Movimentações de hoje filtradas:', filteredMovements.length);
@@ -66,7 +74,7 @@ export const useDashboardQueries = (user: any, filter: any) => {
     queryKey: ['recent-movements', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
-        console.log('Buscando movimentações recentes...');
+        console.log('Buscando movimentações recentes com filtro:', filter);
         const allMovements = await movementService.getAllMovements();
         console.log('Total de movimentações:', allMovements.length);
         
@@ -77,6 +85,7 @@ export const useDashboardQueries = (user: any, filter: any) => {
             m.departureUnitId === filter.selectedUnitId || 
             m.arrivalUnitId === filter.selectedUnitId
           );
+          console.log('Movimentações filtradas por unidade:', filteredMovements.length);
         }
         
         const sortedMovements = filteredMovements.sort((a, b) => {
@@ -85,7 +94,7 @@ export const useDashboardQueries = (user: any, filter: any) => {
           return dateB.getTime() - dateA.getTime();
         });
         
-        console.log('Movimentações recentes filtradas:', sortedMovements.length);
+        console.log('Movimentações recentes ordenadas:', sortedMovements.length);
         return sortedMovements;
       } catch (error) {
         console.error('Erro ao buscar movimentações recentes:', error);
@@ -100,7 +109,7 @@ export const useDashboardQueries = (user: any, filter: any) => {
     queryKey: ['frequent-vehicles', filter.selectedUnitId, filter.showAllUnits],
     queryFn: async () => {
       try {
-        console.log('Buscando veículos frequentes...');
+        console.log('Buscando veículos frequentes com filtro:', filter);
         const vehicles = await vehicleService.getAllVehicles();
         const allMovements = await movementService.getAllMovements();
         
@@ -110,6 +119,7 @@ export const useDashboardQueries = (user: any, filter: any) => {
         let filteredVehicles = vehicles;
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredVehicles = vehicles.filter(v => v.unitId === filter.selectedUnitId);
+          console.log('Veículos filtrados por unidade:', filteredVehicles.length);
         }
         
         const vehicleMovementCount = new Map<string, number>();

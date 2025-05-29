@@ -42,26 +42,19 @@ const VehicleDropdownFilters: React.FC<VehicleDropdownFiltersProps> = ({
   };
 
   const handleFilterKeyChange = (value: string) => {
+    console.log('Mudando tipo de filtro para:', value);
     setSelectedFilterKey(value as FilterKey);
   };
 
   const handleFilterValueChange = (value: string) => {
+    console.log('Aplicando filtro:', selectedFilterKey, '=', value);
     onFilterChange(selectedFilterKey, value);
   };
 
   const getCurrentFilterValue = () => {
-    switch (selectedFilterKey) {
-      case 'status':
-        return filters.status || 'all';
-      case 'make':
-        return filters.make || 'all';
-      case 'model':
-        return filters.model || 'all';
-      case 'unitId':
-        return filters.unitId || 'all';
-      default:
-        return 'all';
-    }
+    const currentValue = filters[selectedFilterKey] || 'all';
+    console.log('Valor atual do filtro', selectedFilterKey, ':', currentValue);
+    return currentValue;
   };
 
   return (
@@ -70,10 +63,10 @@ const VehicleDropdownFilters: React.FC<VehicleDropdownFiltersProps> = ({
         value={selectedFilterKey} 
         onValueChange={handleFilterKeyChange}
       >
-        <SelectTrigger>
+        <SelectTrigger className="bg-background border">
           <SelectValue placeholder="Tipo de filtro" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-background border z-50">
           <SelectItem value="status">Status</SelectItem>
           <SelectItem value="make">Marca</SelectItem>
           <SelectItem value="model">Modelo</SelectItem>
@@ -85,10 +78,10 @@ const VehicleDropdownFilters: React.FC<VehicleDropdownFiltersProps> = ({
         value={getCurrentFilterValue()} 
         onValueChange={handleFilterValueChange}
       >
-        <SelectTrigger>
+        <SelectTrigger className="bg-background border">
           <SelectValue placeholder="Valor" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-background border z-50">
           {filterOptions[selectedFilterKey].map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}

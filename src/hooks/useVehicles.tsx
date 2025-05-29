@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Vehicle, VehicleLocation } from '@/types';
 import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query';
@@ -10,7 +9,6 @@ import { useUnits } from './useUnits';
 import { movementService } from '@/services/movements/movementService';
 import { useUnitFilter } from './useUnitFilter';
 
-// Export the interface so it can be imported elsewhere
 export interface VehicleFilters {
   search: string;
   plate?: string;
@@ -50,58 +48,40 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
   const modelOptions = models.map(model => ({ value: model.id, label: model.name }));
   const unitOptions = units.map(unit => ({ value: unit.id, label: unit.name }));
 
-  // Fetch vehicles with filters including unit filter
+  // Fetch vehicles with filters
   const { data: allVehicles = [], isLoading, isError, refetch }: UseQueryResult<Vehicle[], Error> = useQuery({
     queryKey: ['vehicles', filters, unitFilter],
     queryFn: async () => {
       try {
-        let filteredVehicles: Vehicle[] = [];
+        console.log('Buscando veículos com filtros:', { filters, unitFilter });
         
-        // Primeiro buscamos todos os veículos
-        filteredVehicles = await vehicleService.getAllVehicles();
+        let filteredVehicles = await vehicleService.getAllVehicles();
+        console.log('Veículos encontrados (inicial):', filteredVehicles.length);
         
         // Aplicar filtro de unidade global primeiro
         if (!unitFilter.showAllUnits && unitFilter.selectedUnitId) {
           filteredVehicles = filteredVehicles.filter(v => v.unitId === unitFilter.selectedUnitId);
+          console.log('Veículos após filtro de unidade global:', filteredVehicles.length);
         }
         
-        // Para veículos em rota, buscar os respectivos destinos das movimentações ativas
-        const promises = filteredVehicles.map(async (vehicle) => {
-          if (vehicle.location === 'out') {
-            try {
-              // Buscar movimentações do veículo
-              const movements = await movementService.getMovementsByVehicle(vehicle.id);
-              
-              // Encontrar a movimentação de saída mais recente (status 'out')
-              const activeMovement = movements
-                .filter(m => m.status === 'out' && m.type === 'exit')
-                .sort((a, b) => {
-                  const dateA = new Date(`${a.departureDate}T${a.departureTime}`);
-                  const dateB = new Date(`${b.departureDate}T${b.departureTime}`);
-                  return dateB.getTime() - dateA.getTime();
-                })[0];
-              
-              // Se encontrar uma movimentação ativa, atualizar o destino do veículo
-              if (activeMovement && activeMovement.destination) {
-                vehicle.destination = activeMovement.destination;
-              }
-            } catch (error) {
-              console.error('Erro ao buscar destino do veículo:', error);
-            }
-          }
-          return vehicle;
-        });
-        
-        // Esperar todas as consultas terminarem
-        await Promise.all(promises);
-        
-        // Aplicamos os filtros adicionais sequencialmente
+        // Filtrar por busca geral
+        if (filters.search && filters.search.trim()) {
+          const searchTerm = filters.search.toLowerCase().trim();
+          filteredVehicles = filteredVehicles.filter(v =>
+            v.plate.toLowerCase().includes(searchTerm) ||
+            v.make.toLowerCase().includes(searchTerm) ||
+            v.model.toLowerCase().includes(searchTerm) ||
+            v.color.toLowerCase().includes(searchTerm) ||
+            (v.year?.toString() || '').includes(searchTerm) ||
+            v.unitName?.toLowerCase().includes(searchTerm)
+          );
+          console.log('Veículos após filtro de busca:', filteredVehicles.length);
+        }
         
         // Filtrar por status
         if (filters.status && filters.status !== 'all') {
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.location === filters.status
-          );
+          filteredVehicles = filteredVehicles.filter(v => v.location === filters.status);
+          console.log('Veículos após filtro de status:', filteredVehicles.length);
         }
         
         // Filtrar por marca
@@ -109,6 +89,7 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
           filteredVehicles = filteredVehicles.filter(v => 
             v.makeId === filters.make || v.make === filters.make
           );
+          console.log('Veículos após filtro de marca:', filteredVehicles.length);
         }
         
         // Filtrar por modelo
@@ -116,41 +97,19 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
           filteredVehicles = filteredVehicles.filter(v => 
             v.modelId === filters.model || v.model === filters.model
           );
+          console.log('Veículos após filtro de modelo:', filteredVehicles.length);
         }
         
         // Filtrar por unidade específica (filtro adicional)
         if (filters.unitId && filters.unitId !== 'all') {
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.unitId === filters.unitId
-          );
+          filteredVehicles = filteredVehicles.filter(v => v.unitId === filters.unitId);
+          console.log('Veículos após filtro de unidade específica:', filteredVehicles.length);
         }
         
-        // Filtrar por placa
-        if (filters.plate) {
-          const normalizedPlate = filters.plate.toLowerCase().trim();
-          filteredVehicles = filteredVehicles.filter(v => 
-            v.plate.toLowerCase().includes(normalizedPlate)
-          );
-        }
-
-        // Filtrar por busca geral (aplicado ao final)
-        if (filters.search) {
-          const normalizedSearch = filters.search.toLowerCase().trim();
-          filteredVehicles = filteredVehicles.filter(v =>
-            v.plate.toLowerCase().includes(normalizedSearch) ||
-            v.make.toLowerCase().includes(normalizedSearch) ||
-            v.model.toLowerCase().includes(normalizedSearch) ||
-            v.color.toLowerCase().includes(normalizedSearch) ||
-            (v.year?.toString() || '').includes(normalizedSearch) ||
-            v.unitName?.toLowerCase().includes(normalizedSearch) ||
-            (v.location === 'yard' && 'pátio'.includes(normalizedSearch)) ||
-            (v.location === 'out' && 'rota'.includes(normalizedSearch)) ||
-            (v.destination?.toLowerCase() || '').includes(normalizedSearch)
-          );
-        }
-        
+        console.log('Veículos finais filtrados:', filteredVehicles.length);
         return filteredVehicles;
       } catch (error: any) {
+        console.error('Erro ao buscar veículos:', error);
         toast.error(`Erro ao buscar veículos: ${error.message}`);
         throw error;
       }
@@ -166,23 +125,29 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
     page * pageSize
   ) : [];
 
-  // Get vehicles with most movements (mock implementation)
+  // Get vehicles with most movements
   const topVehicles = allVehicles 
     ? [...allVehicles]
       .map(vehicle => ({
         ...vehicle,
-        frequency: Math.floor(Math.random() * 50) + 1 // Mock movement count
+        frequency: Math.floor(Math.random() * 50) + 1
       }))
       .sort((a, b) => (b.frequency || 0) - (a.frequency || 0))
       .slice(0, 5)
     : [];
 
   const handleFilterChange = (name: string, value: any) => {
-    setFilters(prev => ({ ...prev, [name]: value }));
-    setPage(1); // Reset to first page when filters change
+    console.log('Mudando filtro:', name, 'para:', value);
+    setFilters(prev => {
+      const newFilters = { ...prev, [name]: value };
+      console.log('Novos filtros:', newFilters);
+      return newFilters;
+    });
+    setPage(1);
   };
 
   const resetFilters = () => {
+    console.log('Resetando filtros');
     setFilters({
       search: '',
       plate: '',

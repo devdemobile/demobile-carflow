@@ -31,7 +31,13 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
   availableUnits
 }) => {
   const removeFilter = (key: string) => {
+    console.log('Removendo filtro:', key);
     onFilterChange(key, 'all');
+  };
+
+  const handleSearchChange = (value: string) => {
+    console.log('Aplicando busca:', value);
+    onFilterChange('search', value);
   };
 
   return (
@@ -40,7 +46,7 @@ const VehiclesFilter: React.FC<VehiclesFilterProps> = ({
         title="Veículos"
         searchPlaceholder="Buscar por placa, marca, modelo, cor..."
         searchValue={filters.search || ''}
-        onSearchChange={(value) => onFilterChange('search', value)}
+        onSearchChange={handleSearchChange}
         onResetFilters={onReset}
         viewMode={viewMode}
         setViewMode={setViewMode}
