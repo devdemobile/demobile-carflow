@@ -87,24 +87,6 @@ const Vehicles = () => {
           availableUnits={unitFilter.showAllUnits ? unitOptions : unitOptions.filter(u => u.value === unitFilter.selectedUnitId)}
         />
         
-        {/* Indicador de filtro por unidade */}
-        {!unitFilter.showAllUnits && unitFilter.selectedUnitId && (
-          <div className="mb-4 p-3 bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              <strong>Filtro ativo:</strong> Exibindo apenas veículos da unidade filtrada.
-              {user?.role !== 'admin' && " Você só pode editar/criar veículos da sua própria unidade."}
-            </p>
-          </div>
-        )}
-
-        {unitFilter.showAllUnits && user?.role !== 'admin' && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
-              <strong>Visualização ampliada:</strong> Você está vendo veículos de todas as unidades, mas só pode editar/criar veículos da sua unidade ({user?.unitName}).
-            </p>
-          </div>
-        )}
-        
         <VehiclesContent
           viewMode={viewMode}
           vehicles={vehicles}

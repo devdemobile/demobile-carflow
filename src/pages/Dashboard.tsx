@@ -4,7 +4,6 @@ import { useAuth } from '@/hooks/useAuth';
 import Layout from '@/components/layout/Layout';
 import VehicleMovementForm from '@/components/dashboard/VehicleMovementForm';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
-import UnitFilter from '@/components/filters/UnitFilter';
 import FrequentVehiclesSection from '@/components/dashboard/sections/FrequentVehiclesSection';
 import RecentMovementsSection from '@/components/dashboard/sections/RecentMovementsSection';
 import DashboardStats from '@/components/dashboard/DashboardStats';
@@ -167,17 +166,6 @@ const Dashboard = () => {
             isMobile={isMobile}
           />
         </div>
-
-        {(user?.role === 'admin' || user?.permissions?.canViewUnits) && (
-          <div className="bg-card border rounded-lg p-4">
-            <UnitFilter
-              selectedUnitId={filter.selectedUnitId}
-              showAllUnits={filter.showAllUnits}
-              onUnitChange={setSelectedUnit}
-              onShowAllChange={setShowAllUnits}
-            />
-          </div>
-        )}
         
         <DashboardSearchForm
           plateSearch={plateSearch}
