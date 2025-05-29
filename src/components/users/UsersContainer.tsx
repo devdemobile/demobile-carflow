@@ -1,10 +1,9 @@
+
 import React, { useState } from 'react';
 import { SystemUser } from '@/types/entities';
 import { useMediaQuery } from '@/hooks/use-mobile';
 import { useUserFormHandler } from './container/UserFormHandler';
-
-import UsersFilter from './UsersFilter';
-import UsersHeader from './UsersHeader';
+import UsersFilters from './UsersFilters';
 import UserListView from './UserListView';
 import UserDialogs from './UserDialogs';
 
@@ -108,14 +107,8 @@ const UsersContainer: React.FC<UsersContainerProps> = ({
 
   return (
     <>
-      <UsersHeader 
-        onNewUser={handleNewUser}
-        showInactiveUsers={showInactiveUsers}
-        onToggleActiveUsers={toggleActiveUsers}
-        isAdmin={user?.role === 'admin'}
-      />
-      
-      <UsersFilter
+      <UsersFilters
+        user={user}
         viewMode={viewMode}
         setViewMode={setViewMode}
         searchTerm={searchTerm}
@@ -127,6 +120,10 @@ const UsersContainer: React.FC<UsersContainerProps> = ({
           setRoleFilter(null);
         }}
         showViewToggle={!isMobile}
+        onNewUser={handleNewUser}
+        showInactiveUsers={showInactiveUsers}
+        onToggleActiveUsers={toggleActiveUsers}
+        isAdmin={user?.role === 'admin'}
       />
       
       <UserListView 

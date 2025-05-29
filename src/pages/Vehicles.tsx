@@ -1,16 +1,13 @@
 
 import React, { useState } from 'react';
 import Layout from '@/components/layout/Layout';
-import { Button } from '@/components/ui/button';
-import { Plus, Tag, Cog } from 'lucide-react';
 import { useVehicles } from '@/hooks/useVehicles';
-import VehiclesTable from '@/components/vehicles/VehiclesTable';
-import VehiclesFilter from '@/components/vehicles/VehiclesFilter';
-import VehicleCard from '@/components/vehicles/VehicleCard';
-import { useMediaQuery } from '@/hooks/use-mobile';
 import VehicleDetails from '@/components/vehicles/VehicleDetails';
 import VehicleForm from '@/components/vehicles/VehicleForm';
-import UnitFilter from '@/components/filters/UnitFilter';
+import VehiclesFilters from '@/components/vehicles/VehiclesFilters';
+import VehiclesContent from '@/components/vehicles/VehiclesContent';
+import VehiclesActions from '@/components/vehicles/VehiclesActions';
+import { useMediaQuery } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnitFilter } from '@/hooks/useUnitFilter';
 import { toast } from 'sonner';
@@ -41,7 +38,6 @@ const Vehicles = () => {
     closeAddVehicle,
     viewMode,
     setViewMode,
-    // Dados para os filtros
     makeOptions,
     modelOptions,
     unitOptions,
@@ -54,65 +50,37 @@ const Vehicles = () => {
     return <Navigate to="/" />;
   }
 
-  // Definir as ações do cabeçalho
-  const headerActions = userPermissions?.canEditVehicles ? (
-    <>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={() => setIsMakesDialogOpen(true)}
-        aria-label="Gerenciar marcas"
-      >
-        <Tag className="h-4 w-4" />
-        {!isMobile && <span className="ml-1">Marcas</span>}
-      </Button>
-      <Button 
-        variant="outline" 
-        size="sm" 
-        onClick={() => setIsModelsDialogOpen(true)}
-        aria-label="Gerenciar modelos"
-      >
-        <Cog className="h-4 w-4" />
-        {!isMobile && <span className="ml-1">Modelos</span>}
-      </Button>
-      <Button onClick={openAddVehicle}>
-        <Plus className="h-4 w-4" />
-        {!isMobile && <span className="ml-2">Novo Veículo</span>}
-      </Button>
-    </>
-  ) : null;
-
   const handleVehicleClick = (vehicle: any) => {
-    // Verificar se o usuário pode editar o veículo
     if (!canEditInUnit(vehicle.unitId)) {
       toast.warning('Você pode visualizar este veículo, mas não pode editá-lo pois pertence a outra unidade.');
     }
     openVehicleDetails(vehicle);
   };
 
+  const headerActions = (
+    <VehiclesActions
+      userPermissions={userPermissions}
+      isMobile={isMobile}
+      onOpenMakes={() => setIsMakesDialogOpen(true)}
+      onOpenModels={() => setIsModelsDialogOpen(true)}
+      onOpenAddVehicle={openAddVehicle}
+    />
+  );
+
   return (
     <Layout>
       <div className="container mx-auto py-6 pb-16 md:pb-6">
-        {/* Unit Filter */}
-        {(user?.role === 'admin' || user?.permissions?.canViewUnits) && (
-          <div className="mb-4 bg-card border rounded-lg p-4">
-            <UnitFilter
-              selectedUnitId={unitFilter.selectedUnitId}
-              showAllUnits={unitFilter.showAllUnits}
-              onUnitChange={setSelectedUnit}
-              onShowAllChange={setShowAllUnits}
-              label="Filtro Global por Unidade"
-            />
-          </div>
-        )}
-
-        <VehiclesFilter 
+        <VehiclesFilters
+          user={user}
+          unitFilter={unitFilter}
+          setSelectedUnit={setSelectedUnit}
+          setShowAllUnits={setShowAllUnits}
           viewMode={viewMode}
           setViewMode={setViewMode}
           filters={filters}
-          onFilterChange={handleFilterChange}
-          onReset={resetFilters}
-          actions={headerActions}
+          handleFilterChange={handleFilterChange}
+          resetFilters={resetFilters}
+          headerActions={headerActions}
           showViewToggle={!isMobile}
           availableMakes={makeOptions}
           availableModels={modelOptions}
@@ -137,36 +105,13 @@ const Vehicles = () => {
           </div>
         )}
         
-        {viewMode === 'table' ? (
-          <VehiclesTable 
-            vehicles={vehicles}
-            isLoading={isLoading}
-            onRefresh={refetch}
-            onVehicleClick={handleVehicleClick}
-          />
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mt-6">
-            {isLoading ? (
-              Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="h-56 bg-muted rounded-lg animate-pulse" />
-              ))
-            ) : vehicles.length > 0 ? (
-              vehicles.map((vehicle) => (
-                <VehicleCard 
-                  key={vehicle.id} 
-                  vehicle={vehicle} 
-                  onClick={handleVehicleClick}
-                />
-              ))
-            ) : (
-              <div className="col-span-full text-center py-10">
-                <p className="text-muted-foreground">
-                  Nenhum veículo encontrado com os filtros aplicados.
-                </p>
-              </div>
-            )}
-          </div>
-        )}
+        <VehiclesContent
+          viewMode={viewMode}
+          vehicles={vehicles}
+          isLoading={isLoading}
+          refetch={refetch}
+          onVehicleClick={handleVehicleClick}
+        />
       </div>
 
       {/* Modal de detalhes do veículo */}
