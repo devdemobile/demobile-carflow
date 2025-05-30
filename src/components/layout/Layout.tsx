@@ -1,6 +1,7 @@
 
 import React from 'react';
 import Header from './Header';
+import Footer from './Footer';
 import MobileNavbar from './MobileNavbar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
@@ -19,6 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <main className="flex-1">
         {children}
       </main>
+      <Footer />
       {isMobile && user && <MobileNavbar />}
     </div>
   );
