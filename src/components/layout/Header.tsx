@@ -88,15 +88,13 @@ const Header: React.FC<HeaderProps> = ({ isMobile = false }) => {
                 </Link>
               )}
               
-              {userPermissions?.canViewUnits && (
-                <Link
-                  to="/units"
-                  className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
-                >
-                  <MapPin className="h-4 w-4" />
-                  <span>Unidades</span>
-                </Link>
-              )}
+              <Link
+                to="/units"
+                className="text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center gap-2"
+              >
+                <MapPin className="h-4 w-4" />
+                <span>Unidades</span>
+              </Link>
               
               {userPermissions?.canViewUsers && (
                 <Link

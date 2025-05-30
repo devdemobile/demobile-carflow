@@ -44,17 +44,15 @@ const MobileNavbar = () => {
           </Link>
         )}
         
-        {userPermissions?.canViewVehicles && (
-          <Link 
-            to="/units" 
-            className={`flex flex-col items-center justify-center p-2 rounded-md ${
-              location.pathname === "/units" ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            <MapPin className="h-5 w-5" />
-            <span className="text-xs mt-1">Unidades</span>
-          </Link>
-        )}
+        <Link 
+          to="/units" 
+          className={`flex flex-col items-center justify-center p-2 rounded-md ${
+            location.pathname === "/units" ? "text-primary" : "text-muted-foreground"
+          }`}
+        >
+          <MapPin className="h-5 w-5" />
+          <span className="text-xs mt-1">Unidades</span>
+        </Link>
         
         {userPermissions?.canViewUsers && (
           <Link 
