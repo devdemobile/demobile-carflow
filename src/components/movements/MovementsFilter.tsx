@@ -35,7 +35,6 @@ const MovementsFilter: React.FC<MovementsFilterProps> = ({
 
   return (
     <PageHeader
-      title="Movimentações"
       searchPlaceholder="Buscar por veículo, motorista..."
       searchValue={searchTerm}
       onSearchChange={onSearchChange}
