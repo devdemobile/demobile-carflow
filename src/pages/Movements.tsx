@@ -7,17 +7,14 @@ import MovementsTable from '@/components/movements/MovementsTable';
 import MovementCard from '@/components/movements/MovementCard';
 import MovementsFilter from '@/components/movements/MovementsFilter';
 import MovementEditDialog from '@/components/movements/MovementEditDialog';
-import UnitFilter from '@/components/filters/UnitFilter';
 import { useAuth } from '@/hooks/useAuth';
-import { useUnitFilter } from '@/hooks/useUnitFilter';
 import { toast } from 'sonner';
 import { Navigate } from 'react-router-dom';
 import { useMediaQuery } from '@/hooks/use-mobile';
 import { movementService } from '@/services/movements/movementService';
 
 const Movements = () => {
-  const { movements, isLoading, refetch, unitFilter } = useMovements();
-  const { filter: globalUnitFilter, setShowAllUnits, setSelectedUnit } = useUnitFilter();
+  const { movements, isLoading, refetch } = useMovements();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -76,37 +73,6 @@ const Movements = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-3xl font-bold">Movimentações</h1>
         </div>
-        
-        {/* Unit Filter */}
-        {(user?.role === 'admin' || user?.permissions?.canViewUnits) && (
-          <div className="mb-4 bg-card border rounded-lg p-4">
-            <UnitFilter
-              selectedUnitId={globalUnitFilter.selectedUnitId}
-              showAllUnits={globalUnitFilter.showAllUnits}
-              onUnitChange={setSelectedUnit}
-              onShowAllChange={setShowAllUnits}
-              label="Filtro Global por Unidade"
-            />
-          </div>
-        )}
-
-        {/* Indicador de filtro por unidade */}
-        {!globalUnitFilter.showAllUnits && globalUnitFilter.selectedUnitId && (
-          <div className="mb-4 p-3 bg-muted rounded-lg">
-            <p className="text-sm text-muted-foreground">
-              <strong>Filtro ativo:</strong> Exibindo apenas movimentações da unidade filtrada.
-              {user?.role !== 'admin' && " Você só pode editar movimentações da sua própria unidade."}
-            </p>
-          </div>
-        )}
-
-        {globalUnitFilter.showAllUnits && user?.role !== 'admin' && (
-          <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
-              <strong>Visualização ampliada:</strong> Você está vendo movimentações de todas as unidades, mas só pode editar as da sua unidade ({user?.unitName}).
-            </p>
-          </div>
-        )}
         
         <MovementsFilter
           viewMode={viewMode}
