@@ -27,10 +27,11 @@ export const useMovements = () => {
     queryKey: ['movements', filters, unitFilter],
     queryFn: async () => {
       try {
+        console.log('Buscando movimentações com filtros:', { filters, unitFilter });
         let movements: Movement[] = [];
         
         // Apply search filter
-        if (filters.search) {
+        if (filters.search && filters.search.trim()) {
           movements = await movementService.searchMovements(filters.search);
         }
         // Apply status filter
@@ -42,12 +43,17 @@ export const useMovements = () => {
           movements = await movementService.getAllMovements();
         }
         
-        // Apply unit filter
+        console.log('Movimentações encontradas (antes do filtro de unidade):', movements.length);
+        
+        // Apply unit filter ONLY if not showing all units
         if (!unitFilter.showAllUnits && unitFilter.selectedUnitId) {
           movements = movements.filter(movement => 
             movement.departureUnitId === unitFilter.selectedUnitId || 
             movement.arrivalUnitId === unitFilter.selectedUnitId
           );
+          console.log('Movimentações após filtro de unidade:', movements.length);
+        } else {
+          console.log('Mostrando todas as unidades - sem filtro de unidade');
         }
         
         return movements;
@@ -59,11 +65,13 @@ export const useMovements = () => {
   });
 
   const handleFilterChange = (name: string, value: string | null) => {
+    console.log('Mudando filtro de movimentação:', name, 'para:', value);
     setFilters(prev => ({ ...prev, [name]: value }));
     setPage(1); // Reset to first page when filters change
   };
 
   const resetFilters = () => {
+    console.log('Resetando filtros de movimentações');
     setFilters({
       search: '',
       status: null,

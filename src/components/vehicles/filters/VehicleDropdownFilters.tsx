@@ -48,13 +48,17 @@ const VehicleDropdownFilters: React.FC<VehicleDropdownFiltersProps> = ({
 
   const handleFilterValueChange = (value: string) => {
     console.log('Aplicando filtro:', selectedFilterKey, '=', value);
-    onFilterChange(selectedFilterKey, value);
+    // Converter 'all' para string vazia para resetar o filtro
+    const filterValue = value === 'all' ? '' : value;
+    onFilterChange(selectedFilterKey, filterValue);
   };
 
   const getCurrentFilterValue = () => {
-    const currentValue = filters[selectedFilterKey] || 'all';
-    console.log('Valor atual do filtro', selectedFilterKey, ':', currentValue);
-    return currentValue;
+    const currentValue = filters[selectedFilterKey];
+    // Se o valor estiver vazio ou undefined, retornar 'all'
+    const displayValue = currentValue && currentValue !== '' ? currentValue : 'all';
+    console.log('Valor atual do filtro', selectedFilterKey, ':', displayValue);
+    return displayValue;
   };
 
   return (

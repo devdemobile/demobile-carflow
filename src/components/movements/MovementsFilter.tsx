@@ -26,8 +26,16 @@ const MovementsFilter: React.FC<MovementsFilterProps> = ({
   actions,
   showViewToggle = true
 }) => {
+  const handleStatusChange = (value: string) => {
+    console.log('Mudando status filter para:', value);
+    // Converter 'all' para null para resetar o filtro
+    const statusValue = value === "all" ? null : value;
+    onStatusFilterChange(statusValue);
+  };
+
   return (
     <PageHeader
+      title="Movimentações"
       searchPlaceholder="Buscar por veículo, motorista..."
       searchValue={searchTerm}
       onSearchChange={onSearchChange}
@@ -40,12 +48,12 @@ const MovementsFilter: React.FC<MovementsFilterProps> = ({
       <div className="flex gap-2 items-center">
         <Select
           value={statusFilter || "all"}
-          onValueChange={(value) => onStatusFilterChange(value === "all" ? null : value)}
+          onValueChange={handleStatusChange}
         >
-          <SelectTrigger className="w-full md:w-[180px]">
+          <SelectTrigger className="w-full md:w-[180px] bg-background border">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="bg-background border z-50">
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="out">Em Rota</SelectItem>
             <SelectItem value="yard">No Pátio</SelectItem>

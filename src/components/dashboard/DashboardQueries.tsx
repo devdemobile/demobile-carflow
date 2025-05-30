@@ -14,9 +14,12 @@ export const useDashboardQueries = (user: any, filter: any) => {
         console.log('Total de veículos encontrados:', allVehicles.length);
         
         let filteredVehicles = allVehicles;
+        // Aplicar filtro de unidade APENAS se não estiver mostrando todas as unidades
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredVehicles = allVehicles.filter(v => v.unitId === filter.selectedUnitId);
           console.log('Veículos filtrados por unidade:', filteredVehicles.length);
+        } else {
+          console.log('Mostrando todas as unidades - sem filtro');
         }
         
         const totalVehicles = filteredVehicles.length;
@@ -45,21 +48,22 @@ export const useDashboardQueries = (user: any, filter: any) => {
         const today = new Date().toISOString().split('T')[0];
         let filteredMovements = allMovements.filter(m => {
           const isToday = m.departureDate === today;
-          console.log('Movimentação:', m.id, 'Data:', m.departureDate, 'É hoje?', isToday);
           return isToday;
         });
         
         console.log('Movimentações de hoje (antes do filtro de unidade):', filteredMovements.length);
         
+        // Aplicar filtro de unidade APENAS se não estiver mostrando todas as unidades
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredMovements = filteredMovements.filter(m => {
             const matchUnit = m.departureUnitId === filter.selectedUnitId || m.arrivalUnitId === filter.selectedUnitId;
-            console.log('Movimentação:', m.id, 'Match unidade?', matchUnit);
             return matchUnit;
           });
+          console.log('Movimentações de hoje filtradas por unidade:', filteredMovements.length);
+        } else {
+          console.log('Mostrando todas as unidades - sem filtro de movimentações');
         }
         
-        console.log('Movimentações de hoje filtradas:', filteredMovements.length);
         return filteredMovements.length;
       } catch (error) {
         console.error('Erro ao buscar movimentações de hoje:', error);
@@ -80,12 +84,15 @@ export const useDashboardQueries = (user: any, filter: any) => {
         
         let filteredMovements = allMovements;
         
+        // Aplicar filtro de unidade APENAS se não estiver mostrando todas as unidades
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredMovements = allMovements.filter(m => 
             m.departureUnitId === filter.selectedUnitId || 
             m.arrivalUnitId === filter.selectedUnitId
           );
           console.log('Movimentações filtradas por unidade:', filteredMovements.length);
+        } else {
+          console.log('Mostrando todas as unidades - sem filtro de movimentações');
         }
         
         const sortedMovements = filteredMovements.sort((a, b) => {
@@ -117,9 +124,12 @@ export const useDashboardQueries = (user: any, filter: any) => {
         console.log('Movimentações totais:', allMovements.length);
         
         let filteredVehicles = vehicles;
+        // Aplicar filtro de unidade APENAS se não estiver mostrando todas as unidades
         if (!filter.showAllUnits && filter.selectedUnitId) {
           filteredVehicles = vehicles.filter(v => v.unitId === filter.selectedUnitId);
           console.log('Veículos filtrados por unidade:', filteredVehicles.length);
+        } else {
+          console.log('Mostrando todas as unidades - sem filtro de veículos');
         }
         
         const vehicleMovementCount = new Map<string, number>();

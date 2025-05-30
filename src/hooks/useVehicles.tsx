@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Vehicle, VehicleLocation } from '@/types';
 import { useQuery, UseQueryResult, useQueryClient } from '@tanstack/react-query';
@@ -56,12 +57,15 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         console.log('Buscando veículos com filtros:', { filters, unitFilter });
         
         let filteredVehicles = await vehicleService.getAllVehicles();
-        console.log('Veículos encontrados (inicial):', filteredVehicles.length);
+        console.log('Total de veículos encontrados:', filteredVehicles.length);
         
-        // Aplicar filtro de unidade global primeiro
+        // Aplicar filtro de unidade global APENAS se não estiver mostrando todas as unidades
         if (!unitFilter.showAllUnits && unitFilter.selectedUnitId) {
+          console.log('Aplicando filtro de unidade global:', unitFilter.selectedUnitId);
           filteredVehicles = filteredVehicles.filter(v => v.unitId === unitFilter.selectedUnitId);
           console.log('Veículos após filtro de unidade global:', filteredVehicles.length);
+        } else {
+          console.log('Mostrando todas as unidades - sem filtro de unidade global');
         }
         
         // Filtrar por busca geral
@@ -79,13 +83,13 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         }
         
         // Filtrar por status
-        if (filters.status && filters.status !== 'all') {
+        if (filters.status && filters.status !== 'all' && filters.status !== '') {
           filteredVehicles = filteredVehicles.filter(v => v.location === filters.status);
           console.log('Veículos após filtro de status:', filteredVehicles.length);
         }
         
         // Filtrar por marca
-        if (filters.make && filters.make !== 'all') {
+        if (filters.make && filters.make !== 'all' && filters.make !== '') {
           filteredVehicles = filteredVehicles.filter(v => 
             v.makeId === filters.make || v.make === filters.make
           );
@@ -93,15 +97,15 @@ export const useVehicles = (initialFilters?: Partial<VehicleFilters>) => {
         }
         
         // Filtrar por modelo
-        if (filters.model && filters.model !== 'all') {
+        if (filters.model && filters.model !== 'all' && filters.model !== '') {
           filteredVehicles = filteredVehicles.filter(v => 
             v.modelId === filters.model || v.model === filters.model
           );
           console.log('Veículos após filtro de modelo:', filteredVehicles.length);
         }
         
-        // Filtrar por unidade específica (filtro adicional)
-        if (filters.unitId && filters.unitId !== 'all') {
+        // Filtrar por unidade específica (filtro adicional dos dropdowns)
+        if (filters.unitId && filters.unitId !== 'all' && filters.unitId !== '') {
           filteredVehicles = filteredVehicles.filter(v => v.unitId === filters.unitId);
           console.log('Veículos após filtro de unidade específica:', filteredVehicles.length);
         }
